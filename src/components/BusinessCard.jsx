@@ -34,8 +34,8 @@ a.pf-bcard-row:hover { background: #EEF6F7; }
 .pf-bcard-about { margin: 4px 0 0; padding: 10px 12px; border-radius: 10px; background: #F8FAFC; font-size: 0.86rem; line-height: 1.55; white-space: pre-line; overflow-wrap: anywhere; }
 .pf-bcard-about strong { display: block; font-size: 0.78rem; color: #475569; margin-bottom: 2px; }
 .pf-bcard-actions { display: flex; gap: 8px; padding: 8px 16px 4px; flex-wrap: wrap; }
-.pf-bcard-btn { flex: 1 1 140px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; border-radius: 10px; border: 1px solid #102444; background: #ffffff; color: #102444; font-weight: 700; font-size: 0.85rem; cursor: pointer; font-family: inherit; }
-.pf-bcard-btn.pri { background: #102444; color: #ffffff; }
+.pf-bcard-btn { flex: 1 1 140px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; border-radius: 10px; border: 1px solid ${TEAL}; background: #ffffff; color: ${TEAL}; font-weight: 700; font-size: 0.85rem; cursor: pointer; font-family: inherit; }
+.pf-bcard-btn.pri { background: ${TEAL}; color: #ffffff; }
 .pf-bcard-qr { display: flex; justify-content: center; padding: 12px 16px 4px; }
 .pf-bcard-qr-tile { background: #ffffff; border-radius: 12px; padding: 6px; line-height: 0; }
 .pf-bcard-qr svg { width: 140px; height: 140px; }

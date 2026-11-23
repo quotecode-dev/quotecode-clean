@@ -39,10 +39,10 @@ const EMPTY_FORM = Object.freeze({ title: '', notes: '', priority: 'normal', due
 
 const TASKS_CSS = `
   .pf-tasks-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
-  .pf-tasks-new { display: inline-flex; align-items: center; gap: 6px; min-block-size: 36px; padding-inline: 14px; border: none; border-radius: ${RADIUS.sm}; background: ${NEON.button}; color: #fff; font-size: 0.82rem; font-weight: 700; cursor: pointer; }
+  .pf-tasks-new { display: inline-flex; align-items: center; gap: 6px; min-block-size: 36px; padding-inline: 14px; border: none; border-radius: ${RADIUS.sm}; background: ${NEON.violet}; color: #fff; font-size: 0.82rem; font-weight: 700; cursor: pointer; }
   .pf-tasks-views { display: inline-flex; gap: 4px; margin-block: 12px 12px; }
   .pf-tasks-view { min-block-size: 32px; padding-inline: 12px; border-radius: ${RADIUS.sm}; border: 1px solid ${NEON.borderStrong}; background: ${NEON.bgInput}; color: ${NEON.textPrimary}; font-size: 0.78rem; font-weight: 700; cursor: pointer; }
-  .pf-tasks-view[aria-pressed="true"] { background: ${NEON.button}; border-color: ${NEON.button}; color: #fff; }
+  .pf-tasks-view[aria-pressed="true"] { background: ${NEON.violet}; border-color: ${NEON.violet}; color: #fff; }
   .pf-tasks-form { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px 12px; padding: 14px; margin-block-end: 12px; border-radius: 10px; border: 1px solid ${NEON.border}; background: ${NEON.bgCardAlt}; }
   .pf-tasks-field { display: flex; flex-direction: column; gap: 4px; min-inline-size: 0; font-size: 0.75rem; font-weight: 600; color: ${NEON.textSecondary}; }
   .pf-tasks-field--full { grid-column: 1 / -1; }
@@ -58,7 +58,7 @@ const TASKS_CSS = `
   .pf-tasks-cal { position: absolute; right: 4px; display: inline-flex; align-items: center; justify-content: center; inline-size: 30px; block-size: 30px; padding: 0; border: none; background: transparent; color: ${NEON.textMuted}; cursor: pointer; }
   .pf-tasks-form-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
   .pf-tasks-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-block-size: 36px; padding-inline: 14px; border-radius: ${RADIUS.sm}; border: 1px solid ${NEON.border}; background: ${NEON.bgCard}; color: ${NEON.textSecondary}; font-size: 0.8rem; font-weight: 700; cursor: pointer; }
-  .pf-tasks-btn--primary { background: ${NEON.button}; border-color: ${NEON.button}; color: #fff; }
+  .pf-tasks-btn--primary { background: ${NEON.violet}; border-color: ${NEON.violet}; color: #fff; }
   .pf-tasks-btn[disabled] { opacity: 0.6; cursor: default; }
   .pf-tasks-errors { grid-column: 1 / -1; margin: 0; padding: 8px 12px; border-radius: ${RADIUS.sm}; background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; font-size: 0.78rem; font-weight: 600; list-style: none; }
   .pf-tasks-note { font-size: 0.72rem; color: ${NEON.textMuted}; }

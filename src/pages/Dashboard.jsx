@@ -1225,7 +1225,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   const [clientName, setClientName] = useState('');
   const [clientEmail, setClientEmail] = useState('');
   const [clientPhone, setClientPhone] = useState('');
-  const [clientType, setClientType] = useState('private'); // the simplify sketch (Owner 22/11): a new quote starts with a private client
+  const [clientType, setClientType] = useState('');
   const [clientTaxId, setClientTaxId] = useState('');
   const [clientAddress, setClientAddress] = useState('');
   
@@ -2343,7 +2343,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       alertWithBlocker(blockerCodeForActionError('create_client', error.message), { surface: 'clients' }, isHebrew ? 'שגיאה ביצירת הלקוח: ' + error.message : 'Error creating client: ' + error.message);
       return false;
     }
-    // the simplify sketch (Owner 22/11, item 6): no message after adding - the client is saved quietly and the editor opens
+    setStatusMsg({ text: isHebrew ? 'הלקוח נשמר ברשימת הלקוחות.' : 'The client was saved to your client list.', type: 'success' });
     await fetchClients(session.user.id);
     return true;
   }
@@ -5750,7 +5750,14 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
       else if (presentationNote.kind === 'info') setStatusMsg({ text: presentationNote.text, type: 'success' });
       if (leaveDraftNote) setStatusMsg({ text: leaveDraftNote, type: 'error' });
 
-      // Owner 2026-11-22 (the simplify sketch, item 9): no template question after a save - "Save as a template" is in the editor ⋯ menu
+      // Owner 2026-11-13 (typed: "ברגע שלוחצים על שמירת ההצעה זה יקפיץ הודעה \" האם לשמור הצעה זאת כתבנית?\"", answers 6 / 7): asked after the
+      // FIRST save of a quote only (a saved quote shows "עדכון ההצעה" and is not asked); the template is built from the quote as it was saved
+      const templateAsk = !editingQuoteId && items.some((it) => it && !it._localExample && String(it.description || '').trim())
+        ? { form: { items, sections, quoteStructureMode, quoteSubject, projectName, terms, warranty, notes, quotePresentation, currency, priceBasis: templatePriceBasis(isLocalIsraeliBusiness, clientType) },
+          askPriceBasis: isLocalIsraeliBusiness === true && !templatePriceBasis(isLocalIsraeliBusiness, clientType) }
+        : null;
+      // the sketch: the question is asked over the editor, before the saved screen
+      const keepAsTemplate = templateAsk ? await askConfirm(isHebrew ? 'האם לשמור הצעה זאת כתבנית?' : 'Save this quote as a template?', isHebrew, isHebrew ? { yes: 'כן', no: 'לא', sketch: true } : { yes: 'Yes', no: 'No', sketch: true }) : false;
       await quoteDraft.discard(); // the draft is removed only after ALL required save stages succeeded
       clearScope('editor'); // confirmed resolution: every save stage succeeded
       setEditingQuoteId(null);
@@ -5762,7 +5769,9 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
       if (!reachedCustomer) setSavedScreen({ quoteId, link: getQuoteViewLink({ id: quoteId, tax_rate: isLocalIsraeliBusiness ? taxRate : 0, currency: isLocalIsraeliBusiness ? 'ILS' : currency }) });
       loadData(session.user.id, session.user.email);
       window.scrollTo({ top: 0, behavior: 'smooth' });
-
+      if (templateAsk && keepAsTemplate) {
+        setTemplateDialog({ kind: 'save-saved', ...templateAsk });
+      }
     } catch (err) {
       console.error(err);
       const f = blockerCodeForSaveFailure(err);
@@ -6589,7 +6598,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
           width: 52px;
           height: 52px;
           border-radius: ${RADIUS.md};
-          background: ${NEON.violet};
+          background: ${NEON.gradient};
           color: #ffffff;
           font-weight: 800;
           font-size: 1.3rem;
@@ -6922,7 +6931,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
           width: 32px;
           height: 32px;
           border-radius: 50%;
-          background: ${NEON.violet};
+          background: ${NEON.gradient};
           color: #ffffff;
           font-weight: 800;
           font-size: 0.8rem;
@@ -7154,8 +7163,8 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
         .pf-newquote-sentence { margin: 0 0 16px; color: #475569; font-size: 0.92rem; line-height: 1.5; }
         .pf-newquote-choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
         .pf-newquote-window .pf-newquote-item { min-block-size: 76px; padding: 14px; border: 1px solid #dde1e8; border-radius: 12px; }
-        .pf-newquote-window .pf-newquote-item svg { color: #102444; }
-        .pf-newquote-window .pf-newquote-item:hover, .pf-newquote-window .pf-newquote-item:focus-visible { border-color: #102444; background: #e9edf3; }
+        .pf-newquote-window .pf-newquote-item svg { color: #0F6672; }
+        .pf-newquote-window .pf-newquote-item:hover, .pf-newquote-window .pf-newquote-item:focus-visible { border-color: #0F6672; background: #e8f4f5; }
         .pf-newquote-back { margin-block-start: 14px; min-block-size: 44px; padding: 0 18px; border: 1px solid #cbd5e1; border-radius: 10px; background: #ffffff; color: #0f172a; font: inherit; font-weight: 700; cursor: pointer; }
         @media (max-width: 560px) { .pf-newquote-choices { grid-template-columns: minmax(0, 1fr); } }
         .pf-newquote-item,
@@ -7174,7 +7183,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
           text-align: start;
           cursor: pointer;
         }
-        .pf-newquote-item svg { flex: none; margin-top: 1px; color: #102444; }
+        .pf-newquote-item svg { flex: none; margin-top: 1px; color: #0c5fe3; }
         .pf-newquote-item-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
         .pf-newquote-item-text strong { font-size: 14.5px; font-weight: 600; line-height: 1.3; }
         .pf-newquote-item-text small { font-size: 12.5px; color: #475569; line-height: 1.35; }
@@ -7253,7 +7262,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
           cursor: pointer;
         }
         .quote-hot-banner-cta:hover { background: #ffedd5; }
-        .quote-hot-banner-cta:focus-visible { outline: 2px solid #102444; outline-offset: 2px; }
+        .quote-hot-banner-cta:focus-visible { outline: 2px solid #0c5fe3; outline-offset: 2px; }
         /* Owner 2026-10-19 (L-15 approval, Back everywhere): "Back to <the previous screen>" at the top of the screen (inline-start) */
         .dash-nav-back {
           align-self: flex-start;
@@ -7266,15 +7275,15 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
           border: 1px solid #c9d6d3;
           border-radius: 999px;
           background: #ffffff;
-          color: #102444;
+          color: #0F6672;
           font: inherit;
           font-size: 0.84rem;
           font-weight: 700;
           cursor: pointer;
           white-space: nowrap;
         }
-        .dash-nav-back:hover { background: #e9edf3; }
-        .dash-nav-back:focus-visible { outline: 2px solid #102444; outline-offset: 2px; }
+        .dash-nav-back:hover { background: #eef6f5; }
+        .dash-nav-back:focus-visible { outline: 2px solid #0c5fe3; outline-offset: 2px; }
         @media (max-width: 768px) { .dash-nav-back { min-height: 44px; margin-bottom: 8px; } }
         /* Owner 2026-10-19 (L-25 / L-26, "תתקן גם את ההצעה החמה! כמו שאמרת"): phones / tablet portrait keep the banner on ONE line at
            its original height - a short text (only a long name shortens; the count / days always stay visible) and a short button */
@@ -7294,9 +7303,9 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
         .quote-modern-page-btn { min-height: 40px; padding: 0 16px; border: 1.5px solid #0a55da; border-radius: 8px; background: #ffffff; color: #0a55da; font: inherit; font-weight: 700; cursor: pointer; white-space: nowrap; }
         .quote-modern-page-btn:hover:not(:disabled) { background: #eef4ff; }
         .quote-modern-page-btn:disabled { border-color: #d6dfea; color: #94a3b8; background: #f6f8fb; cursor: default; }
-        .quote-modern-page-btn:focus-visible { outline: 2px solid #102444; outline-offset: 2px; }
+        .quote-modern-page-btn:focus-visible { outline: 2px solid #0c5fe3; outline-offset: 2px; }
         .quote-modern-page-info { padding: 6px 12px; border-radius: 999px; background: #eef4ff; color: #0b2a5b; font-weight: 700; white-space: nowrap; }
-        .quote-hot-banner-action:focus-visible { outline: 2px solid #102444; outline-offset: 2px; }
+        .quote-hot-banner-action:focus-visible { outline: 2px solid #0c5fe3; outline-offset: 2px; }
 
         /* Owner superseding responsive correction (2026-10-08 17:19): on mobile / tablet-portrait the top chrome of the
            QUOTES OVERVIEW must not consume the screen before the work list. Nothing required is hidden:
@@ -7672,7 +7681,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
             cursor: pointer;
             font: inherit;
           }
-          .quote-filter-control[data-active="true"] { border-color: #102444; color: #102444; }
+          .quote-filter-control[data-active="true"] { border-color: #0c5fe3; color: #0c5fe3; }
           .quote-search-control {
             flex: 0 0 80px;
             justify-content: flex-start;
@@ -7702,22 +7711,22 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
             justify-content: space-between;
             padding: 0 14px;
             border: 0;
-            background: #102444;
+            background: #0c5fe3;
             color: #ffffff;
             font-weight: 700;
           }
-          .quote-primary-action:hover { background: #0b1a33; }
+          .quote-primary-action:hover { background: #0a54cb; }
           .quote-sort-direction:focus-visible,
           .quote-filter-control:focus-within,
           .quote-search-control:focus-within,
           .quote-primary-action:focus-visible {
-            outline: 2px solid #102444;
+            outline: 2px solid #0c5fe3;
             outline-offset: 2px;
           }
           /* Owner console 2026-10-18, typed: "להחזיר את כל מה ששונה ללא אישור שלי עכשיו!!!!!!" (docs/OWNER_LOST_BEHAVIOURS_2026-10-18.md) #1: the CSV export is visible on the desktop list again (it was hidden, contrary to its own comment) */
           .quote-export-compact { display: inline-flex; align-items: center; justify-content: center; inline-size: 32px; block-size: 32px; flex: none; border: 1px solid #d6dfea; border-radius: 7px; background: #fff; color: #172d49; cursor: pointer; }
           .quote-export-compact:hover { background: #eef4f8; }
-          .quote-export-compact:focus-visible { outline: 2px solid #102444; outline-offset: 2px; }
+          .quote-export-compact:focus-visible { outline: 2px solid #0c5fe3; outline-offset: 2px; }
 
           /* Overview strip: 4 cells (quotes / awaiting / approved / total), short dividers, number first then label */
           .quote-workspace .quote-overview {
@@ -7960,7 +7969,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
           .quote-modern-list[dir="ltr"] .quote-modern-head-views { padding-right: 10px; }
           /* Owner R4: no Action column - the status-aware primary action lives in the row dropdown (detail panel) */
           /* Owner 2026-11-11 (unified quote release, typed L-07 / L-29): the Send left the rows, so the open arrow stands out instead */
-          .quote-modern-chevron { flex: none; color: #102444; transition: transform 0.15s ease; }
+          .quote-modern-chevron { flex: none; color: #0F6672; transition: transform 0.15s ease; }
           .quote-modern-chevron[data-expanded="true"] { transform: rotate(180deg); }
           /* Owner R5: the trigger sits in the row's leading padding (right in HE, left in EN) - absolutely positioned, so it is
              not a grid track and never moves the quote number. Centered on the row content (the hot row's content starts 9px
@@ -7977,14 +7986,14 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
             align-items: center;
             justify-content: center;
             padding: 0;
-            border: 1px solid #102444;
+            border: 1px solid #b9dcdf;
             border-radius: 6px;
-            background: #e9edf3;
-            color: #102444;
+            background: #e8f4f5;
+            color: #0F6672;
             cursor: pointer;
           }
-          .quote-modern-toggle:hover { background: #e9edf3; }
-          .quote-modern-toggle:focus-visible { outline: 2px solid #102444; outline-offset: 1px; }
+          .quote-modern-toggle:hover { background: #d3eaec; }
+          .quote-modern-toggle:focus-visible { outline: 2px solid #0c5fe3; outline-offset: 1px; }
           .quote-modern-client-name { min-width: 0; }
           .quote-modern-primary-row { display: flex; justify-content: flex-start; }
           .quote-modern-detail .quote-modern-action {
@@ -8009,7 +8018,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
           }
           .quote-modern-action > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
           .quote-modern-action:hover { background: #f1f5fb; }
-          .quote-modern-action:focus-visible { outline: 2px solid #102444; outline-offset: 2px; }
+          .quote-modern-action:focus-visible { outline: 2px solid #0c5fe3; outline-offset: 2px; }
           .quote-modern-detail { padding: 10px 16px 14px; background: #f8fafc; border-top: 1px solid #e6e9ef; }
           .quote-modern-empty { padding: 28px 16px; text-align: center; color: #475569; }
           .quote-modern-show-all {
@@ -8026,7 +8035,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
             font-weight: 700;
             cursor: pointer;
           }
-          .quote-modern-show-all:focus-visible { outline: 2px solid #102444; outline-offset: -3px; }
+          .quote-modern-show-all:focus-visible { outline: 2px solid #0c5fe3; outline-offset: -3px; }
           /* the desktop page bar sits inside the list card: one 44px row under a rule */
           .quote-modern-list > .quote-modern-pager { block-size: 44px; padding: 0 8px; margin: 0; border-top: 1px solid #e3e6eb; }
           .quote-modern-list > .quote-modern-pager .quote-modern-page-btn { min-height: 32px; }
@@ -8078,7 +8087,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
           .quote-modern-head-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
           .quote-modern-head-btn:hover { color: #0f172a; }
           .quote-modern-head-cell[data-sort-active="true"] .quote-modern-head-btn { color: #0f172a; }
-          .quote-modern-head-btn:focus-visible { outline: 2px solid #102444; outline-offset: 1px; }
+          .quote-modern-head-btn:focus-visible { outline: 2px solid #0c5fe3; outline-offset: 1px; }
 
           /* AI chat launcher: a compact neutral tab docked at the workspace inline-end bottom corner (below the content, never
              over the toolbar / rows / Show all / sidebar identity). The popup opens inward from the same corner. */
@@ -8111,7 +8120,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
             width: 14px !important;
             height: 14px !important;
           }
-          .dash-ai-chat-mount .ai-chat-container .ai-support-btn:focus-visible { outline: 2px solid #102444; outline-offset: 2px; }
+          .dash-ai-chat-mount .ai-chat-container .ai-support-btn:focus-visible { outline: 2px solid #0c5fe3; outline-offset: 2px; }
           .dash-ai-chat-mount .ai-chat-popup {
             right: auto !important;
             left: auto !important;
@@ -8561,14 +8570,18 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
       )}
 
       <AccessibilityModal isOpen={showAccessibility} onClose={() => setShowAccessibility(false)} isHebrew={isHebrew} />
-      {/* Owner 2026-11-22 (the simplify sketch, item 9): "Save as a template" from the editor ⋯ menu - the open form as it is now (the local example line never) */}
       {templateDialog === 'save' && session?.user?.id && (
         <SaveTemplateDialog isHebrew={isHebrew} client={supabase} userId={session.user.id} formatMoney={(v) => `${sym}${formatMoneyDisplay(v)}`}
-          form={{ items: items.filter((it) => it && !it._localExample), sections, quoteStructureMode, quoteSubject, projectName, terms, warranty, notes, quotePresentation, currency, priceBasis: templatePriceBasis(isLocalIsraeliBusiness, clientType) }}
+          form={{ items, sections, quoteStructureMode, quoteSubject, projectName, terms, warranty, notes, quotePresentation, currency, priceBasis: templatePriceBasis(isLocalIsraeliBusiness, clientType) }}
           askPriceBasis={isLocalIsraeliBusiness === true && !templatePriceBasis(isLocalIsraeliBusiness, clientType)}
           rowBilling={(it) => rowEntry(it, isLocalIsraeliBusiness === false).pricingMethod} onClose={() => setTemplateDialog(null)} />
       )}
-
+      {/* Owner 2026-11-13: the template of a quote just saved for the first time (its form as saved - the editor is already reset) */}
+      {templateDialog?.kind === 'save-saved' && session?.user?.id && (
+        <SaveTemplateDialog isHebrew={isHebrew} client={supabase} userId={session.user.id} formatMoney={(v) => `${sym}${formatMoneyDisplay(v)}`}
+          form={templateDialog.form} askPriceBasis={templateDialog.askPriceBasis}
+          rowBilling={(it) => rowEntry(it, isLocalIsraeliBusiness === false).pricingMethod} onClose={() => setTemplateDialog(null)} />
+      )}
       {templateDialog === 'pick' && session?.user?.id && (
         <TemplatePickerDialog isHebrew={isHebrew} client={supabase} userId={session.user.id} formatMoney={(v) => `${sym}${formatMoneyDisplay(v)}`}
           onClose={() => setTemplateDialog(null)} onUse={handleUseTemplate} />
@@ -9494,8 +9507,6 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
               onSaveClientNow={handleSaveClientFromQuote}
               onSaveUnitTemplate={(section) => { if (items.some((it) => it && it._invalid)) { setAlertModalMsg(isHebrew ? 'תקנו את השדות המסומנים ונסו לשמור שוב.' : 'Fix the highlighted fields and try saving again.'); return; } setTemplateDialog({ kind: 'save-unit', section }); }}
               onAddUnitFromTemplate={() => setTemplateDialog('pick-unit')}
-              /* Owner 2026-11-22 (the simplify sketch, item 9): the editor ⋯ menu opens the save window for the open form (the quote may be unsaved) */
-              onSaveAsTemplate={() => { if (items.some((it) => it && it._invalid)) { setAlertModalMsg(isHebrew ? 'תקנו את השדות המסומנים ונסו לשמור שוב.' : 'Fix the highlighted fields and try saving again.'); return; } setTemplateDialog('save'); }}
               clientName={clientName} setClientName={setClientName}
               clientEmail={clientEmail} setClientEmail={setClientEmail}
               clientPhone={clientPhone} setClientPhone={setClientPhone}
@@ -9877,7 +9888,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
               {isHebrew ? <>מערכת <BrandName /> - ניהול עסק והצעות מחיר</> : <><BrandName /> - Business & Quoting SaaS Platform</>}
             </div>
             {/* PRODUCT_TRUTH_CAPABILITY: accessibility_tools */}
-            <button onClick={() => setShowAccessibility(true)} style={{ background: 'none', border: 'none', color: NEON.button, textDecoration: 'underline', cursor: 'pointer', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            <button onClick={() => setShowAccessibility(true)} style={{ background: 'none', border: 'none', color: NEON.violetLight, textDecoration: 'underline', cursor: 'pointer', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
               <AccessibilityIcon size={14} />
               {isHebrew ? 'הצהרת נגישות' : 'Accessibility Statement'}
             </button>
@@ -9946,7 +9957,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
                 key={id}
                 role="menuitem"
                 onClick={() => guardedNav(() => { setActiveTab(id); setIsCreatingQuote(false); setEditingQuoteId(null); setShowMobileMoreMenu(false); })}
-                style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', boxSizing: 'border-box', background: activeTab === id ? NEON.buttonTint : 'none', border: 'none', borderRadius: RADIUS.sm, padding: '10px 12px', color: activeTab === id ? NEON.button : NEON.textPrimary, cursor: 'pointer', fontSize: '0.85rem', fontWeight: '700', textAlign: isHebrew ? 'right' : 'left' }}
+                style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', boxSizing: 'border-box', background: activeTab === id ? NEON.violetLighter : 'none', border: 'none', borderRadius: RADIUS.sm, padding: '10px 12px', color: activeTab === id ? NEON.violet : NEON.textPrimary, cursor: 'pointer', fontSize: '0.85rem', fontWeight: '700', textAlign: isHebrew ? 'right' : 'left' }}
               >
                 <TabIcon size={17} strokeWidth={2.2} />
                 {mobileLabel || label}
@@ -9958,7 +9969,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
               key={`admin-${id}`}
               role="menuitem"
               onClick={() => { inAppBack.startFresh(phoneHome()); navigateToAdminSection(id); setShowMobileMoreMenu(false); }}
-              style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', boxSizing: 'border-box', background: isAdminMode && hubOfSection(adminSectionShown) === id ? NEON.buttonTint : 'none', border: 'none', borderRadius: RADIUS.sm, padding: '10px 12px', color: isAdminMode && hubOfSection(adminSectionShown) === id ? NEON.button : NEON.textSecondary, fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer' }}
+              style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', boxSizing: 'border-box', background: isAdminMode && hubOfSection(adminSectionShown) === id ? NEON.violetLighter : 'none', border: 'none', borderRadius: RADIUS.sm, padding: '10px 12px', color: isAdminMode && hubOfSection(adminSectionShown) === id ? NEON.violet : NEON.textSecondary, fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer' }}
             >
               <AdminIcon size={17} strokeWidth={2.2} />
               {isHebrew ? label.he : label.en}
@@ -9995,7 +10006,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
               written. */}
           <div style={{ borderTop: `1px solid ${NEON.border}`, margin: '4px 2px' }} />
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', boxSizing: 'border-box', padding: '8px 12px' }}>
-            <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: NEON.violet, color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.72rem', fontWeight: '800', flexShrink: 0 }}>
+            <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: NEON.gradient, color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.72rem', fontWeight: '800', flexShrink: 0 }}>
               {(session.user.email || '?').trim().charAt(0).toUpperCase()}
             </div>
             <div
@@ -10041,7 +10052,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
               onClick={() => { setShowMobileNewQuoteMenu(false); ({ standard: handleCreateNewQuoteClick, ai: handleCreateAiQuoteClick, file: handleCreateFileQuoteClick, structured: handleCreateStructuredQuoteClick, template: handleCreateTemplateQuoteClick })[id](); }}
               style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', width: '100%', boxSizing: 'border-box', minHeight: '48px', background: 'none', border: 'none', borderRadius: RADIUS.sm, padding: '10px 12px', color: NEON.textPrimary, cursor: 'pointer', textAlign: isHebrew ? 'right' : 'left' }}
             >
-              <Icon size={19} strokeWidth={2} aria-hidden="true" style={{ flexShrink: 0, marginTop: '1px', color: NEON.button }} />
+              <Icon size={19} strokeWidth={2} aria-hidden="true" style={{ flexShrink: 0, marginTop: '1px', color: NEON.violet }} />
               <span style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
                 <strong style={{ fontSize: '0.86rem', fontWeight: '700' }}>{label}</strong>
                 <small style={{ fontSize: '0.74rem', color: NEON.textSecondary, lineHeight: 1.35 }}>{hint}</small>
@@ -10085,7 +10096,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
               const isActive = id === 'main' ? (activeTab === 'main' && !showQuoteForm && !savedScreen) : activeTab === id; // the sketch: the saved screen marks no tab
               {/* PRODUCT_TRUTH_DECORATIVE: generic mobile bottom-nav button template rendered once per nav entry (main/clients/finances); each real destination is independently marked at its own screen - resolved by Claude after an agent flag */}
               return (
-                <button key={id} data-active={isActive ? 'true' : undefined} onClick={() => guardedNav(() => { setActiveTab(id); setIsCreatingQuote(false); setEditingQuoteId(null); setShowMobileMoreMenu(false); })} style={{ background: isActive ? NEON.buttonTint : 'none', border: 'none', borderRadius: RADIUS.sm, padding: '4px 6px', color: isActive ? NEON.button : NEON.textMuted, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', fontWeight: '700', whiteSpace: 'nowrap' }}>
+                <button key={id} data-active={isActive ? 'true' : undefined} onClick={() => guardedNav(() => { setActiveTab(id); setIsCreatingQuote(false); setEditingQuoteId(null); setShowMobileMoreMenu(false); })} style={{ background: isActive ? NEON.violetLighter : 'none', border: 'none', borderRadius: RADIUS.sm, padding: '4px 6px', color: isActive ? NEON.violet : NEON.textMuted, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', fontWeight: '700', whiteSpace: 'nowrap' }}>
                   <TabIcon size={16} style={{ marginBottom: '1px' }} />
                   {label}
                 </button>
@@ -10099,7 +10110,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
           onClick={() => { setShowMobileNewQuoteMenu(false); setShowMobileMoreMenu(prev => !prev); }}
           aria-haspopup="true"
           aria-expanded={showMobileMoreMenu}
-          style={{ background: (showMobileMoreMenu || (isAdminMode || navCapabilities.some((cap) => cap.mobileGroup === 'more' && cap.id === activeTab))) ? NEON.buttonTint : 'none', border: 'none', borderRadius: RADIUS.sm, padding: '4px 6px', color: (showMobileMoreMenu || (isAdminMode || navCapabilities.some((cap) => cap.mobileGroup === 'more' && cap.id === activeTab))) ? NEON.button : NEON.textMuted, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', fontWeight: '700', whiteSpace: 'nowrap' }}
+          style={{ background: (showMobileMoreMenu || (isAdminMode || navCapabilities.some((cap) => cap.mobileGroup === 'more' && cap.id === activeTab))) ? NEON.violetLighter : 'none', border: 'none', borderRadius: RADIUS.sm, padding: '4px 6px', color: (showMobileMoreMenu || (isAdminMode || navCapabilities.some((cap) => cap.mobileGroup === 'more' && cap.id === activeTab))) ? NEON.violet : NEON.textMuted, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', fontWeight: '700', whiteSpace: 'nowrap' }}
         >
           <SketchIcon name="dots" size={19} style={{ marginBottom: '1px' }} />
           {isHebrew ? 'עוד' : 'More'}

@@ -24,6 +24,7 @@ function open(over = {}) {
 async function toReview() {
   const r = open();
   fireEvent.change(screen.getByTestId('quote-from-file-input'), { target: { files: [pdf()] } });
+  fireEvent.click(screen.getByTestId('quote-from-file-read'));
   await waitFor(() => expect(screen.getByTestId('quote-from-file-lines')).toBeTruthy());
   return r;
 }
@@ -61,7 +62,7 @@ describe('the picked file: only PDF or JPG, up to 8 MB (Owner decision 3)', () =
     const { readFile } = open();
     fireEvent.change(screen.getByTestId('quote-from-file-input'), { target: { files: [pdf(10, 'a.png', 'image/png')] } });
     expect(screen.getByTestId('quote-from-file-error').textContent).toBe('אפשר להעלות רק קובץ PDF או JPG.');
-    expect(screen.queryByTestId('quote-from-file-read')).toBeNull();
+    expect(screen.getByTestId('quote-from-file-read').disabled).toBe(true);
     expect(readFile).not.toHaveBeenCalled();
   });
   it('the small print says the file is not kept here and the provider keeps a copy for a limited time (Owner decision 6)', () => {

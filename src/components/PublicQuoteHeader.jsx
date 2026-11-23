@@ -142,7 +142,7 @@ export default function PublicQuoteHeader({ isHebrew, bizLogo, bizName, bizTaxId
   // branch was 0.7rem (11.2px) in base; it is 0.75rem = 12px, the later 12px screen floor (IRON-MOBILE-WIDTH-001).
   // CTA ink: base LIGHT.sky (#0284c7, src/theme/neonTheme.js) is 3.68:1 on the white pill over the band - the darker sky #0369a1 (same hue) is
   // 5.33:1 (cloud-fix4, Owner round 4: a base colour is no accessibility waiver).
-  const CTA_INK = '#102444';
+  const CTA_INK = '#0369a1';
   const callCta = (compactCta) => (bizPhone ? (
     <div className="pq-lh-call no-print" data-html2canvas-ignore="true">
       {/* PRODUCT_TRUTH_CAPABILITY: public_call */}

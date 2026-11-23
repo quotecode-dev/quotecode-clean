@@ -92,7 +92,7 @@ export default function SampleQuote({ locale = 'he' }) {
                   key={String(value)}
                   to={queryString({ ...opts, [g.key]: value })}
                   aria-current={active ? 'true' : undefined}
-                  style={{ padding: '4px 10px', borderRadius: '999px', border: `1px solid ${active ? '#102444' : '#CBD5E1'}`, background: active ? '#102444' : '#FFFFFF', color: active ? '#FFFFFF' : '#2B3640', textDecoration: 'none', fontSize: '13px', lineHeight: 1.4 }}
+                  style={{ padding: '4px 10px', borderRadius: '999px', border: `1px solid ${active ? '#315F6F' : '#CBD5E1'}`, background: active ? '#315F6F' : '#FFFFFF', color: active ? '#FFFFFF' : '#2B3640', textDecoration: 'none', fontSize: '13px', lineHeight: 1.4 }}
                 >
                   {label}
                 </Link>

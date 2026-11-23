@@ -29,8 +29,7 @@ describe('simple1120 law-50 measured corrections', () => {
 describe('simple1120: "To: Whole quote" spacing as the sketch', () => {
   it('the whole-quote target is its own item, so the 4px gap of .qt-to separates it from "To:" (the sketch: two flex items)', () => {
     const src = fs.readFileSync('src/components/quoteTree/QuoteTreeEditor.jsx', 'utf8');
-    expect(src).not.toContain('data-testid="qt-form-to"');
-    expect(src).toContain('<small className="qt-eqp" data-testid="qt-eq-path">');
+    expect(src).toContain('{toText === t.whole ? <span>{t.whole}</span> : <EllipsisText');
   });
 });
 

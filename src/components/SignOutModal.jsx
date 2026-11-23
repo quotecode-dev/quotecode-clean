@@ -26,7 +26,7 @@ export default function SignOutModal({ isOpen, onClose, onConfirm, isHebrew, has
           {/* PRODUCT_TRUTH_DECORATIVE: Confirm button signs the user out; session/auth management, not a registered product capability */}
           <button 
             onClick={onConfirm}
-            style={{ flex: 1, background: APP.button, color: APP.textOnAccent, border: 'none', padding: '10px', borderRadius: '6px', fontWeight: '600', fontSize: '0.9rem', cursor: 'pointer', boxShadow: 'none' }}
+            style={{ flex: 1, background: APP.violet, color: APP.textOnAccent, border: 'none', padding: '10px', borderRadius: '6px', fontWeight: '600', fontSize: '0.9rem', cursor: 'pointer', boxShadow: 'none' }}
           >
             {isHebrew ? 'אישור' : 'Confirm'}
           </button>

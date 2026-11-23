@@ -247,9 +247,9 @@ export default function ClientsTab({
           {/* PRODUCT_TRUTH_CAPABILITY: clients */}
           <button
             onClick={() => setEditingClient(client)}
-            style={{ border: 'none', borderRadius: RADIUS.sm, padding: '6px 10px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: '600', display: 'inline-flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', background: NEON.buttonTint, color: NEON.button }}
+            style={{ border: 'none', borderRadius: RADIUS.sm, padding: '6px 10px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: '600', display: 'inline-flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', background: NEON.violetLighter, color: NEON.violet }}
           >
-            <Pencil size={14} color={NEON.button} strokeWidth={2.2} />
+            <Pencil size={14} color={NEON.violet} strokeWidth={2.2} />
             <span>{isHebrew ? 'עריכה' : 'Edit'}</span>
           </button>
           {/* PRODUCT_TRUTH_CAPABILITY: clients */}
@@ -391,7 +391,7 @@ export default function ClientsTab({
               aria-expanded={mobileSortMenuOpen}
               style={{ display: 'flex', alignItems: 'center', gap: '5px', height: '100%', padding: '0 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: RADIUS.sm, background: NEON.bgInput, color: NEON.textPrimary, cursor: 'pointer', fontSize: '0.75rem', fontWeight: '600', whiteSpace: 'nowrap' }}
             >
-              <ArrowUpDown size={14} color={NEON.button} strokeWidth={2.2} />
+              <ArrowUpDown size={14} color={NEON.violet} strokeWidth={2.2} />
               {clientSortField === 'client_type'
                 ? (isHebrew ? 'סוג' : 'Type')
                 : (isHebrew ? 'שם' : 'Name')}
@@ -414,7 +414,7 @@ export default function ClientsTab({
                       style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', width: '100%', padding: '9px 12px', background: isActive ? NEON.bgCardAlt : 'transparent', border: 'none', color: NEON.textPrimary, cursor: 'pointer', fontSize: '0.78rem', fontWeight: isActive ? '700' : '500', textAlign: isHebrew ? 'right' : 'left' }}
                     >
                       <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        {isActive && <Check size={13} color={NEON.button} strokeWidth={2.5} />}
+                        {isActive && <Check size={13} color={NEON.violet} strokeWidth={2.5} />}
                         {opt.label}
                       </span>
                       {isActive && <span style={{ color: NEON.textMuted }}>{clientSortDirection === 'asc' ? '▲' : '▼'}</span>}
@@ -504,7 +504,7 @@ export default function ClientsTab({
                     className={`cli-row-btn${isExpanded ? ' cli-row-expanded' : ''}`}
                     style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', boxSizing: 'border-box', background: 'none', border: 'none', padding: '11px 10px', cursor: 'pointer', textAlign: isHebrew ? 'right' : 'left', fontFamily: 'inherit', borderRadius: RADIUS.sm }}
                   >
-                    <ChevronDown size={15} strokeWidth={2.4} color={NEON.button} style={{ flexShrink: 0, transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }} />
+                    <ChevronDown size={15} strokeWidth={2.4} color={NEON.violet} style={{ flexShrink: 0, transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }} />
                     {/* חוק ברזל (Clients Table Completion task, §4 - עמודת-סוג
                         עצמאית): התג עבר מ-span פנימי בתוך עמודת-השם לעמודה
                         קבועת-רוחב (62px, זהה לרוחב כפתור-המיון "סוג" בכותרת
@@ -579,7 +579,7 @@ export default function ClientsTab({
                     className={`cli-row-btn${isExpanded ? ' cli-row-expanded' : ''}`}
                     style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', boxSizing: 'border-box', background: 'none', border: 'none', padding: '10px var(--pf-mobile-surface-pad, 10px)', cursor: 'pointer', textAlign: isHebrew ? 'right' : 'left', fontFamily: 'inherit' }}
                   >
-                    <ChevronDown size={15} strokeWidth={2.4} color={NEON.button} style={{ flexShrink: 0, transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }} />
+                    <ChevronDown size={15} strokeWidth={2.4} color={NEON.violet} style={{ flexShrink: 0, transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }} />
                     <div style={{ flex: '1 1 auto', minWidth: 0 }}>
                       {/* §D Focused Clients Correction: same badge-before-name
                           reorder as the Desktop row above - the type

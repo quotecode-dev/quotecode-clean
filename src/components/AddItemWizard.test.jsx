@@ -68,7 +68,7 @@ describe('AddItemWizard - Step 1 opens directly on the business task (no source-
     expect(screen.getByText('Enter the product or work you want to add to the quote.')).toBeTruthy();
     const input = document.getElementById('wiz-description');
     expect(input).toBeTruthy();
-    expect(input.placeholder).toBe('e.g. Installation, handles or a screen');
+    expect(input.placeholder).toBe('e.g. Installation, handles, or a window screen');
   });
 
   it('Task 39: a description of 255 characters advances; 256 is refused with the length message, never truncated', () => {

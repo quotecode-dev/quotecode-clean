@@ -53,7 +53,7 @@ export default function PaymentFrame({ url, isHebrew, onClose, onReturn, onFallb
           <strong style={{ flex: '1 1 auto', fontSize: '1rem', color: '#0f172a' }}>{he ? 'תשלום מאובטח' : 'Secure payment'}</strong>
           {/* PRODUCT_TRUTH_DECORATIVE: opens the same PayPlus payment page as a full page instead of the window */}
           <button type="button" data-testid="payment-frame-full" onClick={() => { done.current = true; onFallback(url); }}
-            style={{ background: 'none', border: 'none', color: '#102444', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer', textDecoration: 'underline', padding: '6px 4px' }}>
+            style={{ background: 'none', border: 'none', color: '#0f766e', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer', textDecoration: 'underline', padding: '6px 4px' }}>
             {he ? 'פתיחה בדף מלא' : 'Open as a full page'}
           </button>
           {/* PRODUCT_TRUTH_DECORATIVE: closes the payment window; nothing is paid unless the payment page itself confirmed it */}

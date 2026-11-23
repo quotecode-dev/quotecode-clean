@@ -351,7 +351,7 @@
   background: transparent;
   cursor: zoom-in;
 }
-.pq-media .pq-media-zoom:focus-visible { outline: 2px solid #102444; outline-offset: -2px; }
+.pq-media .pq-media-zoom:focus-visible { outline: 2px solid #0c5fe3; outline-offset: -2px; }
 .pq-lightbox {
   position: fixed;
   inset: 0;
@@ -380,7 +380,7 @@
   line-height: 40px;
   cursor: pointer;
 }
-.pq-lightbox-close:focus-visible { outline: 3px solid #102444; outline-offset: 2px; }
+.pq-lightbox-close:focus-visible { outline: 3px solid #0c5fe3; outline-offset: 2px; }
 @media print {
   .pq-media .pq-media-zoom, .pq-lightbox { display: none !important; }
 }

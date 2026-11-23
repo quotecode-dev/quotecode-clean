@@ -9,10 +9,9 @@ import './quotesList.css';
 import { MoneyValue, CurrencyTotals } from './NumericValue';
 import { totalsByQuoteCurrency, roundIlsListTotals } from '../utils/money';
 import { isHotQuote } from '../utils/quoteStatistics';
-import { quoteDisplayStatus, quoteDisplayLabel, quoteDisplayTone, quoteDisplayChipRole, QUOTE_FILTER_OPTIONS, quoteFilterLabel, QUOTE_DISPLAY_STATUSES } from '../utils/quoteStatusDisplay';
+import { quoteDisplayStatus, quoteDisplayLabel, quoteDisplayTone, quoteDisplayChipRole, QUOTE_FILTER_OPTIONS, quoteFilterLabel } from '../utils/quoteStatusDisplay';
 import TekangoEyeIcon from './TekangoEyeIcon';
 import { useMoneySlotSize } from '../hooks/useMoneySlotSize';
-import { useCardStatusColumn } from '../hooks/useCardStatusColumn';
 import { useQuoteHistoryGeometry, QH_CELL_PAD, QH_ACTION_COL, QH_CELL_STYLE } from '../hooks/useQuoteHistoryGeometry';
 import { formatShortDate } from '../utils/shortDate';
 import { relativeQuoteDay, displayQuoteNumber, getQuoteViewLink, quotePartyLabel } from '../utils/quoteListRows';
@@ -447,7 +446,7 @@ export default function QuotesTab({
       {noQuotesAtAll && typeof onCreateQuote === 'function' && (
         // PRODUCT_TRUTH_DECORATIVE: opens the same new-quote path as the toolbar's "new quote" (its own checks run there)
         <button type="button" data-testid="quotes-empty-new" onClick={() => onCreateQuote()}
-          style={{ minHeight: 44, padding: '0 18px', borderRadius: 10, border: 'none', background: '#102444', color: '#fff', fontWeight: 800, fontSize: '0.92rem', cursor: 'pointer', fontFamily: 'inherit' }}>
+          style={{ minHeight: 44, padding: '0 18px', borderRadius: 10, border: 'none', background: '#0F6672', color: '#fff', fontWeight: 800, fontSize: '0.92rem', cursor: 'pointer', fontFamily: 'inherit' }}>
           {isHebrew ? 'הצעה חדשה' : 'New quote'}
         </button>
       )}
@@ -704,9 +703,6 @@ export default function QuotesTab({
   };
   // IRON-MOBILE-WIDTH-001: the card amount slot is exactly as wide as the widest rendered amount (shared physical axis, no dead gap).
   useMoneySlotSize(cardListRef, moneyTexts, { enabled: useCards });
-  // L-19 (Owner console 2026-11-22): the card status stands in the amount column - --stw = the widest status of the language, at least the
-  // widest amount (declared AFTER the money slot hook, so the slot is already sized when it is read)
-  useCardStatusColumn(cardListRef, QUOTE_DISPLAY_STATUSES.map((k) => quoteDisplayLabel(k, isHebrew)), { enabled: useCards, renderKey: `${moneyTexts.join('\u0001')}|${currentPage}` });
 
   const renderEmailDot = (quote, emailStatus) => (
     quote.email_bounced ? (
@@ -1434,7 +1430,7 @@ export default function QuotesTab({
                       aria-controls={detailId}
                       aria-label={isHebrew ? 'הצגת פרטים נוספים' : 'Show more details'}
                       data-qh="action"
-                      style={{ background: isExpanded ? NEON.buttonTint : 'transparent', border: 'none', borderRadius: RADIUS.sm, width: '20px', height: '20px', padding: '6px', margin: '-6px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: NEON.button }}
+                      style={{ background: isExpanded ? NEON.violetLighter : 'transparent', border: 'none', borderRadius: RADIUS.sm, width: '20px', height: '20px', padding: '6px', margin: '-6px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: NEON.violet }}
                     >
                       <ChevronDown size={16} strokeWidth={2.4} style={{ transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }} />
                     </button>

@@ -19,8 +19,6 @@
   --tl-accent: #315f6f;
   --tl-accent-strong: #264b58;
   --tl-accent-soft: #dfe9ec;
-  --tl-btn: #102444;
-  --tl-btn-strong: #0b1a33;
   --tl-ok: #24694c;
   --tl-no: #8f3434;
   --tl-dark: #17272d;
@@ -33,7 +31,7 @@
 }
 .tl-landing *, .tl-landing *::before, .tl-landing *::after { box-sizing: border-box; }
 .tl-landing a { color: inherit; }
-.tl-landing :focus-visible { outline: 3px solid var(--tl-btn); outline-offset: 2px; border-radius: 4px; }
+.tl-landing :focus-visible { outline: 3px solid var(--tl-accent); outline-offset: 2px; border-radius: 4px; }
 .tl-landing h1, .tl-landing h2, .tl-landing h3, .tl-landing h4 { color: var(--tl-ink); font-family: inherit; font-weight: 700; }
 .tl-landing h3, .tl-landing h4 { font-weight: 600; }
 .tl-landing section[id] { scroll-margin-top: 84px; }
@@ -46,10 +44,10 @@
   border-radius: 7px; font-weight: 600; font-size: 16px; text-decoration: none; line-height: 1.2; cursor: pointer;
   transition: background .15s ease, border-color .15s ease, color .15s ease;
 }
-.tl-cta { background: var(--tl-btn); border: 1px solid var(--tl-btn); color: #ffffff !important; }
-.tl-cta:hover { background: var(--tl-btn-strong); border-color: var(--tl-btn-strong); }
+.tl-cta { background: var(--tl-accent); border: 1px solid var(--tl-accent); color: #ffffff !important; }
+.tl-cta:hover { background: var(--tl-accent-strong); border-color: var(--tl-accent-strong); }
 .tl-ghost { background: #ffffff; border: 1px solid #aebbc0; color: var(--tl-ink) !important; }
-.tl-ghost:hover { border-color: var(--tl-btn); color: var(--tl-btn) !important; }
+.tl-ghost:hover { border-color: var(--tl-accent); color: var(--tl-accent) !important; }
 
 /* ---------- header ---------- */
 .tl-header { position: sticky; top: 0; z-index: 40; background: rgba(247, 248, 246, .94); backdrop-filter: blur(10px); border-bottom: 1px solid #e3e8e9; }
@@ -58,7 +56,7 @@
 .tl-logo img { height: 30px !important; width: auto !important; }
 .tl-menu { display: flex; align-items: center; gap: 22px; margin-inline-start: auto; }
 .tl-menu-link { display: inline-flex; align-items: center; min-height: 44px; color: #34434a !important; text-decoration: none; font-size: 15px; padding: 0 2px; } /* local fix 6: 44px target (was ~42px) */
-.tl-menu-link:hover { color: var(--tl-btn) !important; }
+.tl-menu-link:hover { color: var(--tl-accent) !important; }
 .tl-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 /* Header placement - latest Owner instruction (2026-10-06, supersedes the 2026-10-05 "actions next to the logo" reading):
    EN (LTR): logo far left, section links in the middle, sign-in / trial actions far right (unchanged).
@@ -67,8 +65,8 @@
 .tl-landing[dir='rtl'] .tl-menu { margin-inline-start: 0; }
 .tl-landing[dir='rtl'] .tl-actions { margin-inline-start: auto; }
 .tl-login { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 8px 6px; color: var(--tl-ink) !important; text-decoration: none; font-size: 15px; font-weight: 600; white-space: nowrap; }
-.tl-login:hover { color: var(--tl-btn) !important; }
-.tl-forgot { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; background: none; border: 0; color: var(--tl-btn); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.tl-login:hover { color: var(--tl-accent) !important; }
+.tl-forgot { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; background: none; border: 0; color: var(--tl-accent); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
 .tl-header-cta { min-height: 44px; padding: 10px 16px; font-size: 15px; white-space: nowrap; }
 .tl-menu-toggle { display: none; align-items: center; gap: 6px; min-height: 44px; min-width: 44px; padding: 8px 12px; border: 1px solid #b9c6c9; border-radius: 7px; background: #ffffff; color: var(--tl-dark); font: inherit; font-size: 15px; cursor: pointer; }
 .tl-drawer-backdrop { position: fixed; inset: 0; z-index: 100; background: rgba(12, 24, 29, .46); display: flex; direction: ltr; }
@@ -206,10 +204,10 @@
 /* styles showcase */
 .tl-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
 .tl-tab { min-height: 44px; padding: 10px 16px; border: 1px solid #bdc9cb; border-radius: 999px; background: #ffffff; color: var(--tl-ink); font: inherit; font-size: 15px; cursor: pointer; }
-.tl-tab:hover { border-color: var(--tl-btn); }
+.tl-tab:hover { border-color: var(--tl-accent); }
 /* cloud-fix4b (A18 dark-pocket gate): selected controls use the teal accent, not near-black --tl-dark - black on screen
    is reserved for the greeting card and the quote issuer band (Owner). White 7.0:1, badges 5.0:1 / 5.8:1. */
-.tl-tab[aria-selected='true'] { background: var(--tl-btn); border-color: var(--tl-btn); color: #ffffff; }
+.tl-tab[aria-selected='true'] { background: var(--tl-accent); border-color: var(--tl-accent); color: #ffffff; }
 /* Availability (ledger L09): every tab says whether the style is available (Classic, every account) or a preview only.
    Contrast: #24694c / #4f5d64 on #ffffff 6.6 / 6.8; #bfe3d0 / #e3ece9 on the selected #17272d 11.1 / 12.8. */
 .tl-tab { display: inline-flex; flex-direction: column; align-items: center; gap: 1px; line-height: 1.25; border-radius: 12px; }
@@ -265,7 +263,7 @@
 .tl-install-text p { margin: 0; color: #2d3b42; font-size: 15px; line-height: 1.55; }
 .tl-install-sub { font-size: 13px; font-weight: 600; color: var(--tl-accent); }
 /* Owner 2026-11-05 (5יא follow-up): a calm "install to home screen" action in the band + a Chrome note for Samsung Internet */
-.tl-install-btn { align-self: flex-start; margin-top: 8px; display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 16px; border-radius: 9px; border: 1px solid var(--tl-btn); background: var(--tl-btn); color: #ffffff; font-size: 14px; font-weight: 700; cursor: pointer; }
+.tl-install-btn { align-self: flex-start; margin-top: 8px; display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 16px; border-radius: 9px; border: 1px solid var(--tl-accent); background: var(--tl-accent); color: #ffffff; font-size: 14px; font-weight: 700; cursor: pointer; }
 .tl-install-btn:hover { filter: brightness(1.05); }
 .tl-install-chrome-note { margin-top: 8px; font-size: 13px; line-height: 1.5; color: #2d3b42; }
 @media (max-width: 520px) { .tl-install-band { align-items: flex-start; } }
@@ -274,7 +272,7 @@
 .tl-plans-note { margin: -8px 0 22px; padding: 12px 14px; background: #ffffff; border: 1px solid var(--tl-line); border-inline-start: 3px solid var(--tl-accent); border-radius: 7px; color: #2d3b42; font-size: 15px; line-height: 1.55; max-width: 860px; }
 .tl-cycle { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 4px; margin-bottom: 22px; background: #ffffff; border: 1px solid var(--tl-line); border-radius: 10px; }
 .tl-cycle button { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 8px 16px; border: 0; border-radius: 7px; background: transparent; color: var(--tl-ink); font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
-.tl-cycle button[aria-pressed='true'] { background: var(--tl-btn); color: #ffffff; }
+.tl-cycle button[aria-pressed='true'] { background: var(--tl-accent); color: #ffffff; }
 .tl-cycle-badge { font-size: 12.5px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: #e3f1ea; color: #1e5c42; }
 .tl-cycle button[aria-pressed='true'] .tl-cycle-badge { background: #ffffff; color: #1e5c42; }
 .tl-plan-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: stretch; }
@@ -337,13 +335,13 @@
 .tl-footer-inner > p { margin: 0; font-size: 14px; }
 .tl-footer-links { display: flex; flex-wrap: wrap; gap: 4px 18px; }
 .tl-footer-links a, .tl-footer-links button { display: inline-flex; align-items: center; gap: 5px; min-height: 44px; padding: 0; border: 0; background: none; color: var(--tl-ink) !important; font: inherit; font-size: 14px; text-decoration: none; cursor: pointer; }
-.tl-footer-links a:hover, .tl-footer-links button:hover { color: var(--tl-btn-strong) !important; text-decoration: underline; }
-.tl-footer :focus-visible { outline-color: var(--tl-btn); }
+.tl-footer-links a:hover, .tl-footer-links button:hover { color: var(--tl-accent-strong) !important; text-decoration: underline; }
+.tl-footer :focus-visible { outline-color: var(--tl-accent); }
 /* Owner console 2026-11-05 (typed L-06 approval): the market's own social accounts - small one-colour icons, a 44px target each,
    on their own row at the end of the footer */
 .tl-footer-social { display: flex; gap: 6px; flex-basis: 100%; justify-content: center; }
 .tl-footer-social a { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 10px; color: var(--tl-muted) !important; text-decoration: none; }
-.tl-footer-social a:hover { color: var(--tl-btn-strong) !important; background: var(--tl-line); }
+.tl-footer-social a:hover { color: var(--tl-accent-strong) !important; background: var(--tl-line); }
 
 /* ---------- the sample quotation (readable: every text >= 12px) ---------- */
 .tl-doc { --tl-q: #315f67; position: relative; container: tl-document / inline-size; background: #ffffff; color: #1d262b; font-size: 13.5px; line-height: 1.45; box-shadow: 0 9px 28px rgba(16, 29, 35, .11); overflow: hidden; text-align: start; }
@@ -434,9 +432,9 @@
 .tl-sigline { flex: 0 0 130px; border-bottom: 1px solid #67767d; padding-bottom: 5px; text-align: center; color: #5e6c73; font-size: 12px; }
 .tl-doc-actions { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 16px; padding-top: 10px; }
 .tl-doc-action { min-height: 62px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; border: 1px solid #cbd5e1; border-radius: 10px; background: #ffffff; color: #475569; font-size: 12px; font-weight: 700; text-align: center; }
-.tl-doc-action--pdf { border-color: transparent; background: #102444; color: #ffffff; }
-.tl-doc-action--call { border-color: #102444; color: #102444; }
-.tl-doc-action--whatsapp { border-color: #102444; color: #102444; }
+.tl-doc-action--pdf { border-color: transparent; background: linear-gradient(135deg, #7c3aed, #a855f7); color: #ffffff; }
+.tl-doc-action--call { border-color: #0284c7; color: #0284c7; }
+.tl-doc-action--whatsapp { border-color: #059669; color: #059669; }
 .tl-doc-foot { display: flex; justify-content: space-between; gap: 10px; padding: 10px 30px 16px; color: #66737a; font-size: 12px; }
 /* Modern */
 .tl-doc--modern { --tl-q: #b55d31; }
@@ -594,10 +592,10 @@
 /* AI chat launcher on the refined landing only (visual only - AIChatWidget behaviour and markup are untouched): the
    shared widget's inline brand gradient is replaced, inside .tl-landing, by the landing's teal surface.
    White on #0f6672 = 6.6:1; focus ring 3px #0f6672 on the light page. */
-.tl-landing .ai-support-btn { background: #102444 !important; color: #ffffff !important; box-shadow: 0 8px 22px -8px rgba(16, 36, 68, .55) !important; }
-.tl-landing .ai-support-btn:hover { background: #0b1a33 !important; }
-.tl-landing .ai-support-btn:focus-visible { outline: 3px solid #102444; outline-offset: 3px; }
-.tl-landing .ai-support-btn .lucide-sparkles { background: #ffffff !important; color: #102444 !important; box-shadow: none !important; }
+.tl-landing .ai-support-btn { background: #0f6672 !important; color: #ffffff !important; box-shadow: 0 8px 22px -8px rgba(15, 102, 114, .55) !important; }
+.tl-landing .ai-support-btn:hover { background: #0b525c !important; }
+.tl-landing .ai-support-btn:focus-visible { outline: 3px solid #0f6672; outline-offset: 3px; }
+.tl-landing .ai-support-btn .lucide-sparkles { background: #ffffff !important; color: #0f6672 !important; box-shadow: none !important; }
 
 /* Light page background behind the landing (overscroll, short content) - landing only: the class is set by LandingPage
    while mounted; :has() covers the prerendered first paint before JS. Other routes keep the app background. */
@@ -635,10 +633,10 @@ html.tl-landing-active, html.tl-landing-active body, html:has(.tl-landing), html
 .tl-period-options { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 4px; background: #f1f4f3; border: 1px solid var(--tl-line); border-radius: 10px; max-width: 100%; box-sizing: border-box; }
 .tl-period-option { position: relative; display: inline-flex; align-items: center; justify-content: center; min-height: 44px; min-width: 88px; padding: 0 16px; border-radius: 7px; color: var(--tl-ink); font-size: 15px; font-weight: 600; cursor: pointer; box-sizing: border-box; }
 .tl-period-option input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
-.tl-period-option.is-checked { background: var(--tl-btn); color: #ffffff; }
+.tl-period-option.is-checked { background: var(--tl-accent); color: #ffffff; }
 /* the annual saving line (only while Annual is chosen): #1e5c42 on #e3f1ea = 7.0:1 */
 .tl-plan-saving { display: inline-block; margin: 6px 0 0; padding: 3px 10px; border-radius: 6px; background: #e3f1ea; color: #1e5c42; font-size: 14px; font-weight: 600; line-height: 1.45; }
-.tl-period-option:has(input:focus-visible) { outline: 3px solid var(--tl-btn); outline-offset: 2px; }
+.tl-period-option:has(input:focus-visible) { outline: 3px solid var(--tl-accent); outline-offset: 2px; }
 .tl-plan-grid--two .tl-plan ul { margin: 14px 0 0; align-content: start; flex: none; }
 .tl-plan-grid--two .tl-plan-capacity li { font-weight: 600; }
 .tl-plan-grid--two .tl-plan-features { flex: 1; }

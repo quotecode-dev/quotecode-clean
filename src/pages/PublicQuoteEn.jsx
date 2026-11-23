@@ -4,6 +4,7 @@ import { invokeWithFreshSession } from '../shared/invokeWithFreshSession';
 import { useSignaturePad } from '../shared/useSignaturePad';
 import PublicQuoteHeader from '../components/PublicQuoteHeader';
 import Toast from '../components/Toast';
+import { LIGHT } from '../theme/neonTheme';
 import { UserRound, Paperclip, Phone, Printer, MessageCircle, Loader2 } from 'lucide-react';
 import PdfFileIcon from '../components/PdfFileIcon';
 import QuotePrintModeModal from '../components/QuotePrintModeModal';
@@ -862,7 +863,7 @@ export default function PublicQuoteEn({ quoteData, presentation = null, previewM
         onClick={() => openPrintChooser('pdf')}
         disabled={pdfGenerating}
         className="pq-action-tile"
-        style={{ background: '#102444', color: 'white', border: 'none', cursor: pdfGenerating ? 'wait' : 'pointer', opacity: pdfGenerating ? 0.75 : 1 }}
+        style={{ background: LIGHT.gradient, color: 'white', border: 'none', cursor: pdfGenerating ? 'wait' : 'pointer', opacity: pdfGenerating ? 0.75 : 1 }}
       >
         {pdfGenerating ? <Loader2 size={26} strokeWidth={1.75} className="pq-spin" /> : <PdfFileIcon size={26} strokeWidth={1.75} />}
         <span>{pdfGenerating ? 'Generating PDF...' : 'Get PDF'}</span>
@@ -882,7 +883,7 @@ export default function PublicQuoteEn({ quoteData, presentation = null, previewM
         <a
           href={`tel:${bizPhone.replace(/[^\d+]/g, '')}`}
           className="pq-action-tile"
-          style={{ background: 'white', color: '#102444', border: `2px solid #102444`, textDecoration: 'none' }}
+          style={{ background: 'white', color: LIGHT.sky, border: `2px solid ${LIGHT.sky}`, textDecoration: 'none' }}
         >
           <Phone size={26} strokeWidth={1.75} />
           <span>Call us</span>
@@ -894,7 +895,7 @@ export default function PublicQuoteEn({ quoteData, presentation = null, previewM
           target="_blank"
           rel="noopener noreferrer"
           className="pq-action-tile"
-          style={{ background: 'white', color: '#102444', border: `2px solid #102444`, textDecoration: 'none' }}
+          style={{ background: 'white', color: LIGHT.emerald, border: `2px solid ${LIGHT.emerald}`, textDecoration: 'none' }}
         >
           <MessageCircle size={26} strokeWidth={1.75} />
           <span>WhatsApp</span>
@@ -1001,7 +1002,7 @@ export default function PublicQuoteEn({ quoteData, presentation = null, previewM
           )}
           {/* PRODUCT_TRUTH_DECORATIVE: ends signature-drawing mode without submitting approval */}
           {isActive && (
-            <button type="button" onClick={deactivateSigning} style={{ background: '#102444', color: 'white', border: 'none', padding: '4px 14px', minHeight: 44, borderRadius: '6px', fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer' }}>Done drawing</button>
+            <button type="button" onClick={deactivateSigning} style={{ background: LIGHT.violet, color: 'white', border: 'none', padding: '4px 14px', minHeight: 44, borderRadius: '6px', fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer' }}>Done drawing</button>
           )}
         </div>
         {signatureWarning && (
@@ -1011,7 +1012,7 @@ export default function PublicQuoteEn({ quoteData, presentation = null, previewM
         )}
         <div>
           {/* PRODUCT_TRUTH_CAPABILITY: public_quote_sign */}
-          <button onClick={handleApprove} style={{ background: hasSigned ? '#102444' : '#94a3b8', color: 'white', border: 'none', padding: '16px 36px', borderRadius: '12px', fontSize: '1.1rem', fontWeight: 'bold', cursor: hasSigned ? 'pointer' : 'not-allowed', boxShadow: hasSigned ? '0 8px 20px -8px rgba(16,36,68,0.35)' : 'none', maxWidth: '100%', boxSizing: 'border-box' }}>
+          <button onClick={handleApprove} style={{ background: hasSigned ? LIGHT.gradient : '#94a3b8', color: 'white', border: 'none', padding: '16px 36px', borderRadius: '12px', fontSize: '1.1rem', fontWeight: 'bold', cursor: hasSigned ? 'pointer' : 'not-allowed', boxShadow: hasSigned ? LIGHT.glow : 'none', maxWidth: '100%', boxSizing: 'border-box' }}>
             Approve & Sign This Quote{'\u00a0'}✓
           </button>
         </div>

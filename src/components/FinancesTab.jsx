@@ -344,9 +344,9 @@ export default function FinancesTab({
                         {/* PRODUCT_TRUTH_CAPABILITY: expenses */}
                         <button
                           onClick={() => setEditingExpense(exp)}
-                          style={{ background: NEON.buttonTint, color: NEON.button, border: 'none', padding: '3px 6px', borderRadius: '4px', cursor: 'pointer', fontWeight: '600', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
+                          style={{ background: NEON.violetLighter, color: NEON.violet, border: 'none', padding: '3px 6px', borderRadius: '4px', cursor: 'pointer', fontWeight: '600', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
                         >
-                          <Pencil size={12} color={NEON.button} strokeWidth={2.5} />
+                          <Pencil size={12} color={NEON.violet} strokeWidth={2.5} />
                           {isHebrew ? 'עריכה' : 'Edit'}
                         </button>
                         {/* חוק ברזל (§K, real defect found+fixed): {t.delete}

@@ -201,7 +201,7 @@ export default function SmartPublicQuote() {
         <h1 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800, color: '#10252b' }}>{en ? 'The quote could not be loaded right now' : 'לא הצלחנו לטעון את הצעת המחיר כרגע'}</h1>
         <p style={{ margin: 0, fontSize: '1rem', color: '#3c4a52', maxWidth: '34rem', lineHeight: 1.5 }}>{en ? 'This is a temporary problem on our side. Please try again in a moment.' : 'זו תקלה זמנית אצלנו. נסו שוב בעוד רגע.'}</p>
         {/* PRODUCT_TRUTH_DECORATIVE: retries loading the public quote (no data change, no page reload) - night task R-19 */}
-        <button type="button" onClick={() => { processedIdRef.current = null; setState({ status: 'loading', dto: null }); setRetryKey((n) => n + 1); }} style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', background: '#102444', color: '#ffffff', fontWeight: 700, fontSize: '1rem', cursor: 'pointer' }}>
+        <button type="button" onClick={() => { processedIdRef.current = null; setState({ status: 'loading', dto: null }); setRetryKey((n) => n + 1); }} style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', background: '#0f6672', color: '#ffffff', fontWeight: 700, fontSize: '1rem', cursor: 'pointer' }}>
           {en ? 'Try again' : 'לנסות שוב'}
         </button>
       </div>

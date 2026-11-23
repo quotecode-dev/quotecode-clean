@@ -9,10 +9,9 @@ const pdf = (size) => { const f = new File([new Uint8Array(4)], 'quote.pdf', { t
 
 function pick(isHebrew, size) {
   render(<QuoteFromFileDialog isOpen isHebrew={isHebrew} sym={isHebrew ? '₪' : '$'} formatMoneyDisplay={(v) => Number(v).toFixed(2)} currency={isHebrew ? 'ILS' : 'USD'}
-    catalog={[]} readFile={vi.fn(() => new Promise(() => {}))} readAllowance={async () => ({ limit: 50, remaining: 50, period: '2026-11' })} onClose={vi.fn()} onApply={vi.fn()} />);
+    catalog={[]} readFile={vi.fn()} readAllowance={async () => ({ limit: 50, remaining: 50, period: '2026-11' })} onClose={vi.fn()} onApply={vi.fn()} />);
   fireEvent.change(screen.getByTestId('quote-from-file-input'), { target: { files: [pdf(size)] } });
-  // the name and the size are isolated (bidi) inside the three-dots line (Owner 23/11) - the words are compared without the isolates
-  return screen.getByTestId('quote-from-file-chosen').textContent.replace(/[⁦-⁩]/g, '');
+  return screen.getByTestId('quote-from-file-chosen').textContent;
 }
 
 describe('the size of the picked file', () => {

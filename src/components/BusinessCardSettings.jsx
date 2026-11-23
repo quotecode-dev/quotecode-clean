@@ -24,7 +24,7 @@ const css = `
 .pf-bcs { display: flex; flex-direction: column; gap: 14px; container-type: inline-size; }
 .pf-bcs-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
 .pf-bcs-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border-radius: 9px; padding: 8px 14px; min-height: 44px; font-weight: 700; font-size: 0.8rem; border: 1px solid ${NEON.borderStrong}; background: ${NEON.bgCard}; color: ${NEON.textPrimary}; cursor: pointer; white-space: nowrap; font-family: inherit; }
-.pf-bcs-btn.pri { background: ${NEON.button}; border-color: ${NEON.button}; color: #ffffff; }
+.pf-bcs-btn.pri { background: ${TEAL}; border-color: ${TEAL}; color: #ffffff; }
 .pf-bcs-btn:disabled { opacity: .55; cursor: not-allowed; }
 .pf-bcs-card { background: ${NEON.bgCard}; border-radius: ${RADIUS.lg}; padding: 16px; box-shadow: ${SHADOW.sm}; min-width: 0; }
 .pf-bcs-callout { border-radius: 10px; padding: 10px 12px; font-size: 0.8rem; line-height: 1.45; margin-top: 12px; }
@@ -33,7 +33,7 @@ const css = `
 @container (min-width: 700px) { .pf-bcs-grid { grid-template-columns: minmax(0, 1fr) 320px; } .pf-bcs-preview { position: sticky; top: 12px; } }
 .pf-bcs-tabs { display: flex; gap: 4px; border-bottom: 1px solid ${NEON.border}; margin: -4px -4px 14px; overflow-x: auto; }
 .pf-bcs-tab { flex: 1 1 0; min-width: max-content; min-height: 44px; padding: 8px 12px; border: 0; border-bottom: 3px solid transparent; background: none; color: ${NEON.textSecondary}; font-weight: 700; font-size: 0.84rem; cursor: pointer; font-family: inherit; }
-.pf-bcs-tab[aria-selected="true"] { color: ${NEON.button}; border-bottom-color: ${NEON.button}; }
+.pf-bcs-tab[aria-selected="true"] { color: ${TEAL}; border-bottom-color: ${TEAL}; }
 .pf-bcs-field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; font-size: 0.82rem; font-weight: 700; color: ${NEON.textPrimary}; }
 .pf-bcs-input { width: 100%; box-sizing: border-box; padding: 10px 12px; min-height: 44px; border: 1px solid ${NEON.borderStrong}; border-radius: 8px; background: ${NEON.bgInput}; color: ${NEON.textPrimary}; font-size: 16px; font-family: inherit; font-weight: 400; }
 textarea.pf-bcs-input { min-height: 96px; resize: vertical; line-height: 1.5; }
@@ -45,7 +45,7 @@ textarea.pf-bcs-input { min-height: 96px; resize: vertical; line-height: 1.5; }
 .pf-bcs-channel-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; font-size: 0.84rem; font-weight: 700; }
 .pf-bcs-channel-main small { font-weight: 400; color: ${NEON.textSecondary}; font-size: 0.76rem; overflow-wrap: anywhere; }
 .pf-bcs-toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 0.78rem; font-weight: 700; color: ${NEON.textPrimary}; cursor: pointer; white-space: nowrap; min-height: 44px; }
-.pf-bcs-toggle input { width: 20px; height: 20px; accent-color: ${NEON.button}; }
+.pf-bcs-toggle input { width: 20px; height: 20px; accent-color: ${TEAL}; }
 .pf-bcs-savebar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 6px; padding-top: 12px; border-top: 1px solid ${NEON.border}; }
 .pf-bcs-phone { width: 100%; max-width: 320px; margin: 0 auto; border: 10px solid #0F172A; border-radius: 34px; background: #F1F5F9; box-sizing: border-box; box-shadow: 0 18px 40px -18px rgba(15,23,42,.5); overflow: hidden; }
 .pf-bcs-screen { max-height: 640px; overflow-y: auto; padding: 14px 10px; box-sizing: border-box; }

@@ -7,7 +7,6 @@
 import { useMemo, useState } from 'react';
 import { BarChart3, Eye, ListChecks, Mail, MessageCircle } from 'lucide-react';
 import TekangoEyeIcon from './TekangoEyeIcon';
-import EllipsisText from './EllipsisText';
 import { APP as NEON, appHeadingTextStyle as neonGlowTextStyle, RADIUS, SHADOW } from '../theme/neonTheme';
 import { CurrencyTotals, MoneyValue } from './NumericValue';
 import { QUOTE_CURRENCY_SYMBOLS, normalizeQuoteCurrency } from '../utils/money';
@@ -25,7 +24,7 @@ const STATS_CSS = `
   .pf-stats-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-block: 4px 14px; }
   .pf-stats-periods { display: inline-flex; flex-wrap: wrap; gap: 4px; }
   .pf-stats-period { min-block-size: 32px; padding-inline: 10px; border-radius: ${RADIUS.sm}; border: 1px solid ${NEON.borderStrong}; background: ${NEON.bgInput}; color: ${NEON.textPrimary}; font-size: 0.78rem; font-weight: 700; cursor: pointer; }
-  .pf-stats-period[aria-pressed="true"] { background: ${NEON.button}; border-color: ${NEON.button}; color: #fff; }
+  .pf-stats-period[aria-pressed="true"] { background: ${NEON.violet}; border-color: ${NEON.violet}; color: #fff; }
   .pf-stats-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-block-end: 16px; }
   .pf-stats-kpi { min-inline-size: 0; padding: 12px; border-radius: 10px; border: 1px solid ${NEON.border}; background: ${NEON.bgCardAlt}; }
   .pf-stats-kpi-label { font-size: 0.75rem; font-weight: 600; color: ${NEON.textSecondary}; margin-block-end: 4px; }
@@ -42,7 +41,7 @@ const STATS_CSS = `
   .pf-stats-hot-amount { font-weight: 800; color: ${NEON.textPrimary}; }
   .pf-stats-actions { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
   .pf-stats-action { display: inline-flex; align-items: center; gap: 6px; min-block-size: 32px; padding-inline: 10px; border-radius: ${RADIUS.sm}; border: 1px solid ${NEON.border}; background: ${NEON.bgCardAlt}; color: ${NEON.textSecondary}; font-size: 0.75rem; font-weight: 600; cursor: pointer; white-space: nowrap; }
-  .pf-stats-action--primary { background: ${NEON.buttonTint}; color: ${NEON.button}; border-color: transparent; }
+  .pf-stats-action--primary { background: ${NEON.violetLighter}; color: ${NEON.violet}; border-color: transparent; }
   .pf-stats-note { margin-block-start: 14px; font-size: 0.72rem; color: ${NEON.textMuted}; }
   @media (max-width: 900px) {
     .pf-stats-hot { grid-template-columns: minmax(0, 1fr) auto; }
@@ -164,13 +163,12 @@ export default function StatisticsTab({
             return (
               <div key={quote.id} className="pf-stats-hot" data-hot-quote-id={quote.id}>
                 <div className="pf-stats-hot-main">
-                  {party.kind === 'number'
-                    ? <div className="pf-stats-hot-client" data-party={party.kind} title={party.text}><bdi className="pf-num" dir="ltr">{party.text}</bdi></div>
-                    : <EllipsisText as="div" className="pf-stats-hot-client" data-party={party.kind} text={party.text} />}
+                  <div className="pf-stats-hot-client" data-party={party.kind} title={party.text}>
+                    {party.kind === 'number' ? <bdi className="pf-num" dir="ltr">{party.text}</bdi> : party.text}
+                  </div>
                   <div className="pf-stats-hot-meta">
                     <bdi className="pf-num" dir="ltr" data-testid="hot-number">{displayQuoteNumber(quote)}</bdi>
-                    {/* Owner 19/11: a long title ends with three dots and shows in full on hover / tap */}
-                    {title && <EllipsisText className="pf-stats-hot-title" text={title} />}
+                    {title && <span className="pf-stats-hot-title" title={title}>{title}</span>}
                   </div>
                 </div>
                 <div className="pf-stats-hot-figures">

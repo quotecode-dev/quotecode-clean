@@ -106,6 +106,8 @@ const openSummary = () => { if (!screen.queryByTestId('qt-summary-panel')) fireE
 // Owner console 2026-11-20/21 (the simple-quotes sketch is the approved demo; typed L-07 / L-09 / L-15 / L-29 only as needed): the details open as windows from the buttons of "More quote details"; the structure is a menu; the rows are the sketch's
 const openPage = (k) => { if (!screen.queryByTestId(`sq-extra-${k}`)) fireEvent.click(screen.getByTestId('sq-more-details-toggle')); fireEvent.click(screen.getByTestId(`sq-extra-${k}`)); };
 const rowNamed = (name) => screen.getAllByTestId('qt-row').find((r) => r.querySelector('.qt-row-name')?.textContent.startsWith(name));
+const pickStructure = (k) => { fireEvent.click(screen.getByTestId('qt-structure')); fireEvent.click(screen.getByTestId(`qt-structure-${k}`)); };
+const structureChecked = (k) => { fireEvent.click(screen.getByTestId('qt-structure')); const v = screen.getByTestId(`qt-structure-${k}`).getAttribute('aria-checked'); fireEvent.click(screen.getByTestId('qt-structure')); return v; };
 function LiveForm({ initialSections = [], initialItems = [], extra = {} }) {
   const [items, setItems] = useStateLive(initialItems);
   const [sections, setSections] = useStateLive(initialSections);
@@ -125,7 +127,7 @@ describe('QuoteForm - every line is a read row of the new work area', () => {
     render(<QuoteForm {...baseProps({ items: [] })} />);
     const form = screen.getAllByTestId('qt-form')[0];
     expect(form.getAttribute('data-target')).toBe('root');
-    expect(screen.queryByTestId('qt-form-to')).toBeNull(); expect(screen.getByTestId('qt-add-first')).toHaveTextContent('+ Section: floor, apartment, room');
+    expect(screen.getAllByTestId('qt-form-to')[0].textContent).toBe('To: Whole quote');
     fireEvent.click(screen.getByTestId('editor-more'));
     expect(screen.getByTestId('quote-show-example')).toHaveTextContent('Show an example (not saved)');
     expect(screen.queryAllByTestId('qt-row')).toHaveLength(0);
@@ -150,7 +152,7 @@ describe('QuoteForm - every line is a read row of the new work area', () => {
 describe('QuoteForm - SMART-QUOTE child-simple first-use flow', () => {
   it('SMART-QUOTE-02: an undecided (null) structure opens as a simple quote with the add form ready - no structure question', () => {
     render(<QuoteForm {...baseProps({ quoteStructureMode: null, items: [] })} />);
-    expect(screen.queryByTestId('qt-structure')).toBeNull();
+    expect(structureChecked('simple')).toBe('true');
     expect(screen.getAllByTestId('qt-form')).toHaveLength(1);
     expect(screen.queryByText('How would you like to structure this quote?')).toBeNull();
     expect(screen.queryByText(/Smart Quote/)).toBeNull();
@@ -173,12 +175,16 @@ describe('QuoteForm - SMART-QUOTE child-simple first-use flow', () => {
     const setQuoteStructureMode = vi.fn();
     const setSections = vi.fn();
     render(<QuoteForm {...baseProps({ quoteStructureMode: 'regular', setQuoteStructureMode, setSections })} />);
+    pickStructure('grouped');
     fireEvent.click(screen.getByTestId('qt-add-first'));
     fireEvent.click(screen.getByTestId('qt-kind-apartment'));
-    fireEvent.click(screen.getByTestId('qt-count-more'));
+    fireEvent.change(screen.getByTestId('qt-count'), { target: { value: '2' } });
+    fireEvent.click(within(screen.getByTestId('qt-wizard')).getByRole('button', { name: 'Continue' }));
+    fireEvent.change(screen.getByTestId('qt-name-0'), { target: { value: 'Apartment 32' } });
+    fireEvent.change(screen.getByTestId('qt-name-1'), { target: { value: 'Apartment 33' } });
     fireEvent.click(screen.getByTestId('qt-wizard-create'));
     const next = setSections.mock.calls[0][0];
-    expect(next.map((x) => [x.name, x.kind, x.parent_key ?? null])).toEqual([['Apartment 1', 'apartment', null], ['Apartment 2', 'apartment', null]]);
+    expect(next.map((x) => [x.name, x.kind, x.parent_key ?? null])).toEqual([['Apartment 32', 'apartment', null], ['Apartment 33', 'apartment', null]]);
     expect(setQuoteStructureMode).toHaveBeenCalledWith('divided');
   });
 
@@ -301,8 +307,8 @@ describe('QuoteForm - headings (apartments, floors, rooms) and their content', (
     expect(within(heading).getAllByTestId('qt-row')).toHaveLength(1);
     // the sketch: ONE entry row; a click on the section's name sends it there ("To: Apartment 33")
     fireEvent.click(heading.querySelector('.qt-hn'));
-    expect(within(screen.getByTestId('qt-heading')).getByTestId('qt-eq-path').textContent).toBe('Apartment 33');
-    expect(screen.getByTestId('qt-add-first')).toHaveTextContent('+ New section');
+    expect(within(screen.getByTestId('qt-heading')).getByTestId('qt-form-to').textContent).toBe('To: Apartment 33');
+    expect(screen.getByTestId('qt-add-first')).toHaveTextContent('Add a section: apartment, floor, room or other');
   });
 
   it('rows of no heading stay at the whole-quote level - never hidden', () => {
@@ -315,13 +321,13 @@ describe('QuoteForm - headings (apartments, floors, rooms) and their content', (
     render(<QuoteForm {...baseProps({ quoteStructureMode: 'divided',
       sections: [{ key: 'a', name: 'Apartment 22', kind: 'apartment', sort_order: 0 }, { key: 'k', name: 'Kitchen', kind: 'room', parent_key: 'a', sort_order: 1 }],
       items: [makeItem({ description: 'Paint', unit_price: '40', section_key: 'a' }), makeItem({ description: 'Tiles', unit_price: '60', section_key: 'k' })] })} />);
-    expect(screen.queryByTestId('qt-structure')).toBeNull();
+    expect(structureChecked('tiered')).toBe('true');
     const [apt, kitchen] = screen.getAllByTestId('qt-heading');
     expect(apt.contains(kitchen)).toBe(true);
     expect(kitchen.getAttribute('data-depth')).toBe('1');
     expect(apt.querySelector('.qt-hs').textContent).toBe('$100.00');
     fireEvent.click(kitchen.querySelector('.qt-hn'));
-    expect(within(screen.getAllByTestId('qt-heading')[1]).getByTestId('qt-eq-path').textContent).toBe('Apartment 22‎ → ‎Kitchen');
+    expect(within(screen.getAllByTestId('qt-heading')[1]).getByTestId('qt-form-to').textContent).toBe('To: Apartment 22‎ → ‎Kitchen');
   });
 
   it('"Duplicate" copies the heading with everything in it right after it - new keys, no saved ids, each row price-linked to its copy (stage 3)', () => {
@@ -367,19 +373,15 @@ describe('QuoteForm - headings (apartments, floors, rooms) and their content', (
     expect(liveState.items).toEqual(before.items);
   });
 
-  it('"Remove the sections" in the editor bar\'s ⋯: every row stays at the quote level, and it can be undone', () => {
-    render(<LiveForm initialSections={[{ key: 'sec1', name: 'Apartment 33', sort_order: 0 }]} initialItems={[makeItem({ description: 'Window', unit_price: '100', section_key: 'sec1' })]} />);
-    const before = liveState;
-    fireEvent.click(screen.getByTestId('editor-more'));
-    expect(screen.getByTestId('editor-flatten')).toHaveTextContent('Remove the sections');
-    fireEvent.click(screen.getByTestId('editor-flatten'));
-    expect(liveState.sections).toEqual([]);
-    expect(liveState.items.map((it) => [it.description, it.section_key])).toEqual([['Window', null]]);
+  it('choosing "Simple quote" never removes a heading or a row', () => {
+    const setSections = vi.fn(); const setItems = vi.fn();
+    render(<QuoteForm {...baseProps({ quoteStructureMode: 'divided', sections: [{ key: 'sec1', name: 'Apartment 33' }], items: [makeItem({ description: 'Window', unit_price: '100', section_key: 'sec1' })], setSections, setItems })} />);
+    pickStructure('simple');
+    expect(setSections).not.toHaveBeenCalled();
+    expect(setItems).not.toHaveBeenCalled();
+    // the demo: the simple structure lists every row in one table (headings are kept, not shown)
     expect(screen.queryAllByTestId('qt-heading')).toHaveLength(0);
-    expect(screen.getByTestId('qt-undo')).toHaveTextContent('The sections were removed. All the work stayed in the quote.');
-    fireEvent.click(within(screen.getByTestId('qt-undo')).getByRole('button', { name: 'Undo the last action' }));
-    expect(liveState.sections).toEqual(before.sections);
-    expect(liveState.items).toEqual(before.items);
+    expect(screen.getAllByTestId('qt-row').map((r) => r.querySelector('.qt-row-name').textContent)).toEqual(['Window']);
   });
 });
 
@@ -570,11 +572,10 @@ describe('QuoteForm - unit templates (stage 4)', () => {
     fireEvent.click(screen.getByTestId('unit-from-template'));
     expect(onAddUnitFromTemplate).toHaveBeenCalledTimes(1);
   });
-  it('an empty or unnamed heading shows "Save as a template" disabled (the simplify sketch shows it); no handler, no "From a saved template"', () => {
+  it('an empty or unnamed heading offers no "Save as a template"; no handler, no "From a saved template"', () => {
     render(<QuoteForm {...baseProps({ quoteStructureMode: 'divided', sections: [{ key: 'sec1', name: '', sort_order: 0 }], items: [], onSaveUnitTemplate: vi.fn() })} />);
     fireEvent.click(screen.getByTestId('qt-heading-actions'));
-    expect(screen.getByTestId('qt-head-template').disabled).toBe(true);
-    fireEvent.keyDown(document.activeElement || document.body, { key: 'Escape' });
+    expect(screen.queryByTestId('qt-head-template')).toBeNull();
     fireEvent.click(screen.getByTestId('editor-more'));
     expect(screen.queryByTestId('unit-from-template')).toBeNull();
   });

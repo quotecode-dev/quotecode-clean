@@ -52,7 +52,7 @@ export default function AccountOutreachPreferences({ isHebrew, client }) {
           <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', minHeight: '44px', cursor: state === 'ready' && !busy ? 'pointer' : 'default', fontSize: '0.9rem', color: NEON.textPrimary, lineHeight: 1.5 }}>
             {/* PRODUCT_TRUTH_DECORATIVE: the account owner's own consent to optional help emails (default off; account_outreach_set, his own account only) */}
             <input type="checkbox" checked={on} disabled={busy || state !== 'ready'} onChange={(e) => change(e.target.checked)} data-testid="settings-outreach-checkbox"
-              style={{ width: '20px', height: '20px', marginTop: '2px', flex: '0 0 auto', accentColor: NEON.button }} />
+              style={{ width: '20px', height: '20px', marginTop: '2px', flex: '0 0 auto', accentColor: NEON.violet }} />
             <span>{c.label}</span>
           </label>
         )}

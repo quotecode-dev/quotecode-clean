@@ -131,16 +131,16 @@ function PublicToolsEn({ initialTab }) {
 
   const tabBtnStyle = (tabKey) => ({
     flex: 1, minWidth: '130px', padding: '16px 10px', border: 'none',
-    background: activeTab === tabKey ? TOOLS.buttonSoft : 'transparent',
-    color: activeTab === tabKey ? TOOLS.button : TOOLS.textSecondary, fontWeight: 'bold', cursor: 'pointer',
-    borderBottom: activeTab === tabKey ? `3px solid ${TOOLS.button}` : '3px solid transparent', fontSize: '0.9rem',
+    background: activeTab === tabKey ? TOOLS.accentSoft : 'transparent',
+    color: activeTab === tabKey ? TOOLS.violetLight : TOOLS.textSecondary, fontWeight: 'bold', cursor: 'pointer',
+    borderBottom: activeTab === tabKey ? `3px solid ${TOOLS.violet}` : '3px solid transparent', fontSize: '0.9rem',
     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
   });
 
   const selectStyle = { width: '100%', padding: '12px', border: `1px solid ${TOOLS.borderStrong}`, borderRadius: '7px', minHeight: '44px', fontSize: '1rem', outline: 'none', background: TOOLS.bgInput, color: TOOLS.textPrimary, boxSizing: 'border-box' };
   const labelStyle = { display: 'block', marginBottom: '8px', fontSize: '0.85rem', fontWeight: '600', color: TOOLS.textSecondary };
   const resultBoxStyle = { background: TOOLS.alt, padding: '20px', borderRadius: '12px', textAlign: 'center', border: `1px solid ${TOOLS.border}`, minWidth: 0 };
-  const swapBtnStyle = { background: '#ffffff', border: `1px solid ${TOOLS.borderStrong}`, borderRadius: '7px', width: '46px', height: '46px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: TOOLS.button };
+  const swapBtnStyle = { background: '#ffffff', border: `1px solid ${TOOLS.borderStrong}`, borderRadius: '7px', width: '46px', height: '46px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: TOOLS.violetLight };
   const numberInput = (id, value, setValue) => (
     <input id={id} type="text" inputMode="decimal" autoComplete="off" value={value} onChange={(e) => setValue(e.target.value)} style={selectStyle} />
   );
@@ -429,7 +429,7 @@ function PublicToolsEn({ initialTab }) {
           <button
             data-testid="tools-cta"
             onClick={() => navigate('/dashboard?signup=true&lang=en')}
-            style={{ background: TOOLS.button, color: '#ffffff', padding: '11px 22px', minHeight: '46px', borderRadius: '7px', fontWeight: 600, fontSize: '16px', border: `1px solid ${TOOLS.button}`, cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}
+            style={{ background: TOOLS.accent, color: '#ffffff', padding: '11px 22px', minHeight: '46px', borderRadius: '7px', fontWeight: 600, fontSize: '16px', border: `1px solid ${TOOLS.accent}`, cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}
           >
             Create an account
           </button>

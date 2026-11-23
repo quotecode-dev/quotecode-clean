@@ -14,7 +14,6 @@
 // field adds the spoken text to it), and the draft's clarification questions can be answered by voice - the answer is added to the
 // description and the draft is generated again. Shown only when the Dashboard passes `transcribe` and the browser can record.
 import { Fragment, useEffect, useRef, useState } from 'react';
-import { isolateSizes } from '../utils/sizeIsolate';
 import { X, Sparkles, Check, Mic, Square } from 'lucide-react';
 import useVoiceRecorder from '../hooks/useVoiceRecorder';
 import AiModalHeader from './AiModalHeader';
@@ -31,12 +30,8 @@ const positiveQuantity = (v) => {
 };
 // Task 34 extension (Owner AI specification, section ד): for a line whose quantity is missing AND whose unit is unknown, quantity and unit
 // are decided TOGETHER - the unit starts unchosen and must be an explicit choice ("no unit" included) before the line can be added.
-const toEditable = (line) => ({ ...line, description: isolateSizes(line.description), quantityInput: line.quantity != null ? String(line.quantity) : '', edited: false, original: line,
-  unitChosen: line.quantity != null || line.unit != null,
-  // Owner 2026-11-22 (the simplify sketch, item 10): the line's own price field - filled when the server sent a price (catalog / the user's text)
-  priceInput: line.unitPrice != null ? String(line.unitPrice) : '', priceEdited: false });
-// the price field: digits with up to 2 decimals (thousands commas dropped while typing); empty or a lone "." = no price
-const priceOf = (v) => { const s = String(v ?? '').trim(); if (!s || s === '.') return null; const n = Number(s); return Number.isFinite(n) ? Math.round(n * 100) / 100 : null; };
+const toEditable = (line) => ({ ...line, quantityInput: line.quantity != null ? String(line.quantity) : '', edited: false, original: line,
+  unitChosen: line.quantity != null || line.unit != null });
 
 const COPY = {
   he: {
@@ -68,16 +63,19 @@ const COPY = {
     againLoses: 'תיקנתם פריטים בטיוטה הזו. תיאור חדש יבטל את התיקונים. להמשיך?',
     againConfirm: 'כן, לתיאור חדש',
     againKeep: 'להישאר בטיוטה',
-    // Owner 2026-11-22 (the simplify sketch, item 10): every line has the user's own price, as in the quote from a file
-    ownPrice: 'המחיר שלכם',
-    unitPricePh: 'מחיר ליחידה',
+    price: 'מחיר',
+    fromCatalog: 'מהקטלוג',
+    fromDescription: 'מהתיאור שלכם', // Owner 2026-11-11 (finding 3, option ב): a price the user wrote in the description
+    catalogItem: (name) => `מהקטלוג: ${name}`,
+    needsPrice: 'יש להזין מחיר',
+    needsPriceNoMatch: 'יש להזין מחיר — לא נמצא פריט תואם בקטלוג',
     addToCatalog: 'להוסיף לקטלוג?',
     // Owner console 2026-11-16 (typed: "מאשר שאלת כן/לא בהצעה החכמה כשההתאמה לקטלוג לא בטוחה: "האם זה המוצר X?" ...")
     isThisProduct: (name) => `האם זה המוצר „${name}”?`,
     yes: 'כן',
     no: 'לא',
     unitUnverified: (name) => `הפריט ״${name}״ נמצא בקטלוג, אבל לא ברור אם יחידת התמחור שלו תואמת ליחידה הזו. יש להזין מחיר.`,
-    basis: { stated: 'הכמות מהתיאור', derived: (d) => `הכמות חושבה מהתיאור: ${d}`, implied_single: 'כמות 1 משתמעת מהתיאור - בדקו', edited: 'הכמות עודכנה ידנית' },
+    basis: { stated: 'הכמות מהתיאור', derived: (d) => `הכמות חושבה מהתיאור: ${d}`, implied_single: 'כמות 1 משתמעת מהתיאור — בדקו', edited: 'הכמות עודכנה ידנית' },
     missingLabel: 'חסר',
     missingQuantity: 'כמות',
     unverified: 'לא הצלחנו לאמת מול התיאור לאיזו עבודה שייכת הכמות — בדקו והזינו אותה',
@@ -154,14 +152,18 @@ const COPY = {
     againLoses: 'You changed items in this draft. A new description discards those changes. Continue?',
     againConfirm: 'Yes, new description',
     againKeep: 'Stay in this draft',
-    ownPrice: 'Your price',
-    unitPricePh: 'Unit price',
+    price: 'Price',
+    fromCatalog: 'From catalog',
+    fromDescription: 'From your description',
+    catalogItem: (name) => `From catalog: ${name}`,
+    needsPrice: 'Enter a price',
+    needsPriceNoMatch: 'Enter a price — no matching catalog item',
     addToCatalog: 'Add to the catalog?',
     isThisProduct: (name) => `Is this the product “${name}”?`,
     yes: 'Yes',
     no: 'No',
     unitUnverified: (name) => `Found “${name}” in your catalog, but its price unit is not confirmed for this unit — enter a price`,
-    basis: { stated: 'Quantity from your description', derived: (d) => `Calculated from your description: ${d}`, implied_single: 'Quantity 1 is implied by the description - check it', edited: 'Changed by you' },
+    basis: { stated: 'Quantity from your description', derived: (d) => `Calculated from your description: ${d}`, implied_single: 'Quantity 1 implied by your description — check it', edited: 'Changed by you' },
     missingLabel: 'Missing',
     missingQuantity: 'quantity',
     unverified: 'We could not verify against your description which job this quantity belongs to — check it and enter it',
@@ -308,10 +310,8 @@ export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply,
     if (j !== i) return l;
     const next = { ...l, ...patch, edited: l.edited || 'quantityInput' in patch || 'unit' in patch || 'description' in patch, unitChosen: l.unitChosen || 'unit' in patch };
     // the catalog price was verified for the server's unit only - another unit drops it (the user enters the price in the form)
-    // a price the user typed is theirs - a unit change never drops it (only the catalog price, verified for the server's unit, is dropped / restored)
-    if ('unit' in patch && !l.priceEdited && patch.unit !== l.original.unit) { next.unitPrice = null; next.priceInput = ''; next.priceSource = l.original.catalogName ? 'catalog_unit_unverified' : 'none'; }
-    if ('unit' in patch && !l.priceEdited && patch.unit === l.original.unit) { next.unitPrice = l.original.unitPrice; next.priceInput = l.original.unitPrice != null ? String(l.original.unitPrice) : ''; next.priceSource = l.original.priceSource; }
-    if ('priceInput' in patch) { next.unitPrice = priceOf(patch.priceInput); next.priceEdited = true; next.priceSource = next.unitPrice != null ? 'own' : (l.original.priceSource === 'catalog_unit_unverified' ? 'catalog_unit_unverified' : 'none'); }
+    if ('unit' in patch && patch.unit !== l.original.unit) { next.unitPrice = null; next.priceSource = l.original.catalogName ? 'catalog_unit_unverified' : 'none'; }
+    if ('unit' in patch && patch.unit === l.original.unit) { next.unitPrice = l.original.unitPrice; next.priceSource = l.original.priceSource; }
     return next;
   }));
   // "כן": the line is that catalog product (its id; its price only when no price was written and the unit fits - the server sends it so);
@@ -320,8 +320,8 @@ export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply,
     setCatAnswer((m) => { const n = new Map(m); n.set(i, yes ? 'yes' : 'no'); return n; });
     setLines((all) => all.map((l, j) => {
       const s = j === i ? l.original.catalogSuggestion : null; if (!s) return l;
-      if (yes) return { ...l, catalogId: s.id, linkedName: s.name, ...(l.unitPrice == null && s.unitPrice != null && l.unit === l.original.unit ? { unitPrice: s.unitPrice, priceInput: String(s.unitPrice), priceSource: 'catalog' } : {}) };
-      return { ...l, catalogId: null, linkedName: null, ...(l.priceSource === 'catalog' && l.original.priceSource !== 'catalog' ? { unitPrice: l.original.unitPrice, priceInput: l.original.unitPrice != null ? String(l.original.unitPrice) : '', priceSource: l.original.priceSource } : {}) };
+      if (yes) return { ...l, catalogId: s.id, linkedName: s.name, ...(l.unitPrice == null && s.unitPrice != null && l.unit === l.original.unit ? { unitPrice: s.unitPrice, priceSource: 'catalog' } : {}) };
+      return { ...l, catalogId: null, linkedName: null, ...(l.priceSource === 'catalog' && l.original.priceSource !== 'catalog' ? { unitPrice: l.original.unitPrice, priceSource: l.original.priceSource } : {}) };
     }));
     if (yes) setToCatalog((all) => { const n = new Set(all); n.delete(i); return n; });
   };
@@ -345,7 +345,7 @@ export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply,
     const target = positiveQuantity(l.quantityInput) == null ? root?.querySelector('input[inputmode="decimal"]') : !l.unitChosen ? root?.querySelector('select') : root?.querySelector('input[type="text"]');
     target?.focus();
   };
-  const edits = lines.some((l) => l.edited || l.priceEdited) || selected.some((v) => !v);
+  const edits = lines.some((l) => l.edited) || selected.some((v) => !v);
   const goAgain = () => { setConfirmAgain(false); setPhase('describe'); setDraft(null); setLines([]); };
   const chosen = chosenIdx.map((i) => {
     const l = lines[i];
@@ -377,6 +377,7 @@ export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply,
   const voiceBtnStyle = { ...secondaryBtn, alignSelf: 'flex-start', color: voice.recording ? '#ffffff' : NEON.textPrimary, background: voice.recording ? '#dc2626' : 'none', borderColor: voice.recording ? '#dc2626' : NEON.borderStrong };
   const voiceLabel = (idle) => (voice.recording ? t.stopDictate(voice.seconds) : voice.busy ? t.transcribing : idle);
   const errorText = errorCode === 'too_short' ? t.tooShort : errorCode ? (t.errors[errorCode] || t.errors.failed) : null;
+  const money = (v) => (formatMoneyDisplay ? `${sym || ''}${formatMoneyDisplay(v)}` : String(v));
 
   return (
     <div
@@ -391,7 +392,7 @@ export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply,
       onKeyDown={(e) => { if (e.key === 'Escape') close(); }}
     >
       <div style={{ background: NEON.bgCard, borderRadius: '16px', width: '100%', maxWidth: '560px', maxHeight: '92vh', overflowY: 'auto', boxShadow: '0 20px 60px -15px rgba(0,0,0,0.4)', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
-        <AiModalHeader className="pf-modal-head--bar pf-modal-head--fit pf-modal-head--ai" title={headTitle} onClose={close} closeLabel={t.cancel} closeContent={<X size={20} />} isHebrew={isHebrew} testId="ai-quote-draft" aiHelp="link" />
+        <AiModalHeader className="pf-modal-head--bar pf-modal-head--fit" title={headTitle} onClose={close} closeLabel={t.cancel} closeContent={<X size={20} />} isHebrew={isHebrew} testId="ai-quote-draft" />
         <div style={{ padding: '16px 18px 18px', display: 'flex', flexDirection: 'column', gap: '12px', textAlign: isHebrew ? 'right' : 'left' }}>
           {phase !== 'review' ? (
             <>
@@ -475,7 +476,7 @@ export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply,
                 <div data-testid="ai-quote-draft-changes" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <strong style={{ fontSize: '0.84rem', color: NEON.textPrimary }}>{t.changesTitle}</strong>
                   {entries.map((e) => (
-                    <label key={changeKey(e)} data-testid="ai-quote-draft-change" data-kind={e.kind} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '8px 12px', border: `1px solid ${!unticked.has(changeKey(e)) ? NEON.button : NEON.border}`, borderRadius: '10px', background: !unticked.has(changeKey(e)) ? NEON.buttonTint : NEON.bgCardAlt, minHeight: '44px', boxSizing: 'border-box', fontSize: '0.8rem', color: NEON.textPrimary, cursor: 'pointer' }}>
+                    <label key={changeKey(e)} data-testid="ai-quote-draft-change" data-kind={e.kind} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '8px 12px', border: `1px solid ${!unticked.has(changeKey(e)) ? NEON.violetLight : NEON.border}`, borderRadius: '10px', background: !unticked.has(changeKey(e)) ? NEON.violetLighter : NEON.bgCardAlt, minHeight: '44px', boxSizing: 'border-box', fontSize: '0.8rem', color: NEON.textPrimary, cursor: 'pointer' }}>
                       <input type="checkbox" checked={!unticked.has(changeKey(e))} onChange={() => setUnticked((all) => { const next = new Set(all); if (next.has(changeKey(e))) next.delete(changeKey(e)); else next.add(changeKey(e)); return next; })} style={{ width: '18px', height: '18px', marginTop: '2px', flexShrink: 0 }} />
                       <span style={{ lineHeight: 1.45, overflowWrap: 'anywhere' }}>{describeChange(e, currentQuote, t, isHebrew, sym, formatMoneyDisplay)}</span>
                     </label>
@@ -487,18 +488,17 @@ export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply,
                 {lines.map((line, i) => {
                   const qty = positiveQuantity(line.quantityInput);
                   const missingQty = qty == null;
-                  // Owner 2026-11-22 (the simplify sketch, item 10): an explanation only when something needs checking - an implied single piece,
-                  // a missing / unverified / ambiguous quantity, a catalog item whose price unit is not confirmed
-                  const basisText = !line.edited && line.quantityBasis === 'implied_single' ? t.basis.implied_single : null;
+                  const basisText = line.edited ? t.basis.edited
+                    : line.quantityBasis === 'derived' && line.derivation ? t.basis.derived(line.derivation)
+                      : line.quantityBasis === 'stated' || line.quantityBasis === 'implied_single' ? t.basis[line.quantityBasis] : null;
                   const missingText = line.missing === 'unverified' && missingQty ? t.unverified : line.missing === 'ambiguous' && missingQty ? t.ambiguous
                     : line.missing && line.missing !== 'quantity' && line.missing !== 'unverified' && line.missing !== 'ambiguous' ? line.missing : (missingQty ? t.missingQuantity : null);
-                  const unitUnverified = line.unitPrice == null && line.priceSource === 'catalog_unit_unverified' && !!line.original.catalogName;
                   return (
-                    <li key={i} data-testid="ai-quote-draft-line" data-line-index={i} data-missing={missingQty ? 'quantity' : (!line.unitChosen ? 'unit' : undefined)} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '10px 12px', border: `1px solid ${selected[i] ? NEON.button : NEON.border}`, borderRadius: '10px', background: selected[i] ? NEON.buttonTint : NEON.bgCardAlt, minHeight: '44px', boxSizing: 'border-box' }}>
+                    <li key={i} data-testid="ai-quote-draft-line" data-line-index={i} data-missing={missingQty ? 'quantity' : (!line.unitChosen ? 'unit' : undefined)} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '10px 12px', border: `1px solid ${selected[i] ? NEON.violetLight : NEON.border}`, borderRadius: '10px', background: selected[i] ? NEON.violetLighter : NEON.bgCardAlt, minHeight: '44px', boxSizing: 'border-box' }}>
                       {/* PRODUCT_TRUTH_DECORATIVE: ticks / unticks one suggested draft line before it is applied to the unsaved form */}
                       <input type="checkbox" aria-label={`${line.description}`} checked={!!selected[i]} onChange={() => setSelected((s) => s.map((v, j) => (j === i ? !v : v)))} style={{ marginTop: '10px', width: '18px', height: '18px', flexShrink: 0 }} />
                       <span style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: 0, flex: '1 1 auto' }}>
-                        <input type="text" aria-label={t.itemText} value={line.description} title={line.description || undefined} className="pf-ell-field" maxLength={200} onChange={(e) => editLine(i, { description: e.target.value })} style={{ width: '100%', boxSizing: 'border-box', padding: '7px 9px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '7px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '16px', fontWeight: 700, fontFamily: 'inherit', textAlign: isHebrew ? 'right' : 'left' }} />
+                        <input type="text" aria-label={t.itemText} value={line.description} maxLength={200} onChange={(e) => editLine(i, { description: e.target.value })} style={{ width: '100%', boxSizing: 'border-box', padding: '7px 9px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '7px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '16px', fontWeight: 700, fontFamily: 'inherit', textAlign: isHebrew ? 'right' : 'left' }} />
                         <span style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px 10px', fontSize: '0.76rem', color: NEON.textSecondary }}>
                           <label style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>{t.qty}:
                             <input type="text" inputMode="decimal" dir="ltr" className="pf-num" aria-label={t.qty} aria-invalid={missingQty} value={line.quantityInput} onChange={(e) => editLine(i, { quantityInput: e.target.value })} style={{ width: '76px', boxSizing: 'border-box', padding: '6px 8px', border: `1px solid ${missingQty ? (NEON.amber || NEON.red) : NEON.borderStrong}`, borderRadius: '7px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '16px', textAlign: 'left' }} />
@@ -510,12 +510,6 @@ export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply,
                               {unitChoices(line.unit).map((u) => <option key={u} value={u}>{getProfessionalUnitLabel(u, isHebrew)}</option>)}
                             </select>
                           </label>
-                          {/* Owner 2026-11-22 (the simplify sketch, item 10): the user's own price on every line, as in the quote from a file */}
-                          <label style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>{t.ownPrice}:
-                            <input type="text" inputMode="decimal" dir="ltr" className="pf-num" data-field="price" aria-label={t.ownPrice} placeholder={t.unitPricePh} maxLength={12} value={line.priceInput ?? ''}
-                              onChange={(e) => { const v = e.target.value.replace(/,/g, ''); if (/^\d*(?:\.\d{0,2})?$/.test(v)) editLine(i, { priceInput: v }); }}
-                              style={{ width: '110px', boxSizing: 'border-box', padding: '6px 8px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '7px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '16px', textAlign: 'left' }} />
-                          </label>
                         </span>
                         {draft.tree ? (() => {
                           // 2026-11-13 (tree): the full path of the line's heading ("דירה 32 ← מטבח"); a line of no heading names nothing
@@ -525,10 +519,12 @@ export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply,
                         })() : (line.place || line.room) && (
                           <span data-testid="ai-quote-draft-where" style={{ fontSize: '0.74rem', color: NEON.textSecondary }}>{t.placeOf}: <bdi>{[(draft.places || []).find((p) => p.key === line.place)?.name || groupWord((draft.places || []).find((p) => p.key === line.place)?.kind || null, isHebrew), line.room ? roomLabel(line.room, isHebrew, (draft.places || []).find((p) => p.key === line.place)?.kind || 'section') : ''].filter(Boolean).join(' · ')}</bdi></span>
                         )}
-                        {line.evidence && missingText && <span data-testid="ai-quote-draft-evidence" style={{ fontSize: '0.74rem', color: NEON.textSecondary, overflowWrap: 'anywhere' }}>{t.evidence}: {isHebrew ? '„' : '“'}<bdi>{line.evidence}</bdi>”</span>}
+                        {line.evidence && <span data-testid="ai-quote-draft-evidence" style={{ fontSize: '0.74rem', color: NEON.textSecondary, overflowWrap: 'anywhere' }}>{t.evidence}: {isHebrew ? '„' : '“'}<bdi>{line.evidence}</bdi>”</span>}
                         {basisText && <span data-testid="ai-quote-draft-basis" style={{ fontSize: '0.74rem', color: NEON.textSecondary }}>{basisText}</span>}
                         {missingText && <span data-testid="ai-quote-draft-missing" style={{ fontSize: '0.76rem', color: NEON.amber || NEON.textSecondary, fontWeight: 600 }}>{t.missingLabel}: {missingText}</span>}
-                        {unitUnverified && <span data-testid="ai-quote-draft-price" data-price-source={line.priceSource} style={{ fontSize: '0.76rem', color: NEON.amber || NEON.textSecondary, fontWeight: 600 }}>{t.unitUnverified(line.original.catalogName)}</span>}
+                        <span data-testid="ai-quote-draft-price" data-price-source={line.priceSource} style={{ fontSize: '0.76rem', color: NEON.textSecondary }}>{t.price}: {line.unitPrice != null
+                          ? <><bdi className="pf-money" dir="ltr">{money(line.unitPrice)}</bdi> · {line.priceSource === 'description' ? t.fromDescription : ((line.catalogName || line.linkedName) ? t.catalogItem(line.catalogName || line.linkedName) : t.fromCatalog)}</>
+                          : <span style={{ color: NEON.amber || NEON.textSecondary, fontWeight: 600 }}>{line.priceSource === 'catalog_unit_unverified' && line.original.catalogName ? t.unitUnverified(line.original.catalogName) : ((line.original.catalogName || line.original.catalogSuggestion) ? t.needsPrice : t.needsPriceNoMatch)}</span>}</span>
                         {/* PRODUCT_TRUTH_DECORATIVE: a product with a price that is not in the catalog - asks whether to add it to the catalog (unticked; saved on "Add to the quote"; a product without a price is never saved to the catalog, as in the add form) */}
                         {/* Owner console 2026-11-16: the server is not sure the line is a catalog product - one yes / no question; without an answer the line is a new product */}
                         {line.original.catalogSuggestion && !line.original.catalogName && (
@@ -539,7 +535,7 @@ export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply,
                               {[[true, t.yes, 'yes'], [false, t.no, 'no']].map(([yes, label, key]) => (
                                 // PRODUCT_TRUTH_DECORATIVE: answers "is this the catalog product?" - yes links the line to it, no keeps it a new product
                                 <button key={key} type="button" data-testid={`ai-quote-draft-catalog-${key}`} aria-pressed={catAnswer.get(i) === key} onClick={() => answerCatalog(i, yes)}
-                                  style={{ minHeight: '44px', minWidth: '64px', padding: '4px 16px', borderRadius: '8px', border: `1px solid ${catAnswer.get(i) === key ? NEON.button : NEON.borderStrong}`, background: catAnswer.get(i) === key ? NEON.buttonTint : 'transparent', color: NEON.textPrimary, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>{label}</button>
+                                  style={{ minHeight: '44px', minWidth: '64px', padding: '4px 16px', borderRadius: '8px', border: `1px solid ${catAnswer.get(i) === key ? NEON.teal || '#0F6672' : NEON.borderStrong}`, background: catAnswer.get(i) === key ? (NEON.tealSoft || '#E3F1F2') : 'transparent', color: NEON.textPrimary, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>{label}</button>
                               ))}
                             </span>
                           </span>
@@ -574,7 +570,7 @@ export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply,
                 <div role="status" data-testid="ai-quote-draft-need-quantity" style={{ fontSize: '0.78rem', color: NEON.amber || NEON.textSecondary, fontWeight: 600, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px' }}>
                   <span>{t.blockedLines(incompleteIdx.map((i) => (isHebrew ? `„${String(lines[i].description || '').trim() || '—'}”` : `“${String(lines[i].description || '').trim() || '—'}”`)).join(', '))}</span>
                   {/* PRODUCT_TRUTH_DECORATIVE: moves the focus to the first field that still blocks adding the draft lines */}
-                  <button type="button" data-testid="ai-quote-draft-goto-field" onClick={focusFirstIncomplete} style={{ background: 'none', border: 'none', padding: '4px 2px', minHeight: '32px', cursor: 'pointer', color: NEON.button, fontWeight: 700, textDecoration: 'underline', fontSize: '0.78rem' }}>{t.goToField}</button>
+                  <button type="button" data-testid="ai-quote-draft-goto-field" onClick={focusFirstIncomplete} style={{ background: 'none', border: 'none', padding: '4px 2px', minHeight: '32px', cursor: 'pointer', color: NEON.violetLight, fontWeight: 700, textDecoration: 'underline', fontSize: '0.78rem' }}>{t.goToField}</button>
                 </div>
               )}
               {confirmAgain && (

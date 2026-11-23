@@ -55,7 +55,7 @@
 }
 .av button.av-btn:hover:not(:disabled), .av a.av-btn:hover { border-color: var(--av-accent); background: #e8f4f3; }
 .av button.av-btn:disabled { opacity: 0.55; cursor: not-allowed; }
-.av .av-btn.av-primary { background: #102444; border-color: #102444; color: #fff; } /* one colour (Owner 22-23/11): every button is the sidebar navy */
+.av .av-btn.av-primary { background: var(--av-accent); border-color: var(--av-accent); color: #fff; }
 .av .av-btn.av-danger { color: var(--av-red); border-color: #e6a3ab; background: #fff5f5; }
 /* the confirm button of a delete / reset dialog (the sketch: solid red) */
 .av .av-btn.av-danger-solid, .av-dialog .av-btn.av-danger-solid { background: var(--av-red); border-color: var(--av-red); color: #fff; }

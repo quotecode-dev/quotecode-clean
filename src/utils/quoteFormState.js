@@ -3,8 +3,7 @@
 // so a previous quote's status/structure could leak into the next new quote. One helper, used by all of them.
 export function getPristineQuoteFormState({ defaultTerms = '', defaultWarranty = '', isLocalIsraeliBusiness = false, currency = 'USD' } = {}) {
   return {
-    // the simplify sketch (Owner 22/11): a new quote starts with a private client (an old quote with no type still opens with none)
-    clientName: '', clientEmail: '', clientPhone: '', clientType: 'private', clientTaxId: '', clientAddress: '',
+    clientName: '', clientEmail: '', clientPhone: '', clientType: '', clientTaxId: '', clientAddress: '',
     quoteSubject: '', attnName: '', attnRole: '',
     currency: isLocalIsraeliBusiness ? 'ILS' : (currency || 'USD'),
     quoteStatus: 'Draft',

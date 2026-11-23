@@ -3,7 +3,7 @@
    C:/tekango-ops/demos/simple1120/src.html (its "list" CSS and the <= 768 block). The geometry contracts stay: the measured columns of
    IRON-QH-LAYOUT-001 (--qm-cols), the money slot of the cards (IRON-NUMERIC-001 / IRON-MOBILE-WIDTH-001), the 6px phone inset.
    Every rule is scoped under .dash-main-content .quote-workspace so it outranks the dashboard's own list rules. */
-.dash-main-content .quote-workspace { --ql-ink: #172129; --ql-muted: #5d6b70; --ql-faint: #8a979b; --ql-line: #e3e8e9; --ql-line2: #d5dddf; --ql-teal: #102444; --ql-chip: #f2f4f4;
+.dash-main-content .quote-workspace { --ql-ink: #172129; --ql-muted: #5d6b70; --ql-faint: #8a979b; --ql-line: #e3e8e9; --ql-line2: #d5dddf; --ql-teal: #0f6672; --ql-chip: #f2f4f4;
   background: transparent !important; box-shadow: none !important; padding: 0 !important; color: var(--ql-ink); }
 
 /* ---------- the next-step banner (one thin line) ---------- */
@@ -27,7 +27,7 @@
 .dash-main-content .quote-workspace .qlist-top .quote-export-compact { display: grid; place-items: center; inline-size: 38px; block-size: 38px; border: 1px solid var(--ql-line2); border-radius: 8px; background: #fff; color: var(--ql-ink); padding: 0; cursor: pointer; }
 .dash-main-content .quote-workspace .qlist-top .quote-primary-action { display: inline-flex; align-items: center; gap: 6px; min-height: 38px; block-size: 38px; padding: 0 14px; border-radius: 8px; border: 1px solid var(--ql-teal);
   background: var(--ql-teal); color: #fff; font: inherit; font-size: 13.5px; font-weight: 600; white-space: nowrap; box-shadow: none; }
-.dash-main-content .quote-workspace .qlist-top .quote-primary-action:hover { background: #0b1a33; }
+.dash-main-content .quote-workspace .qlist-top .quote-primary-action:hover { background: #0b525c; }
 
 /* ---------- the overview: one line ---------- */
 .dash-main-content .quote-workspace .quote-overview { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin: 0 0 10px; padding: 0; border: 0; background: none; box-shadow: none; min-height: 0; font-size: 13px; color: var(--ql-muted); grid-template-columns: none; }
@@ -41,16 +41,16 @@
 .qlist-srch input { width: 100%; box-sizing: border-box; height: 38px; border: 1px solid #d5dddf; border-radius: 8px; padding-block: 0; padding-inline: 34px 10px; font-size: 14px; background: #fff; color: #172129; }
 .qlist-srch svg { position: absolute; top: 50%; transform: translateY(-50%); inset-inline-start: 10px; color: #8a979b; pointer-events: none; }
 .qlist-filter-btn { display: inline-flex; align-items: center; gap: 6px; min-height: 38px; padding: 0 14px; border-radius: 8px; border: 1px solid #d5dddf; background: #fff; color: #172129; font: inherit; font-size: 13.5px; font-weight: 600; white-space: nowrap; cursor: pointer; flex: none; }
-.qlist-filter-btn[data-active="true"] { border-color: #102444; color: #102444; }
+.qlist-filter-btn[data-active="true"] { border-color: #0f6672; color: #0f6672; }
 .qlist-ov { position: fixed; inset: 0; background: rgba(15,23,42,.45); z-index: 10050; display: flex; align-items: center; justify-content: center; padding: 14px; }
 .qlist-dlg { background: #fff; border-radius: 12px; max-width: 420px; width: 100%; padding: 16px; box-shadow: 0 18px 40px rgba(0,0,0,.25); max-height: 100%; overflow: auto; box-sizing: border-box; color: #172129; font-size: 14px; }
 .qlist-dlg h3 { margin: 0 0 8px; font-size: 16px; }
 .qlist-dlg-l { font-size: 13px; font-weight: 600; margin: 4px 0 6px; }
 .qlist-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
 .qlist-chips button { border: 1px solid #d5dddf; background: #fff; border-radius: 999px; padding: 0 12px; min-height: 32px; font: inherit; font-size: 13px; font-weight: 600; color: #5d6b70; cursor: pointer; }
-.qlist-chips button[aria-pressed="true"] { background: #102444; border-color: #102444; color: #fff; }
+.qlist-chips button[aria-pressed="true"] { background: #0f6672; border-color: #0f6672; color: #fff; }
 .qlist-dlg-acts { display: flex; justify-content: flex-end; margin-top: 4px; }
-.qlist-btn-p { min-height: 38px; padding: 0 16px; border-radius: 8px; border: 1px solid #102444; background: #102444; color: #fff; font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; }
+.qlist-btn-p { min-height: 38px; padding: 0 16px; border-radius: 8px; border: 1px solid #0f6672; background: #0f6672; color: #fff; font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; }
 
 /* ---------- the table ---------- */
 .dash-main-content .quote-workspace > .quote-modern-list { margin-top: 0; border: 1px solid var(--ql-line); border-radius: 10px; background: #fff; }
@@ -64,7 +64,7 @@
 .dash-main-content .quote-workspace .quote-modern-item:has(.quote-modern-detail) > .quote-modern-row { background: #f4f9f9; }
 /* the row opens on a click anywhere (the sketch); its toggle button stays for the keyboard and screen readers, out of sight until focused */
 .dash-main-content .quote-workspace .quote-modern-toggle { position: absolute; inset-inline-start: 0; top: 0; inline-size: 1px; block-size: 1px; opacity: 0; overflow: hidden; padding: 0; border: 0; }
-.dash-main-content .quote-workspace .quote-modern-row:has(.quote-modern-toggle:focus-visible) { outline: 2px solid #102444; outline-offset: -2px; }
+.dash-main-content .quote-workspace .quote-modern-row:has(.quote-modern-toggle:focus-visible) { outline: 2px solid #efb75d; outline-offset: -2px; }
 .dash-main-content .quote-workspace .quote-modern-client-name { font-weight: 600; }
 .dash-main-content .quote-workspace .quote-modern-title { color: var(--ql-muted); }
 .dash-main-content .quote-workspace .quote-modern-views, .dash-main-content .quote-workspace .quote-modern-date { color: var(--ql-muted); }
@@ -95,7 +95,7 @@
 .qrow-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border-radius: 8px; padding: 0 10px; min-height: 32px; font: inherit; font-weight: 600; font-size: 13px;
   border: 1px solid #d5dddf; background: #fff; color: #172129; white-space: nowrap; cursor: pointer; }
 .qrow-btn:disabled { opacity: .5; cursor: not-allowed; }
-.qrow-btn--p { background: #102444; border-color: #102444; color: #fff; }
+.qrow-btn--p { background: #0f6672; border-color: #0f6672; color: #fff; }
 .qrow-btn--more { padding: 0 8px; }
 .qrow-menu { z-index: 10040; min-width: 200px; background: #fff; border: 1px solid #d5dddf; border-radius: 10px; box-shadow: 0 10px 28px rgba(16,36,68,.18); padding: 6px; display: flex; flex-direction: column; color: #172129; }
 .qrow-menu button { display: flex; align-items: center; gap: 10px; background: none; border: 0; border-radius: 6px; padding: 0 10px; min-height: 40px; font: inherit; font-size: 14px; text-align: start; white-space: nowrap; color: inherit; cursor: pointer; }
@@ -109,14 +109,10 @@
 /* ---------- the cards (phone, tablet held upright, a narrow window) ---------- */
 .dash-main-content .quote-workspace .qc { background: #fff; border: 1px solid var(--ql-line); border-radius: 10px; overflow: visible; }
 .dash-main-content .quote-workspace .qc.is-open { border-color: #b9d6d9; }
-.dash-main-content .quote-workspace .qc-top { display: grid; grid-template-columns: minmax(0, 1fr) var(--stw, 7.5em); gap: 2px 10px; padding: 8px 12px; width: 100%; box-sizing: border-box; background: none; border: 0; text-align: start; cursor: pointer; font: inherit; color: inherit; align-items: center; }
+.dash-main-content .quote-workspace .qc-top { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; padding: 8px 12px; width: 100%; box-sizing: border-box; background: none; border: 0; text-align: start; cursor: pointer; font: inherit; color: inherit; align-items: center; }
 .dash-main-content .quote-workspace .qc-nm { font-weight: 600; font-size: 14px; color: var(--ql-ink); min-width: 0; }
-.dash-main-content .quote-workspace .qc-amt { font-weight: 600; font-size: 14px; color: var(--ql-ink); justify-self: end; }
-/* L-19 (Owner 22/11): the amount slot keeps the physical right of the status column in both languages (in RTL the column start is its right) */
-.dash-main-content .quote-workspace .qc[dir="rtl"] .qc-amt { justify-self: start; }
-/* L-19 (Owner console 2026-11-22, the simplify1122 sketch): the second row uses the first row's two columns - the status stands under the
-   amount from the column start (HE: its dot under the amount's end; EN: its dot at the column's left start, the amount stays right) */
-.dash-main-content .quote-workspace .qc-r2 { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr) var(--stw, 7.5em); column-gap: 10px; align-items: center; min-width: 0; }
+.dash-main-content .quote-workspace .qc-amt { font-weight: 600; font-size: 14px; color: var(--ql-ink); }
+.dash-main-content .quote-workspace .qc-r2 { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; gap: 8px; min-width: 0; }
 .dash-main-content .quote-workspace .qc-ln2 { font-size: 12px; color: var(--ql-muted); display: flex; gap: 6px; align-items: center; min-width: 0; overflow: hidden; white-space: nowrap; }
 .dash-main-content .quote-workspace .qc-views { display: inline-flex; align-items: center; gap: 3px; }
 .dash-main-content .quote-workspace .qc-panel { border-top: 1px solid var(--ql-line); background: #f9fbfb; padding: 10px 12px 12px; border-radius: 0 0 10px 10px; }
@@ -130,7 +126,7 @@
    cell borders and no box; the pager is plain text; the amounts have no optical gap after the symbol (the sketch) */
 .dash-main-content .quote-workspace .quote-modern-row > .quote-modern-status.qlist-st,
 .dash-main-content .quote-workspace .qlist-st { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12.5px; color: #5d6b70 !important; font-weight: 400; }
-.dash-main-content .quote-workspace .qc-r2 .qlist-st { min-width: 0; justify-self: stretch; text-align: start; }
+.dash-main-content .quote-workspace .qc-r2 .qlist-st { flex: 0 1 auto; }
 .dash-main-content .quote-workspace .qlist-st::before { display: inline-block; vertical-align: middle; margin-inline-end: 6px; margin-top: -2px; }
 .dash-main-content .quote-workspace .quote-overview { display: flex; height: auto; overflow: visible; border-radius: 0; }
 .dash-main-content .quote-workspace .quote-overview-cell { border-inline-start: 0 !important; justify-content: flex-start; }
@@ -168,7 +164,7 @@ body .pf-newquote-backdrop .pf-newquote-sentence { font-size: 13px !important; c
 body .pf-newquote-backdrop .pf-newquote-choices { display: flex !important; flex-direction: column; gap: 0 !important; }
 body .pf-newquote-backdrop .pf-newquote-item { min-block-size: 0 !important; border: 0 !important; border-radius: 8px !important; padding: 10px 6px !important; display: flex; gap: 12px; align-items: flex-start; background: none; text-align: start; }
 body .pf-newquote-backdrop .pf-newquote-item:hover, body .pf-newquote-backdrop .pf-newquote-item:focus-visible { background: #f2f4f4 !important; }
-body .pf-newquote-backdrop .pf-newquote-item svg { inline-size: 19px; block-size: 19px; margin-top: 2px; color: #102444; }
+body .pf-newquote-backdrop .pf-newquote-item svg { inline-size: 19px; block-size: 19px; margin-top: 2px; color: #0f6672; }
 body .pf-newquote-backdrop .pf-newquote-item-text strong { display: block; font-size: 14.5px; }
 body .pf-newquote-backdrop .pf-newquote-item-text small { font-size: 12.5px; color: #5d6b70; }
 body .pf-newquote-backdrop .pf-newquote-back { display: none !important; }
@@ -192,7 +188,7 @@ body:has(.quote-workspace) .dash-footer, body:has(.sq-saved--sketch) .dash-foote
   .dash-mobile-newquote-menu > strong { padding: 0 !important; margin: 0 0 8px; font-size: 16px !important; font-weight: 700 !important; color: #172129 !important; }
   .dash-mobile-newquote-menu > span { padding: 0 !important; margin: 0 0 6px; font-size: 13px !important; color: #5d6b70 !important; line-height: 1.45 !important; }
   .dash-mobile-newquote-menu > button { padding: 10px 6px !important; gap: 12px !important; min-height: 0 !important; border-radius: 8px !important; }
-  .dash-mobile-newquote-menu > button svg { width: 19px; height: 19px; margin-top: 2px !important; color: #102444 !important; }
+  .dash-mobile-newquote-menu > button svg { width: 19px; height: 19px; margin-top: 2px !important; color: #0f6672 !important; }
   .dash-mobile-newquote-menu > button strong { font-size: 14.5px !important; font-weight: 700 !important; }
   .dash-mobile-newquote-menu > button small { font-size: 12.5px !important; color: #5d6b70 !important; line-height: 1.45 !important; }
 }
@@ -209,7 +205,7 @@ body:has(.quote-workspace) .dash-footer, body:has(.sq-saved--sketch) .dash-foote
 .dash-main-content .quote-workspace .quote-modern-number, .dash-main-content .quote-workspace .quote-modern-number * { font-size: 12.5px !important; }
 .dash-main-content .quote-workspace .quote-modern-sort-arrow { margin-inline-start: 3px !important; }
 .dash-main-content .quote-workspace .quote-hot-banner .qhb-short-rest { font-weight: 400 !important; font-size: 13px !important; color: #7c2d12 !important; }
-.dash-main-content .quote-workspace .quote-modern-page-btn { border-color: #d5dddf !important; color: #102444 !important; background: #fff !important; }
+.dash-main-content .quote-workspace .quote-modern-page-btn { border-color: #d5dddf !important; color: #0f6672 !important; background: #fff !important; }
 /* law 50 round 2: the start window's options and the phone cards in the sketch's line height (option 63px, card 57px) */
 body .pf-newquote-backdrop .pf-newquote-item-text { font-size: 15px; line-height: 1.45; }
 body .pf-newquote-backdrop .pf-newquote-item-text small { line-height: 1.45; }

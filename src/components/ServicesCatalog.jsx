@@ -126,13 +126,13 @@ export default function ServicesCatalog({
     '--svc-text-secondary': NEON.textSecondary,
     '--svc-muted': NEON.textMuted,
     '--svc-price': NEON.violetLight,
-    '--svc-accent': NEON.button,
-    '--svc-accent-bg': NEON.buttonTint,
+    '--svc-accent': NEON.violetLight,
+    '--svc-accent-bg': NEON.violetLighter,
     '--svc-btn-bg': NEON.bgCardAlt,
     '--svc-input-bg': NEON.bgInput,
     '--svc-danger': NEON.red,
-    '--svc-save': NEON.button,
-    '--svc-focus': NEON.button,
+    '--svc-save': NEON.emeraldDark,
+    '--svc-focus': NEON.violet,
   };
 
   // Codex F06 (Owner 2026-11-03, L-23 #14): one measured actions track for the header and every row, so "fixed price" sits over the prices

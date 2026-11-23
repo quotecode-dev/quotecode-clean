@@ -467,7 +467,7 @@ export default function AddItemWizard({
     step1ExplanationCatalog: isHebrew ? 'בחרו מוצר או עבודה שכבר שמרתם בקטלוג, או הוסיפו פריט חדש.' : 'Choose a product or work you already saved in your catalog, or add a new one.',
     step1ExplanationBoth: isHebrew ? 'כתבו מה העבודה, או בחרו מוצר שכבר שמרתם בקטלוג.' : 'Type the job, or choose a product you already saved in your catalog.',
     catalogOrHeading: isHebrew ? 'או בחרו מהקטלוג' : 'Or choose from your catalog',
-    descPlaceholder: isHebrew ? 'למשל: התקנה, ידיות או רשת לחלון' : 'e.g. Installation, handles or a screen',
+    descPlaceholder: isHebrew ? 'למשל: התקנה, ידיות או רשת לחלון' : 'e.g. Installation, handles, or a window screen',
     chooseFromCatalog: isHebrew ? 'בחירה מהמוצרים השמורים' : 'Choose from saved products',
     catalogPick: isHebrew ? 'בחירת פריט…' : 'Select an item...',
     catalogFirstHeading: isHebrew ? 'בחרו מוצר או עבודה מהקטלוג' : 'Choose a product or work from your catalog',
@@ -1042,10 +1042,9 @@ export default function AddItemWizard({
                   setDescription(v); if (catalogServiceId) setCatalogServiceId('');
                 }}
                 placeholder={isMulti ? t.pickedHint : t.descPlaceholder}
-                title={description || (isMulti ? t.pickedHint : t.descPlaceholder)}
                 aria-invalid={!!errors.description}
                 aria-describedby={errors.description ? 'wiz-description-error' : undefined}
-                style={{ ...inputStyle(isHebrew), padding: '13px 14px', textOverflow: 'ellipsis' }}
+                style={{ ...inputStyle(isHebrew), padding: '13px 14px' }}
               />
               {errors.description && <ErrorText id="wiz-description-error">{errors.description}</ErrorText>}
               {services && services.length > 0 && !isEditMode && (
@@ -1058,9 +1057,9 @@ export default function AddItemWizard({
                       const on = picks.some((p) => p.key === String(sv.id));
                       return (
                         <label key={sv.id} data-testid={`wiz-catalog-pick-${sv.id}`}
-                          style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', boxSizing: 'border-box', background: on ? NEON.buttonTint : NEON.bgCardAlt, border: `1px solid ${on ? NEON.button : NEON.borderStrong}`, borderRadius: '10px', padding: '10px 12px', minHeight: '44px', cursor: 'pointer', fontSize: '0.84rem', fontWeight: 700, color: NEON.textPrimary }}>
+                          style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', boxSizing: 'border-box', background: on ? NEON.violetLighter : NEON.bgCardAlt, border: `1px solid ${on ? NEON.violet : NEON.borderStrong}`, borderRadius: '10px', padding: '10px 12px', minHeight: '44px', cursor: 'pointer', fontSize: '0.84rem', fontWeight: 700, color: NEON.textPrimary }}>
                           {/* PRODUCT_TRUTH_DECORATIVE: ticks / unticks one saved catalog item for the shared check before adding; nothing is added from the list */}
-                          <input type="checkbox" checked={on} onChange={() => togglePick(sv)} style={{ width: '20px', height: '20px', margin: 0, flexShrink: 0, accentColor: NEON.button, cursor: 'pointer' }} />
+                          <input type="checkbox" checked={on} onChange={() => togglePick(sv)} style={{ width: '20px', height: '20px', margin: 0, flexShrink: 0, accentColor: NEON.violet, cursor: 'pointer' }} />
                           <span style={{ flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>{sv.name}</span>
                           <bdi className="pf-money pf-money-slot" style={{ color: NEON.violet, fontWeight: 800 }}>{sym}{money(sv.price)}</bdi>
                         </label>
@@ -1138,7 +1137,7 @@ export default function AddItemWizard({
                     const on = feetSizes === (u === 'ft');
                     return (
                       <button key={u} type="button" aria-pressed={on} onClick={() => changeMeasureUnit(u)} data-testid={`wiz-qtyunit-${u}`}
-                        style={{ border: 'none', padding: '8px 16px', minHeight: '44px', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', background: on ? NEON.button : 'transparent', color: on ? '#fff' : NEON.textSecondary }}>
+                        style={{ border: 'none', padding: '8px 16px', minHeight: '44px', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', background: on ? NEON.violet : 'transparent', color: on ? '#fff' : NEON.textSecondary }}>
                         {label}
                       </button>
                     );
@@ -1150,7 +1149,7 @@ export default function AddItemWizard({
                   {/* PRODUCT_TRUTH_DECORATIVE: cm / m switch for the typed sizes (stored measurements stay metres) */}
                   {sizeUnitChoices.map((u) => [u, { cm: t.unitCm, m: t.unitM, ft: t.unitFt, in: t.unitIn }[u]]).map(([u, label]) => (
                     <button key={u} type="button" aria-pressed={measureUnit === u} onClick={() => changeMeasureUnit(u)} data-testid={`wiz-unit-${u}`}
-                      style={{ border: 'none', padding: '8px 16px', minHeight: '44px', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', background: measureUnit === u ? NEON.button : 'transparent', color: measureUnit === u ? '#fff' : NEON.textSecondary }}>
+                      style={{ border: 'none', padding: '8px 16px', minHeight: '44px', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', background: measureUnit === u ? NEON.violet : 'transparent', color: measureUnit === u ? '#fff' : NEON.textSecondary }}>
                       {label}
                     </button>
                   ))}
@@ -1226,7 +1225,7 @@ export default function AddItemWizard({
               })}
               <div style={{ marginTop: '14px' }}>
                 {/* PRODUCT_TRUTH_DECORATIVE: 'Add another size' button appending a new measurement row */}
-                <button type="button" onClick={addMeasureRow} style={{ background: 'none', border: `1px dashed ${NEON.button}`, color: NEON.button, borderRadius: '8px', padding: '10px 14px', cursor: 'pointer', fontWeight: '700', fontSize: '0.85rem', width: '100%', minHeight: '44px' }}>
+                <button type="button" onClick={addMeasureRow} style={{ background: 'none', border: `1px dashed ${NEON.violet}`, color: NEON.violet, borderRadius: '8px', padding: '10px 14px', cursor: 'pointer', fontWeight: '700', fontSize: '0.85rem', width: '100%', minHeight: '44px' }}>
                   {t.addAnotherSize}
                 </button>
               </div>
@@ -1309,7 +1308,7 @@ export default function AddItemWizard({
                               const on = isFeetUnit(p.unit) === (u === 'ft');
                               return (
                                 <button key={u} type="button" aria-pressed={on} onClick={() => changePickUnit(idx, u)} data-testid={`${fid('qtyunit')}-${u}`}
-                                  style={{ border: 'none', padding: '8px 16px', minHeight: '44px', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', background: on ? NEON.button : 'transparent', color: on ? '#fff' : NEON.textSecondary }}>
+                                  style={{ border: 'none', padding: '8px 16px', minHeight: '44px', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', background: on ? NEON.violet : 'transparent', color: on ? '#fff' : NEON.textSecondary }}>
                                   {label}
                                 </button>
                               );
@@ -1331,7 +1330,7 @@ export default function AddItemWizard({
                           {/* PRODUCT_TRUTH_DECORATIVE: cm / m switch for one ticked item's typed sizes (stored measurements stay metres) */}
                           {sizeUnitChoices.map((u) => [u, { cm: t.unitCm, m: t.unitM, ft: t.unitFt, in: t.unitIn }[u]]).map(([u, label]) => (
                             <button key={u} type="button" aria-pressed={(p.unit || 'cm') === u} onClick={() => changePickUnit(idx, u)} data-testid={`${fid('unit')}-${u}`}
-                              style={{ border: 'none', padding: '8px 16px', minHeight: '44px', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', background: (p.unit || 'cm') === u ? NEON.button : 'transparent', color: (p.unit || 'cm') === u ? '#fff' : NEON.textSecondary }}>
+                              style={{ border: 'none', padding: '8px 16px', minHeight: '44px', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', background: (p.unit || 'cm') === u ? NEON.violet : 'transparent', color: (p.unit || 'cm') === u ? '#fff' : NEON.textSecondary }}>
                               {label}
                             </button>
                           ))}
@@ -1381,7 +1380,7 @@ export default function AddItemWizard({
                           );
                         })}
                         {/* PRODUCT_TRUTH_DECORATIVE: adds another size to a ticked item on the check screen */}
-                        <button type="button" onClick={() => addPickRow(idx)} style={{ background: 'none', border: `1px dashed ${NEON.button}`, color: NEON.button, borderRadius: '8px', padding: '10px 14px', cursor: 'pointer', fontWeight: '700', fontSize: '0.85rem', width: '100%', minHeight: '44px', marginTop: '12px' }}>
+                        <button type="button" onClick={() => addPickRow(idx)} style={{ background: 'none', border: `1px dashed ${NEON.violet}`, color: NEON.violet, borderRadius: '8px', padding: '10px 14px', cursor: 'pointer', fontWeight: '700', fontSize: '0.85rem', width: '100%', minHeight: '44px', marginTop: '12px' }}>
                           {t.addAnotherSize}
                         </button>
                         {(p.extraRows || []).length > 0 && (
@@ -1496,7 +1495,7 @@ export default function AddItemWizard({
 
               {/* PRODUCT_TRUTH_DECORATIVE: 'Add customer details' toggle revealing optional spec rows and a unit/group picker */}
               {!showCustomerDetails ? (
-                <button type="button" onClick={() => setShowCustomerDetails(true)} style={{ background: 'none', border: 'none', color: NEON.button, fontSize: '0.85rem', fontWeight: '700', cursor: 'pointer', padding: '0 2px', minHeight: '44px', marginBottom: '6px', display: 'block' }}>
+                <button type="button" onClick={() => setShowCustomerDetails(true)} style={{ background: 'none', border: 'none', color: NEON.violetLight, fontSize: '0.85rem', fontWeight: '700', cursor: 'pointer', padding: '0 2px', minHeight: '44px', marginBottom: '6px', display: 'block' }}>
                   {t.addCustomerDetailsToggle}
                 </button>
               ) : (
@@ -1632,7 +1631,7 @@ function StepIndicator({ step, isHebrew, isNarrow, labels, stepOfTotal }) {
           <span style={{ fontSize: '0.72rem', fontWeight: '600', color: NEON.textSecondary, whiteSpace: 'nowrap', flexShrink: 0 }}>{stepOfTotal(step, total)}</span>
         </div>
         <div style={{ marginTop: '6px', height: '4px', borderRadius: '2px', background: NEON.border, overflow: 'hidden' }}>
-          <div style={{ height: '100%', width: `${(step / total) * 100}%`, background: NEON.violet, borderRadius: '2px', transition: 'width 0.2s ease' }} />
+          <div style={{ height: '100%', width: `${(step / total) * 100}%`, background: NEON.gradient, borderRadius: '2px', transition: 'width 0.2s ease' }} />
         </div>
       </div>
     );
@@ -1660,7 +1659,7 @@ function StepIndicator({ step, isHebrew, isNarrow, labels, stepOfTotal }) {
               style={{
                 zIndex: 1, width: '22px', height: '22px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: '0.7rem', fontWeight: '800',
-                background: isDone || isCurrent ? NEON.violet : NEON.bgCardAlt,
+                background: isDone || isCurrent ? NEON.gradient : NEON.bgCardAlt,
                 color: isDone || isCurrent ? '#ffffff' : NEON.textMuted,
                 border: `1px solid ${isDone || isCurrent ? 'transparent' : NEON.borderStrong}`,
               }}
@@ -1691,14 +1690,14 @@ function MethodCard({ id, icon, title, example, recommended, recommendedLabel, o
       aria-pressed={selected}
       style={{
         display: 'flex', alignItems: 'center', gap: '14px', padding: '14px 16px', borderRadius: '12px', cursor: 'pointer',
-        border: `2px solid ${selected ? NEON.button : NEON.border}`,
-        background: selected ? NEON.buttonTint : NEON.bgCardAlt,
+        border: `2px solid ${selected ? NEON.violet : NEON.border}`,
+        background: selected ? NEON.violetLighter : NEON.bgCardAlt,
         minHeight: '44px',
-        outline: focused ? `3px solid ${NEON.button}` : 'none',
+        outline: focused ? `3px solid ${NEON.violetLight}` : 'none',
         outlineOffset: '2px',
       }}
     >
-      <div style={{ color: locked ? NEON.textMuted : NEON.button, flexShrink: 0 }}>{locked ? <Lock size={22} /> : icon}</div>
+      <div style={{ color: locked ? NEON.textMuted : NEON.violetLight, flexShrink: 0 }}>{locked ? <Lock size={22} /> : icon}</div>
       <div style={{ flex: 1 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
           <span style={{ fontWeight: '700', color: NEON.textPrimary, fontSize: '0.92rem' }}>{title}</span>
@@ -1736,7 +1735,7 @@ function ErrorText({ id, children }) {
 // PRODUCT_TRUTH_DECORATIVE: EditLink's own generic reusable text-link button; renders whatever label/onClick its caller supplies
 function EditLink({ label, onClick }) {
   return (
-    <button type="button" onClick={onClick} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', color: NEON.button, fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer', padding: '6px 4px', minHeight: '44px' }}>
+    <button type="button" onClick={onClick} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', color: NEON.violetLight, fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer', padding: '6px 4px', minHeight: '44px' }}>
       <Pencil size={11} strokeWidth={2.5} />
       {label}
     </button>
@@ -1776,6 +1775,6 @@ function numInputStyle(isHebrew) {
 }
 
 const detailNoteStyle = { fontSize: '0.8rem', color: NEON.textSecondary, margin: '0 0 8px', lineHeight: '1.4' };
-const linkBtnStyle = { display: 'block', marginTop: '6px', background: 'none', border: 'none', color: NEON.button, fontSize: '0.82rem', fontWeight: '600', cursor: 'pointer', padding: '6px 0', minHeight: '44px' };
+const linkBtnStyle = { display: 'block', marginTop: '6px', background: 'none', border: 'none', color: NEON.violetLight, fontSize: '0.82rem', fontWeight: '600', cursor: 'pointer', padding: '6px 0', minHeight: '44px' };
 const primaryBtnStyle = { display: 'flex', alignItems: 'center', gap: '4px', background: NEON.gradient, color: 'white', border: 'none', padding: '12px 18px', borderRadius: '8px', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', minHeight: '44px' };
 const secondaryBtnStyle = { display: 'flex', alignItems: 'center', gap: '4px', background: 'none', border: `1px solid ${NEON.borderStrong}`, color: NEON.textSecondary, padding: '12px 18px', borderRadius: '8px', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer', minHeight: '44px' };

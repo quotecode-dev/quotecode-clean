@@ -2,7 +2,7 @@
    Clients | Leads tabs, the leads list (table on a computer, cards on a phone), the lead details, the contact log and the "new lead"
    window - the demo's own measures and colours, scoped under .ld-* so nothing else in the app changes. Logical properties only (HE / EN
    mirror). */
-.ld-scope { --ld-teal: #0f6672; --ld-teal-soft: #dceaeb; --ld-btn: #102444; --ld-ink: #172129; --ld-muted: #5d6b70; --ld-faint: #8a979b; --ld-line: #e1e6e7;
+.ld-scope { --ld-teal: #0f6672; --ld-teal-soft: #dceaeb; --ld-ink: #172129; --ld-muted: #5d6b70; --ld-faint: #8a979b; --ld-line: #e1e6e7;
   --ld-headline: #d9e0e3; --ld-work: #f7f9fc; --ld-chip: #f3f5f4; --ld-amber: #b7791f; --ld-amber-soft: #fdf3e1; --ld-red: #b4232f;
   --ld-green: #1f7a4d; --ld-green-soft: #e3f4ea; --ld-blue: #2457a6; --ld-blue-soft: #e6eefb; color: var(--ld-ink); }
 :where(.ld-scope) button { font: inherit; cursor: pointer; color: inherit; }
@@ -12,7 +12,7 @@
 .ld-titlerow { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
 .ld-titlerow h2 { margin: 0; font-size: 1.1rem; font-weight: 800; display: flex; align-items: center; gap: 8px; }
 .ld-titlerow .ld-count { font-size: .78rem; font-weight: 600; color: var(--ld-muted); }
-.ld-btnp { display: inline-flex; align-items: center; gap: 6px; background: var(--ld-btn); color: #fff !important; border: 0; border-radius: 8px; padding: 9px 14px; min-height: 40px; font-weight: 700; font-size: .82rem; }
+.ld-btnp { display: inline-flex; align-items: center; gap: 6px; background: var(--ld-teal); color: #fff !important; border: 0; border-radius: 8px; padding: 9px 14px; min-height: 40px; font-weight: 700; font-size: .82rem; }
 .ld-btns { display: inline-flex; align-items: center; gap: 6px; background: #fff; color: var(--ld-ink); border: 1px solid var(--ld-headline); border-radius: 8px; padding: 8px 12px; min-height: 40px; font-weight: 600; font-size: .82rem; }
 .ld-btnl { background: none; border: 0; color: var(--ld-teal) !important; font-weight: 700; padding: 6px 4px; min-height: 40px; font-size: .82rem; }
 .ld-btnp:focus-visible, .ld-btns:focus-visible, .ld-btnl:focus-visible, .ld-tabs button:focus-visible, .ld-filters button:focus-visible, .ld-types button:focus-visible, .ld-card:focus-visible, .ld-tbl tr.ld-row:focus-visible { outline: 2px solid #efb75d; outline-offset: 2px; }
@@ -30,7 +30,7 @@
 .ld-search select { min-height: 44px; border: 1px solid var(--ld-headline); border-radius: 8px; padding: 0 10px; background: #fff; font-size: .85rem; }
 .ld-filters { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
 .ld-filters button { border: 1px solid var(--ld-headline); background: #fff; border-radius: 999px; padding: 4px 12px; min-height: 40px; font-size: .8rem; font-weight: 600; color: var(--ld-muted); }
-.ld-filters button.on { background: var(--ld-btn); border-color: var(--ld-btn); color: #fff; }
+.ld-filters button.on { background: var(--ld-teal); border-color: var(--ld-teal); color: #fff; }
 
 .ld-tbl { width: 100%; border-collapse: collapse; font-size: .85rem; table-layout: fixed; }
 .ld-tbl th:nth-child(1) { width: 25%; } .ld-tbl th:nth-child(2) { width: 18%; } .ld-tbl th:nth-child(3) { width: 21%; } .ld-tbl th:nth-child(4) { width: 17%; } .ld-tbl th:nth-child(5) { width: 19%; white-space: normal; }

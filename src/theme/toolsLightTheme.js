@@ -19,8 +19,6 @@ export const TOOLS = Object.freeze({
   accent: '#315f6f',
   accentStrong: '#264b58',
   accentSoft: '#dfe9ec',
-  button: '#102444',
-  buttonSoft: '#e9edf3',
   // warnings (stale / unavailable data) and the metals values
   amber: '#7a4f0a',
   red: '#8f3434',

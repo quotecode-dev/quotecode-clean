@@ -247,10 +247,7 @@ export const APP = {
   red: '#9A4040',
   redDark: '#833535',
 
-  gradient: '#102444',
-  button: '#102444',
-  buttonHover: '#0B1A33',
-  buttonTint: '#E9EDF3',
+  gradient: '#0F6672',
   glow: '0 1px 2px rgba(19,33,41,0.05)',
   glowSoft: '0 1px 2px rgba(19,33,41,0.04)',
   cardHoverShadow: '0 4px 14px -6px rgba(19,33,41,0.14)',
@@ -304,7 +301,7 @@ export const APP_HEADER = {
 // 6.6:1 on #fff, 5.9:1 on canvas #edf1f0, 5.9:1 on soft #f3f5f4) on every LIGHT surface, `onDark` (the refined amber
 // #efb75d: 9.0:1 on nav #152229, 3.6:1 on the accent CTA) on the dark side navigation only (= APP_SHELL.focusRing).
 export const APP_FOCUS = {
-  ring: '#102444',
+  ring: '#0F6672',
   onDark: '#EFB75D',
   width: '3px',
   offset: '2px',

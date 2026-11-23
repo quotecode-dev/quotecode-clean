@@ -135,8 +135,8 @@ export default function EditClientModal({ isOpen, onClose, client, onSave, isHeb
             
             <div>
               <label style={{ display: 'block', fontWeight: '600', color: APP.textSecondary, marginBottom: '3px' }}>{isHebrew ? 'טלפון' : 'Phone'}</label>
-              <div style={{ display: 'flex', flexDirection: 'row', direction: 'ltr', border: `1px solid ${APP.borderStrong}`, borderRadius: '6px', background: 'white', overflow: 'hidden', boxSizing: 'border-box' }}>
-                <div style={{ background: APP.bgCardAlt, padding: '8px 10px', fontSize: '0.85rem', color: APP.textPrimary, fontWeight: '600', display: 'flex', alignItems: 'center', borderRight: `1px solid ${APP.borderStrong}`, whiteSpace: 'nowrap' }}>
+              <div style={{ display: 'flex', flexDirection: isHebrew ? 'row-reverse' : 'row', border: `1px solid ${APP.borderStrong}`, borderRadius: '6px', background: 'white', overflow: 'hidden', boxSizing: 'border-box' }}>
+                <div style={{ background: APP.bgCardAlt, padding: '8px 10px', fontSize: '0.85rem', color: APP.textPrimary, fontWeight: '600', display: 'flex', alignItems: 'center', [isHebrew ? 'borderLeft' : 'borderRight']: `1px solid ${APP.borderStrong}`, whiteSpace: 'nowrap' }}>
                   {defaultLabel}
                 </div>
                 <input 
@@ -187,7 +187,7 @@ export default function EditClientModal({ isOpen, onClose, client, onSave, isHeb
               {isHebrew ? 'ביטול' : 'Cancel'}
             </button>
             {/* PRODUCT_TRUTH_CAPABILITY: clients */}
-            <button type="submit" style={{ flex: 1, background: APP.button, color: APP.textOnAccent, border: 'none', padding: '10px', borderRadius: '6px', fontWeight: '600', fontSize: '0.9rem', boxShadow: 'none' }}>
+            <button type="submit" style={{ flex: 1, background: APP.violet, color: APP.textOnAccent, border: 'none', padding: '10px', borderRadius: '6px', fontWeight: '600', fontSize: '0.9rem', boxShadow: 'none' }}>
               {isNew ? (isHebrew ? 'יצירת לקוח' : 'Create Client') : (isHebrew ? 'שמירת שינויים' : 'Save Changes')}
             </button>
           </div>

@@ -90,7 +90,7 @@ export default function Free10UpgradeWindow({ open, onClose, isHebrew, market, f
           {typeof onChoose === 'function' ? (
             // PRODUCT_TRUTH_DECORATIVE: opens the plans window (where the server payment page is chosen); starts no payment by itself
             <button type="button" onClick={onChoose} data-testid="free10-upgrade-choose"
-              style={{ flex: '1 1 0', minWidth: 0, lineHeight: 1.2, minHeight: 44, padding: '4px 10px', borderRadius: 9, border: '1px solid #102444', background: '#ffffff', color: '#102444', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+              style={{ flex: '1 1 0', minWidth: 0, lineHeight: 1.2, minHeight: 44, padding: '4px 10px', borderRadius: 9, border: '1px solid #0F6672', background: '#ffffff', color: '#0F6672', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
               {t.choose}
             </button>
           ) : purchaseOpen ? null : (
@@ -102,7 +102,7 @@ export default function Free10UpgradeWindow({ open, onClose, isHebrew, market, f
           )}
           {/* PRODUCT_TRUTH_DECORATIVE: closes the upgrade window and returns to the permitted flow; changes no data */}
           <button type="button" onClick={onClose} data-testid="free10-upgrade-close"
-            style={{ flex: '1 1 0', minWidth: 0, lineHeight: 1.2, minHeight: 44, padding: '4px 10px', borderRadius: 9, border: '1px solid #102444', background: '#102444', color: '#ffffff', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+            style={{ flex: '1 1 0', minWidth: 0, lineHeight: 1.2, minHeight: 44, padding: '4px 10px', borderRadius: 9, border: '1px solid #0F6672', background: '#0F6672', color: '#ffffff', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
             {t.close}
           </button>
         </div>

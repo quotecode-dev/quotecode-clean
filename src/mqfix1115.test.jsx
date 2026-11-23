@@ -2,7 +2,7 @@
 // Owner's phone video): the VAT notice at the top of the client step, a chosen client's contact details folded, the phone keyboard (the
 // bottom bar and the calculator step aside), the sidebar name / e-mail slide (law 50 amendment of 15/11), the structure help opening below.
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, fireEvent, cleanup, act, within } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup, act } from '@testing-library/react';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -29,13 +29,14 @@ const props = (o = {}) => ({
 describe('3 · the VAT notice is at the top of the client step (Owner answer א)', () => {
   it('Israel, business client: the notice comes before the client fields; International: none', () => {
     render(<QuoteForm {...props({ flowStep: 'client', onFlowStep: vi.fn(), clientName: 'Synthetic Co' })} />);
-    const line = screen.getByTestId('sq-vat-line');
-    expect(line.compareDocumentPosition(document.getElementById('sq-client-name')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(line.compareDocumentPosition(screen.getByTestId('sq-client-tax-id')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(screen.getAllByTestId('sq-vat-line')).toHaveLength(1);
+    const notice = screen.getByTestId('sq-vat-notice');
+    const existing = screen.getByTestId('sq-client-existing');
+    expect(notice.compareDocumentPosition(existing) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(notice.compareDocumentPosition(screen.getByTestId('sq-client-tax-id')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getAllByTestId('sq-vat-notice')).toHaveLength(1);
     cleanup();
     render(<QuoteForm {...props({ flowStep: 'client', onFlowStep: vi.fn(), isHebrew: false, isLocalIsraeliBusiness: false, sym: '$', currency: 'USD' })} />);
-    expect(screen.queryByTestId('sq-vat-line')).toBeNull();
+    expect(screen.queryByTestId('sq-vat-notice')).toBeNull();
   });
 });
 
@@ -43,8 +44,7 @@ describe('2 · a chosen existing client keeps its contact details folded (the de
   it('picking a saved client with a phone and an e-mail does not open "פרטי קשר"', () => {
     const setClientEmail = vi.fn(); const setClientPhone = vi.fn();
     render(<QuoteForm {...props({ flowStep: 'client', onFlowStep: vi.fn(), setClientEmail, setClientPhone, clients: [{ id: 'c1', company_name: 'Saved Co', email: 'x@y.co', phone: '050-0000000', client_type: 'business' }] })} />);
-    act(() => { document.getElementById('sq-client-name').focus(); });
-    fireEvent.click(within(screen.getByTestId('sq-client-suggest')).getByText('Saved Co'));
+    fireEvent.change(screen.getByTestId('sq-client-existing'), { target: { value: 'c1' } });
     expect(setClientEmail).toHaveBeenCalledWith('x@y.co');
     expect(setClientPhone).toHaveBeenCalledWith('050-0000000');
     expect(screen.getByTestId('sq-client-contact-toggle').getAttribute('aria-expanded')).toBe('false');

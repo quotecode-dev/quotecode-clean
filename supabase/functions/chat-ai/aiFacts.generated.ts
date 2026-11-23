@@ -194,8 +194,8 @@ export const AI_FACTS = {
       "id": "quote_create",
       "heLabel": "יצירת הצעת מחיר חדשה",
       "enLabel": "Create a new quote",
-      "heDescription": "יצירת הצעת מחיר חדשה. טיוטה ותצוגה מקדימה אינן משתמשות באחת מ-10 ההצעות של מסלול חינם. תבניות: בשלוש הנקודות של העורך, למעלה, בוחרים „שמירה כתבנית” - גם לפני ששומרים את ההצעה. נשמרים הנושא והפריטים, בלי פרטי הלקוח. שמירת ההצעה לא שואלת על תבנית, והצעה שכבר נשמרה מתעדכנת ב„עדכון ההצעה”. כדי להתחיל הצעה מתבנית: בתפריט „הצעה חדשה” בוחרים „מתבנית שמורה” ומשם בוחרים את התבנית.",
-      "enDescription": "Create a new quote. Drafts and previews do not use one of the 10 quotes of the Free plan. Templates: in the three dots at the top of the editor choose \"Save as a template\" - even before the quote is saved. The subject and the items are saved, without the customer details. Saving the quote does not ask about a template, and a quote saved before is updated with \"Update the quote\". To start a quote from a template: in the \"New quote\" menu choose \"From a saved template\" and pick the template there.",
+      "heDescription": "יצירת הצעת מחיר חדשה. טיוטה ותצוגה מקדימה אינן משתמשות באחת מ-10 ההצעות של מסלול חינם. תבניות: כששומרים הצעה חדשה בפעם הראשונה מופיעה השאלה „האם לשמור הצעה זאת כתבנית?” - נשמרים הנושא והפריטים, בלי פרטי הלקוח. הצעה שכבר נשמרה מתעדכנת ב„עדכון ההצעה”. כדי להתחיל הצעה מתבנית: בתפריט „הצעה חדשה” בוחרים „מתבנית שמורה” ומשם בוחרים את התבנית.",
+      "enDescription": "Create a new quote. Drafts and previews do not use one of the 10 quotes of the Free plan. Templates: when a new quote is saved for the first time the question \"Save this quote as a template?\" appears - the subject and the items are saved, without the customer details. A quote saved before is updated with \"Update the quote\". To start a quote from a template: in the \"New quote\" menu choose \"From a saved template\" and pick the template there.",
       "state": "LIVE_CURRENT",
       "markets": [
         "local",
@@ -298,8 +298,8 @@ export const AI_FACTS = {
       "id": "smart_quote",
       "heLabel": "הצעת מחיר חכמה",
       "enLabel": "Smart Quote flow",
-      "heDescription": "הצעת מחיר חכמה עם AI (בחלון „הצעה חדשה” ← „מתארים ל-AI”, אחרי שלב הלקוח): מתארים את העבודה במילים, וה-AI מציע שורות - תיאור, כמות ויחידה - וגם מבנה: קומות, דירות וחדרים - כל אחת ככותרת נפרדת, גם כשהן זהות, חדרים בתוך דירה ודירות בתוך קומה, וחדר לכל עבודה. בכל שורה יש שדה „המחיר שלכם”: הוא מתמלא רק כשהפריט קיים בקטלוג שלכם או כשכתבתם את המחיר, ואפשר לכתוב או לשנות אותו בחלון; שדה ריק אפשר להשלים גם בעורך; מה שלא ברור מסומן ולא מנוחש, ואם לא כתוב אם הדירות זהות - הוא שואל. בודקים, מתקנים ומאשרים לפני שמשהו נכנס להצעה; שום דבר לא נשמר או נשלח לבד. אפשר גם להכתיב את העבודה בקול (המיקרופון בפינת שדה התיאור) ולענות בקול על השאלות שהטיוטה שואלת. בחלון יש גם „מעלים קובץ” (הצעת מחיר מקובץ): מעלים קובץ PDF או JPG אחד של הצעה או רשימת עבודות - הקריאה מתחילה מיד אחרי בחירת הקובץ - וה-AI קורא ממנו שורות, כמויות, יחידות ומחירים. בבדיקה מוצגים לכל שורה „מחיר במסמך” ו„המחיר שלכם”, ורק המחירים שלכם נכנסים להצעה. הקובץ לא נשמר ולא מצורף להצעה. חלק מחכם פלוס, ונספר במכסת השימוש של חכם פלוס לחודש (היתרה מוצגת באחוזים).",
-      "enDescription": "AI smart quote (in the \"New quote\" window, \"Describe it to AI\", after the client step): describe the job in words and the AI suggests lines - description, quantity and unit - and a structure too: floors, apartments and rooms - each one a separate heading, identical ones too, rooms inside an apartment and apartments inside a floor, and a room for each work item. Every line has a \"Your price\" field: it is filled only when the item is in your catalog or you wrote the price, and you can type or change it in the window; an empty field can be filled in the editor too; what is unclear is marked, never guessed, and when it is not written whether the apartments are identical, it asks. You review, correct and approve before anything enters the quote; nothing is saved or sent on its own. You can also dictate the job by voice (the microphone in the corner of the description field) and answer the draft’s questions by voice. The window also has \"Upload a file\" (Quote from a file): upload one PDF or JPG of a quote or job list - reading starts as soon as the file is chosen - and the AI reads its lines, quantities, units and prices. The review shows \"Price in the document\" and \"Your price\" on each line, and only your prices enter the quote. The file is not stored or attached to the quote. Part of SMART PACK, counted in its monthly usage allowance (shown as a percentage left).",
+      "heDescription": "הצעת מחיר חכמה עם AI (בחלון „הצעה חדשה” ← „מתארים ל-AI”, אחרי שלב הלקוח): מתארים את העבודה במילים, וה-AI מציע שורות - תיאור, כמות ויחידה - וגם מבנה: קומות, דירות וחדרים - כל אחת ככותרת נפרדת, גם כשהן זהות, חדרים בתוך דירה ודירות בתוך קומה, וחדר לכל עבודה. מחיר רק כשהפריט קיים בקטלוג שלכם או כשכתבתם אותו, אחרת המחיר נשאר ריק להזנה; מה שלא ברור מסומן ולא מנוחש, ואם לא כתוב אם הדירות זהות - הוא שואל. בודקים, מתקנים ומאשרים לפני שמשהו נכנס להצעה; שום דבר לא נשמר או נשלח לבד. אפשר גם להכתיב את העבודה בקול (המיקרופון בפינת שדה התיאור) ולענות בקול על השאלות שהטיוטה שואלת. בחלון יש גם „מעלים קובץ” (הצעת מחיר מקובץ): מעלים קובץ PDF או JPG אחד של הצעה או רשימת עבודות, וה-AI קורא ממנו שורות, כמויות, יחידות ומחירים. בבדיקה מוצגים לכל שורה „מחיר במסמך” ו„המחיר שלכם”, ורק המחירים שלכם נכנסים להצעה. הקובץ לא נשמר ולא מצורף להצעה. חלק מחכם פלוס, ונספר במכסת השימוש של חכם פלוס לחודש (היתרה מוצגת באחוזים).",
+      "enDescription": "AI smart quote (in the \"New quote\" window, \"Describe it to AI\", after the client step): describe the job in words and the AI suggests lines - description, quantity and unit - and a structure too: floors, apartments and rooms - each one a separate heading, identical ones too, rooms inside an apartment and apartments inside a floor, and a room for each work item. A price only when the item is in your catalog or you wrote it, otherwise the price stays empty for you to enter; what is unclear is marked, never guessed, and when it is not written whether the apartments are identical, it asks. You review, correct and approve before anything enters the quote; nothing is saved or sent on its own. You can also dictate the job by voice (the microphone in the corner of the description field) and answer the draft’s questions by voice. The window also has \"Upload a file\" (Quote from a file): upload one PDF or JPG of a quote or job list, and the AI reads its lines, quantities, units and prices. The review shows \"Price in the document\" and \"Your price\" on each line, and only your prices enter the quote. The file is not stored or attached to the quote. Part of SMART PACK, counted in its monthly usage allowance (shown as a percentage left).",
       "state": "LIVE_CURRENT",
       "markets": [
         "local",
@@ -323,8 +323,8 @@ export const AI_FACTS = {
       "id": "measured_quote",
       "heLabel": "הצעת מחיר מקצועית/מדודה",
       "enLabel": "Measured professional quote",
-      "heDescription": "מידות בהצעה (בעורך ההצעה, בטופס „מוסיפים עבודה או מוצר” ובשורות): לכל שורה בוחרים „חישוב” - ליחידה, למ״ר, למטר, לשעה, ליום עבודה, לק״ג או מחיר גלובלי. בשטח ובאורך כותבים כמות, או פותחים „מידות ופירוט נוסף” וכותבים אורך ורוחב (ואפשר „+ מידה נוספת”), והסכום מחושב מיד. בעריכת שורה המידות נכתבות במטר או בס״מ; בחשבון בינלאומי ברגל או באינץ׳, ומטר נשאר זמין - ואז המחיר לרגל רבועה / לרגל אורך, בלי המרה בין מטרים לרגל. אפשר לחלק את ההצעה בכפתור „+ חלק: קומה, דירה, חדר”: כל דירה, קומה, חדר או נושא היא כותרת עם העבודות שלה, ותמיד אפשר כותרת בתוך כותרת - חדר בתוך דירה, דירה בתוך קומה. „ביטול החלוקה לחלקים” בשלוש הנקודות של העורך מסיר את החלקים, וכל העבודות נשארות בהצעה - לא חובה.",
-      "enDescription": "Sizes in a quote (in the quote editor, in the \"Add work or a product\" form and in the rows): every row chooses its \"Pricing\" - per unit, per area, per length, per hour, per work day, per kg or a global price. For area and length type the quantity, or open \"Sizes and details\" and type the length and width (\"+ Another size\" adds one), and the total is calculated at once. When a row is edited the sizes are typed in m or cm; an international account measures in feet or inches, metres stay available, and prices per sq ft / linear ft - metres and feet are never converted into each other. The quote can be divided with the \"+ Section: floor, apartment, room\" button: every apartment, floor, room or topic is a heading with its own work, and a heading can always sit inside a heading - a room inside an apartment, an apartment inside a floor. \"Remove the sections\" in the three dots of the editor removes the sections and keeps all the work in the quote - optional.",
+      "heDescription": "מידות בהצעה (בעורך ההצעה, בטופס „מוסיפים עבודה או מוצר” ובשורות): לכל שורה בוחרים „חישוב” - ליחידה, למ״ר, למטר, לשעה, ליום עבודה, לק״ג או מחיר גלובלי. בשטח ובאורך כותבים כמות, או פותחים „מידות ופירוט נוסף” וכותבים אורך ורוחב (ואפשר „+ מידה נוספת”), והסכום מחושב מיד. בעריכת שורה המידות נכתבות במטר או בס״מ; בחשבון בינלאומי ברגל או באינץ׳, ומטר נשאר זמין - ואז המחיר לרגל רבועה / לרגל אורך, בלי המרה בין מטרים לרגל. אפשר לחלק את ההצעה (ב„מבנה:” - ״מחולקת לחלקים״ או ״חלקים בתוך חלקים״): כל דירה, קומה, חדר או נושא היא כותרת עם העבודות שלה, ואפשר כותרת בתוך כותרת - חדר בתוך דירה, דירה בתוך קומה - לא חובה.",
+      "enDescription": "Sizes in a quote (in the quote editor, in the \"Add work or a product\" form and in the rows): every row chooses its \"Pricing\" - per unit, per area, per length, per hour, per work day, per kg or a global price. For area and length type the quantity, or open \"Sizes and details\" and type the length and width (\"+ Another size\" adds one), and the total is calculated at once. When a row is edited the sizes are typed in m or cm; an international account measures in feet or inches, metres stay available, and prices per sq ft / linear ft - metres and feet are never converted into each other. The quote can be divided (in \"Structure:\" - \"In sections\" or \"Sections within sections\"): every apartment, floor, room or topic is a heading with its own work, and a heading can sit inside a heading - a room inside an apartment, an apartment inside a floor - optional.",
       "state": "LIVE_CURRENT",
       "markets": [
         "local",
@@ -1961,8 +1961,8 @@ export const AI_FACTS = {
         "steps": [
           "לפני ההצעה הראשונה צריך טלפון עסק (ובישראל גם ח.פ / עוסק מורשה) ב\"הגדרות העסק\".",
           "לוחצים \"הצעה חדשה\". בחלון \"איך תרצו להתחיל?\" בוחרים \"ממלאים בעצמכם\" (לשלוש הדרכים האחרות יש הסבר משלהן).",
-          "בשלב \"למי מכינים את ההצעה?\" מקלידים את שם הלקוח בשדה \"הקלידו את שם הלקוח\" - לקוח שמור מופיע ברשימה מתחת לשדה תוך כדי הקלדה, ובחירה בו ממלאת את הפרטים שלו. ב\"סוג הלקוח\" בוחרים \"פרטי\" (ברירת המחדל) או \"עסקי\"; ללקוח עסקי בישראל נפתח מתחת גם \"מספר עוסק מורשה / חברה\" (חובה). טלפון, דוא״ל וכתובת נמצאים ב\"פרטי קשר (לא חובה)\". לוחצים \"שמירת הלקוח והמשך\" - לקוח חדש נשמר מיד ברשימת הלקוחות. בישראל שורת המע״מ מופיעה תמיד: ללקוח פרטי הסכומים כוללים מע״מ, וללקוח עסקי הם ללא מע״מ.",
-          "במסך העבודה שורת ההקלדה נמצאת בתוך הטבלה, מתחת לשורות: בוחרים מוצר מהקטלוג או מקלידים שם (\"+ הוספת מוצר חדש\"), בוחרים \"חישוב\" - ליחידה, למ״ר, למטר, לשעה, ליום עבודה, לק״ג או מחיר גלובלי - כותבים כמות ומחיר ולוחצים \"הוספה\". מוצר חדש אפשר \"לשמור גם בקטלוג\". השורה נכנסת לטבלה, ושלוש הנקודות שלה פותחות עריכה, שכפול, הזזה למעלה או למטה והסרה. אין בחירת מבנה: כדי לחלק את ההצעה לקומות, דירות או חדרים לוחצים \"+ חלק: קומה, דירה, חדר\". מתחת לטבלה רואים תמיד את סכום הביניים, את המע״מ (בישראל) ואת הסה״כ.",
+          "בשלב \"למי מכינים את ההצעה?\" אפשר לבחור לקוח שמור ב\"בחירת לקוח קיים (לא חובה)\" (בראש הרשימה \"+ הוספת לקוח חדש\"), או למלא את שם הלקוח. בוחרים \"סוג הלקוח\" - \"לקוח פרטי\" או \"לקוח עסקי\"; ללקוח עסקי בישראל ממלאים גם \"מספר עוסק מורשה / חברה\" (חובה). טלפון, דוא״ל וכתובת נמצאים ב\"פרטי קשר (לא חובה)\". לוחצים \"שמירת הלקוח והמשך\" - לקוח חדש נשמר מיד ברשימת הלקוחות. בישראל מופיעה מיד הודעה אם הסכומים כוללים מע״מ או לא.",
+          "במסך העבודה, ב\"מבנה:\" שמעל הטבלה בוחרים \"הצעה פשוטה\", \"מחולקת לחלקים\" או \"חלקים בתוך חלקים\" (מתחת לכל אחד יש דוגמה). שורת ההקלדה נמצאת בתוך הטבלה, מתחת לשורות: בוחרים מוצר מהקטלוג או מקלידים שם (\"+ הוספת מוצר חדש\"), בוחרים \"חישוב\" - ליחידה, למ״ר, למטר, לשעה, ליום עבודה, לק״ג או מחיר גלובלי - כותבים כמות ומחיר ולוחצים \"הוספה\". מוצר חדש אפשר \"לשמור גם בקטלוג\". השורה נכנסת לטבלה, ושלוש הנקודות שלה פותחות עריכה, שכפול, הזזה למעלה או למטה והסרה. מתחת לטבלה רואים תמיד את סכום הביניים, את המע״מ (בישראל) ואת הסה״כ.",
           "ב\"פרטים נוספים להצעה (לא חובה)\" יש: \"פרויקט, כתובת ותוקף\", \"הערות לכל ההצעה\", \"תנאים ואחריות\", \"הנחה\", \"קבצים ותמונות\" ו\"עיצוב והנפקת ההצעה\". כתובת הלקוח נמצאת בפרטי הלקוח, ב\"פרטי קשר (לא חובה)\".",
           "בפס שבתחתית רואים \"סה״כ לתשלום\"; לחיצה עליו פותחת את \"סיכום ההצעה\". שם גם \"כך הלקוח יראה\" ו\"שמירת ההצעה\". שמירה אינה שליחה: ההצעה נשמרת כטיוטה, ומופיע \"נשמרה. עדיין לא נשלחה.\" - משם אפשר לראות איך הלקוח יראה אותה, לחזור לעריכה או לעבור לרשימת ההצעות. המחשבון נמצא בכותרת העליונה, ליד הפעמון."
         ]
@@ -1972,8 +1972,8 @@ export const AI_FACTS = {
         "steps": [
           "Before the first quote a business phone is required in \"Business Settings\".",
           "Click \"New quote\". In the \"How would you like to start?\" window choose \"Fill it in yourselves\" (the other three ways have their own steps).",
-          "In the \"Who is this quote for?\" step type the client name in the \"Type the client name\" field - a saved client appears in the list under the field as you type, and choosing it fills in its details. In \"Client type\" choose \"Private\" (the default) or \"Business\"; a business client may get a \"Business / company number\". Phone, email and address are in \"Contact details (optional)\". Click \"Save the client and continue\" - a new client is saved to your client list right away.",
-          "In the work screen the entry row is inside the table, below the rows: choose a catalog product or type a name (\"+ Add a new product\"), choose the \"Pricing\" - per unit, per sq ft, per ft, per hour, per work day, per kg or a lump sum - type the quantity and the price and click \"Add\". A new product can \"Also save to the catalog\". The row enters the table, and its three dots hold edit, duplicate, move up or down and remove. There is no structure choice: to divide the quote into floors, apartments or rooms click \"+ Section: floor, apartment, room\". Under the table the subtotal and the total are always shown.",
+          "In the \"Who is this quote for?\" step you can pick a saved client in \"Choose an existing client (optional)\" (\"+ Add a new client\" is at the top), or fill in the client name. Choose the \"Client type\" - \"Private client\" or \"Business client\"; a business client may get a \"Business / company number\". Phone, email and address are in \"Contact details (optional)\". Click \"Save the client and continue\" - a new client is saved to your client list right away.",
+          "In the work screen, in \"Structure:\" above the table choose \"Simple quote\", \"In sections\" or \"Sections within sections\" (each has an example under it). The entry row is inside the table, below the rows: choose a catalog product or type a name (\"+ Add a new product\"), choose the \"Pricing\" - per unit, per sq ft, per ft, per hour, per work day, per kg or a lump sum - type the quantity and the price and click \"Add\". A new product can \"Also save to the catalog\". The row enters the table, and its three dots hold edit, duplicate, move up or down and remove. Under the table the subtotal and the total are always shown.",
           "\"More quote details (optional)\" holds \"Project, address and validity\", \"Notes for the whole quote\", \"Terms and warranty\", \"Discount\", \"Files and images\" and \"Quote design and issuing\". The client address is in the client details, under \"Contact details (optional)\".",
           "The bar at the bottom shows the \"Total\"; a click on it opens the \"Quote summary\". It also has \"Client view\" and \"Save the quote\". Saving is not sending: the quote is saved as a draft and \"Saved. Not sent yet.\" appears - from there you can see how the client will see it, go back to editing or go to the quote list. The calculator is in the top header, next to the bell."
         ]
@@ -1989,18 +1989,18 @@ export const AI_FACTS = {
       "he": {
         "task": "הצעה לכמה דירות, חדרים או קומות",
         "steps": [
-          "כדי לחלק את ההצעה לוחצים \"+ חלק: קומה, דירה, חדר\" (בהצעה שכבר יש בה חלקים: \"+ חלק חדש\" בסוף ההצעה). בשורה אחת בוחרים מה מוסיפים (קומה, דירה, חדר או נושא בשם אחר) וכמה (עד 100 בכל פעם), ולוחצים \"הוספה\". השמות נוצרים לבד (דירה 1, דירה 2), ושינוי שם - בלחיצה על השם. כל חלק הוא כותרת נפרדת עם העבודות שלו - גם כשהדירות זהות, כל דירה מופיעה בנפרד, ואפשר לשכפל חלק עם כל מה שבתוכו.",
-          "שורת ההקלדה אחת: בחלק שעובדים עליו כתוב \"מה להוסיף?\" ושורת ההקלדה פתוחה, ובכותרת של כל חלק אחר יש \"+ עבודה\" שמעביר אליו את שורת ההקלדה. בסוף ההצעה \"+ עבודה כללית\" מוסיף עבודה שאינה בתוך חלק. חלק בתוך חלק אפשר תמיד, בכפתור \"+ חלק בתוך\" של החלק שעובדים עליו - חדרים בתוך דירה ודירות בתוך קומה, עד 4 רמות. ליד כל חלק מוצג הסכום של כל מה שבתוכו, והמשולש סוגר ופותח אותו.",
-          "שלוש הנקודות של חלק פותחות: \"שינוי שם\" (במקום, עם \"שמירת השם\"), \"שכפול עם התוכן\", \"העתקת עבודות מהראשון\" (מהחלק הראשון באותה רמה), \"שמירה כתבנית\" ו\"הסרה עם התוכן\" - ואפשר לבטל. שורה עוברת לחלק אחר דרך שלוש הנקודות שלה (\"העברה לחלק אחר\"). בשלוש הנקודות של העורך, למעלה, נמצאים \"מתבנית שמורה\" ו\"ביטול החלוקה לחלקים\" - החלקים יורדים וכל העבודות נשארות בהצעה. הצעות ישנות שבהן דירה סומנה כמה עותקים זהים (× ומספר) נשארות כמו שהן.",
+          "ב\"מבנה:\" שמעל הטבלה בוחרים \"מחולקת לחלקים\" או \"חלקים בתוך חלקים\" ולוחצים \"הוספת חלק: דירה, קומה, חדר או נושא אחר\". בוחרים מה מוסיפים (קומה, דירה, חדר או נושא בשם אחר), כמה (עד 100 בכל פעם), ואת השמות (שדה ריק = שם לפי הסדר). כל חלק הוא כותרת נפרדת עם העבודות שלו - גם כשהדירות זהות, כל דירה מופיעה בנפרד, ואפשר לשכפל חלק עם כל מה שבתוכו.",
+          "שורת ההקלדה אחת: לחיצה על שם של חלק (או על ה\"+\" שלו) מעבירה אליו את שורת ההקלדה, ומתחתיה כתוב לאן השורה נכנסת (\"אל:\"). \"+ הוספת עבודה לכל ההצעה\" מחזיר אותה לכל ההצעה. ב\"חלקים בתוך חלקים\" אפשר להוסיף חלק בתוך חלק - חדרים בתוך דירה ודירות בתוך קומה, עד 4 רמות. ליד כל חלק מוצג הסכום של כל מה שבתוכו, והמשולש סוגר ופותח אותו.",
+          "שלוש הנקודות של חלק פותחות: \"הוספת עבודה או מוצר כאן\", \"הוספת חלק בתוך\", \"שינוי שם\" (במקום, עם \"שמירת השם\"), \"שכפול עם התוכן\", \"העתקת עבודות מהראשון\" (מהחלק הראשון באותה רמה), \"שמירה כתבנית\" ו\"הסרה עם התוכן\" - ואפשר לבטל. שורה עוברת לחלק אחר דרך שלוש הנקודות שלה (\"העברה לחלק אחר\"). \"מתבנית שמורה\" נמצא בשלוש הנקודות של העורך, למעלה. הצעות ישנות שבהן דירה סומנה כמה עותקים זהים (× ומספר) נשארות כמו שהן.",
           "הלקוח רואה את הכותרות ואת הכותרות שבתוכן, עם חץ ליד כל כותרת שסוגר ופותח את הפירוט (חץ גדול לכותרת ראשית וקטן לכותרת שבתוכה), ובראש הרשימה \"תצוגת מסמך מלא\" ו\"תצוגת שורות סיכום\". בהדפסה ובקובץ בוחרים מסמך מלא או חלקי, ושם אין חיצים."
         ]
       },
       "en": {
         "task": "A quote for several apartments, rooms or floors",
         "steps": [
-          "To divide the quote click \"+ Section: floor, apartment, room\" (in a quote that already has sections: \"+ New section\" at the end of the quote). In one line choose what you add (a floor, apartment, room or another topic) and how many (up to 100 at a time), and click \"Add\". The names are made for you (Apartment 1, Apartment 2); to rename, click the name. Each section is a separate heading with its own work - identical apartments are each shown separately too, and a section can be duplicated with everything inside it.",
-          "There is one entry row: the section you work on shows \"What to add?\" with the entry row open, and every other section heading has \"+ Work\", which moves the entry row to it. At the end of the quote \"+ General work\" adds work that is not in a section. A section inside a section is always possible, with the \"+ Section inside\" button of the section you work on - rooms inside an apartment and apartments inside a floor, up to 4 levels. Each section shows the total of everything inside it, and its triangle closes and opens it.",
-          "A section's three dots hold: \"Rename\" (in place, with \"Save the name\"), \"Duplicate with its content\", \"Copy the works from the first\" (from the first section at the same level), \"Save as a template\" and \"Remove with its content\" - and it can be undone. A row moves to another section through its own three dots (\"Move to another section\"). The editor's three dots at the top hold \"From a saved template\" and \"Remove the sections\" - the sections go and all the work stays in the quote. Older quotes where an apartment was marked as several identical copies (× and a number) stay as they are.",
+          "In \"Structure:\" above the table choose \"In sections\" or \"Sections within sections\" and click \"Add a section: apartment, floor, room or other\". Choose what you add (a floor, apartment, room or another topic), how many (up to 100 at a time), and the names (an empty field = a name in order). Each section is a separate heading with its own work - identical apartments are each shown separately too, and a section can be duplicated with everything inside it.",
+          "There is one entry row: a click on a section's name (or on its \"+\") moves the entry row to it, and the line under it says where the row goes (\"To:\"). \"+ Add work to the whole quote\" takes it back to the whole quote. In \"Sections within sections\" a section can be added inside a section - rooms inside an apartment and apartments inside a floor, up to 4 levels. Each section shows the total of everything inside it, and its triangle closes and opens it.",
+          "A section's three dots hold: \"Add work or a product here\", \"Add a section inside\", \"Rename\" (in place, with \"Save the name\"), \"Duplicate with its content\", \"Copy the works from the first\" (from the first section at the same level), \"Save as a template\" and \"Remove with its content\" - and it can be undone. A row moves to another section through its own three dots (\"Move to another section\"). \"From a saved template\" is in the editor's three dots at the top. Older quotes where an apartment was marked as several identical copies (× and a number) stay as they are.",
           "The client sees the headings and the headings inside them, an arrow beside each heading that closes and opens its details (a big arrow for a main heading and a small one for a heading inside it), and \"Full document view\" and \"Summary rows view\" above the list. Printing and the file offer a full or a partial document, with no arrows."
         ]
       }
@@ -2060,14 +2060,14 @@ export const AI_FACTS = {
       "he": {
         "task": "שמירת הצעה כתבנית והתחלה מתבנית",
         "steps": [
-          "כדי לשמור את ההצעה כתבנית: במסך העבודה לוחצים על שלוש הנקודות של העורך, למעלה, ובוחרים \"שמירה כתבנית\" - גם לפני ששומרים את ההצעה עצמה. נותנים שם ובוחרים מה לשמור. נשמרים הנושא והפריטים, בלי פרטי הלקוח. שמירת ההצעה (\"שמירת ההצעה\" או \"עדכון ההצעה\") לא שואלת על תבנית.",
+          "כששומרים הצעה חדשה בפעם הראשונה (\"שמירת ההצעה\") מופיעה השאלה \"האם לשמור הצעה זאת כתבנית?\". לוחצים \"כן\", נותנים שם ובוחרים מה לשמור. נשמרים הנושא והפריטים, בלי פרטי הלקוח. בהצעה שכבר נשמרה הכפתור הוא \"עדכון ההצעה\", והשאלה לא מופיעה.",
           "כדי להתחיל מתבנית: לוחצים \"הצעה חדשה\", בוחרים \"מתבנית שמורה\", ממלאים את הלקוח ולוחצים \"שמירת הלקוח והמשך\", ואז בוחרים את התבנית. סוג הלקוח שבחרתם לא משתנה; כשהמחירים בתבנית לפי בסיס מע״מ אחר, נשאלים אם להשתמש בהם."
         ]
       },
       "en": {
         "task": "Saving a quote as a template and starting from a template",
         "steps": [
-          "To save the quote as a template: in the work screen click the editor's three dots at the top and choose \"Save as a template\" - even before the quote itself is saved. Give it a name and choose what to keep. The subject and the items are saved, without the customer details. Saving the quote (\"Save the quote\" or \"Update the quote\") does not ask about a template.",
+          "When a new quote is saved for the first time (\"Save the quote\") the question \"Save this quote as a template?\" appears. Click \"Yes\", give it a name and choose what to keep. The subject and the items are saved, without the customer details. A quote saved before shows \"Update the quote\" and is not asked.",
           "To start from a template: click \"New quote\", choose \"From a saved template\", fill in the client and click \"Save the client and continue\", then pick the template. The client type you chose does not change."
         ]
       }
@@ -2082,7 +2082,7 @@ export const AI_FACTS = {
         "steps": [
           "לוחצים \"הצעה חדשה\", בוחרים \"מתארים ל-AI\", ממלאים את הלקוח ולוחצים \"שמירת הלקוח והמשך\".",
           "מתארים את העבודה במילים, או מכתיבים בקול בלחיצה על המיקרופון בפינת השדה. אפשר לתאר גם מבנה, למשל: שתי דירות זהות, בכל אחת ריצוף במטבח - וה-AI מציע את הדירות, מספר העותקים, העבודות והחדרים.",
-          "ה-AI מציע שורות לבדיקה. בכל שורה יש \"המחיר שלכם\": הוא מתמלא רק לפריט מהקטלוג או כשכתבתם את המחיר, ואפשר לכתוב או לשנות אותו. הסבר מופיע רק כשיש מה לבדוק; מה שלא ברור מסומן ולא מנוחש, ואם לא כתוב אם הדירות זהות - הוא שואל. בודקים, מתקנים ומאשרים לפני שמשהו נכנס להצעה."
+          "ה-AI מציע שורות לבדיקה. מחיר מוצע רק לפריט מהקטלוג או כשכתבתם אותו. מה שלא ברור מסומן ולא מנוחש, ואם לא כתוב אם הדירות זהות - הוא שואל. בודקים, מתקנים ומאשרים לפני שמשהו נכנס להצעה."
         ]
       },
       "en": {
@@ -2090,7 +2090,7 @@ export const AI_FACTS = {
         "steps": [
           "Click \"New quote\", choose \"Describe it to AI\", fill in the client and click \"Save the client and continue\".",
           "Describe the job in words, or dictate it by clicking the microphone in the corner of the field. You can describe a structure too, for example: two identical apartments, flooring in the kitchen of each - and the AI suggests the apartments, the number of copies, the work and the rooms.",
-          "The AI suggests lines to check. Every line has \"Your price\": it is filled only for an item from your catalog or when you wrote the price, and you can type or change it. An explanation appears only when something needs checking; what is unclear is marked, never guessed, and when it is not written whether the apartments are identical, it asks. Review, correct and approve before anything enters the quote."
+          "The AI suggests lines to check. A price is suggested only for an item from your catalog or when you wrote it. What is unclear is marked, never guessed, and when it is not written whether the apartments are identical, it asks. Review, correct and approve before anything enters the quote."
         ]
       }
     },
@@ -2103,7 +2103,7 @@ export const AI_FACTS = {
         "task": "הצעת מחיר מקובץ",
         "steps": [
           "לוחצים \"הצעה חדשה\", בוחרים \"מעלים קובץ\" (הצעת מחיר מקובץ), ממלאים את הלקוח ולוחצים \"שמירת הלקוח והמשך\".",
-          "לוחצים \"בחרו קובץ\" ובוחרים קובץ PDF או JPG אחד. הקריאה מתחילה מיד אחרי הבחירה.",
+          "לוחצים \"בחרו קובץ\", בוחרים קובץ PDF או JPG אחד ולוחצים \"קריאת הפרטים\".",
           "בכל שורה מוצגים \"מחיר במסמך\" ו\"המחיר שלכם\". ממלאים את המחיר שלכם ולוחצים \"הוספת השורות להצעה\". הקובץ לא נשמר."
         ]
       },
@@ -2111,7 +2111,7 @@ export const AI_FACTS = {
         "task": "A quote from a file",
         "steps": [
           "Click \"New quote\", choose \"Upload a file\" (Quote from a file), fill in the client and click \"Save the client and continue\".",
-          "Click \"Choose a file\" and pick one PDF or JPG. Reading starts right after you pick it.",
+          "Click \"Choose a file\", pick one PDF or JPG and click \"Read details\".",
           "Each line shows \"Price in the document\" and \"Your price\". Fill in your price and click \"Add the lines to the quote\". The file is not stored."
         ]
       }
@@ -2430,28 +2430,28 @@ export const AI_FACTS = {
       "he": {
         "task": "מע״מ בהצעה",
         "steps": [
-          "בשלב \"למי מכינים את ההצעה?\" בוחרים ב\"סוג הלקוח\" \"פרטי\" (ברירת המחדל) או \"עסקי\". שורת המע״מ מופיעה תמיד, באותו מקום, בשלב הלקוח ובמסך העבודה: ללקוח פרטי - הסכומים כוללים מע״מ, והמע״מ לא יתווסף למחיר הסופי; ללקוח עסקי - הסכומים ללא מע״מ, והמע״מ יתווסף למחיר הסופי. המחיר בכל שורה פתוח לשינוי.",
+          "בשלב \"למי מכינים את ההצעה?\" בוחרים \"סוג הלקוח\": \"לקוח עסקי\" - הסכומים ללא מע״מ, והמע״מ יתווסף למחיר הסופי (הודעה על כך מופיעה מיד, ובמסך העבודה ליד \"מבנה:\" יש \"ללא מע״מ\" שפותח אותה); או \"לקוח פרטי\" - המחיר כולל מע״מ, ולא יתווסף מע״מ לסכום הכללי. המחיר בכל שורה פתוח לשינוי.",
           "שיעור המע״מ מחושב אוטומטית (18% בישראל) ואינו הגדרה שמשנים. מתחת לטבלה רואים תמיד את \"סכום ביניים\", את \"מע״מ (18%)\" (ללקוח פרטי: \"מע״מ (18%) · כלול\") ואת הסכום הכולל; גם \"סיכום ההצעה\" מציג אותם."
         ]
       },
       "en": {
         "task": "VAT in a quote",
         "steps": [
-          "In the \"Who is this quote for?\" step choose the \"Client type\" (\"Private\", the default, or \"Business\").",
+          "In the \"Who is this quote for?\" step choose the \"Client type\" (\"Business client\" or \"Private client\").",
           "For an international business no VAT is added automatically, and the VAT rate is not a setting. The \"Quote summary\" shows the total."
         ]
       },
       "enLocal": {
         "task": "VAT in a quote",
         "steps": [
-          "In the \"Who is this quote for?\" step choose the \"Client type\": \"Private\" (the default) - the price includes VAT and no VAT is added to the total; or \"Business\" - amounts are before VAT and VAT is added to the final price. The VAT line is always shown, in the same place, in the client step and in the work screen.",
+          "In the \"Who is this quote for?\" step choose the \"Client type\": \"Business client\" - amounts are before VAT and VAT is added to the final price; or \"Private client\" - the price includes VAT and no VAT is added to the total.",
           "The VAT rate is calculated automatically (18% in Israel) and is not a setting. Under the table you always see the \"Subtotal\", the \"VAT (18%)\" (for a private client: \"VAT (18%) · included\") and the total; the \"Quote summary\" shows them too."
         ]
       },
       "heIntl": {
         "task": "מע״מ בהצעה",
         "steps": [
-          "בשלב \"למי מכינים את ההצעה?\" בוחרים \"סוג הלקוח\" (\"פרטי\", ברירת המחדל, או \"עסקי\").",
+          "בשלב \"למי מכינים את ההצעה?\" בוחרים \"סוג הלקוח\" (\"לקוח עסקי\" או \"לקוח פרטי\").",
           "בעסק בינלאומי לא מתווסף מע״מ אוטומטית, ושיעור המע״מ אינו הגדרה. \"סיכום ההצעה\" מציג את הסכום הכולל."
         ]
       }

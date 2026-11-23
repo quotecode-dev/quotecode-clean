@@ -394,15 +394,15 @@ export default function SettingsTab({
               fixed "IL (+972)", so in a 180px column on a phone / tablet the number was cut - abroad the phone takes its own full row */}
           <div id="pf-settings-business_phone" style={isLocalIsraeliBusiness ? undefined : { gridColumn: '1 / -1' }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', fontWeight: '400', color: NEON.textSecondary, marginBottom: '3px' }}><Phone size={13} color={NEON.emerald} />{isHebrew ? 'טלפון העסק' : 'Business Phone'}</label>
-            <div style={{ display: 'flex', flexDirection: 'row', direction: 'ltr', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', background: NEON.bgInput, overflow: 'hidden', boxSizing: 'border-box' }}>
+            <div style={{ display: 'flex', flexDirection: isHebrew ? 'row-reverse' : 'row', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', background: NEON.bgInput, overflow: 'hidden', boxSizing: 'border-box' }}>
               {isLocalIsraeliBusiness ? (
-                <div style={{ background: 'rgba(255,255,255,0.06)', padding: '7px 10px', fontSize: '0.8rem', color: NEON.textPrimary, fontWeight: '600', display: 'flex', alignItems: 'center', borderRight: `1px solid ${NEON.borderStrong}`, whiteSpace: 'nowrap' }}>
+                <div style={{ background: 'rgba(255,255,255,0.06)', padding: '7px 10px', fontSize: '0.8rem', color: NEON.textPrimary, fontWeight: '600', display: 'flex', alignItems: 'center', [isHebrew ? 'borderLeft' : 'borderRight']: `1px solid ${NEON.borderStrong}`, whiteSpace: 'nowrap' }}>
                 {defaultLabel}
               </div>
               ) : (
                 // PRODUCT_TRUTH_DECORATIVE: chooses the business phone's country code (stored with the phone on Save)
                 <select aria-label={isHebrew ? 'קידומת המדינה' : 'Country code'} value={defaultDial} onChange={(e) => handleDialChange(e.target.value)} data-testid="settings-phone-dial"
-                  style={{ background: 'rgba(255,255,255,0.06)', padding: '7px 8px', fontSize: '0.8rem', color: NEON.textPrimary, fontWeight: '600', border: 'none', borderRight: `1px solid ${NEON.borderStrong}`, direction: 'ltr', fontFamily: 'inherit' }}>
+                  style={{ background: 'rgba(255,255,255,0.06)', padding: '7px 8px', fontSize: '0.8rem', color: NEON.textPrimary, fontWeight: '600', border: 'none', [isHebrew ? 'borderLeft' : 'borderRight']: `1px solid ${NEON.borderStrong}`, direction: 'ltr', fontFamily: 'inherit' }}>
                   {(DIAL_CHOICES.some((c) => c.dial === defaultDial) ? DIAL_CHOICES : [{ dial: defaultDial, label: defaultLabel }, ...DIAL_CHOICES]).map((c) => <option key={c.dial} value={c.dial}>{c.label}</option>)}
                 </select>
               )}

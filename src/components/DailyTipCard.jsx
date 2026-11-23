@@ -29,9 +29,9 @@ const CSS = `
 .tk-tip-quote{margin:6px 0 0;font-size:.85rem;font-weight:700;color:#3730a3}
 .tk-tip-btn{min-height:44px;padding:0 16px;border-radius:12px;font-weight:700;font-family:inherit;font-size:.86rem;cursor:pointer;
   transition:transform .15s ease,box-shadow .15s ease,background-color .15s ease}
-.tk-tip-primary{color:#fff;border:none;background:#102444;box-shadow:0 6px 14px -4px rgba(16,36,68,.45)}
-.tk-tip-primary:hover{transform:translateY(-1px);box-shadow:0 10px 18px -6px rgba(16,36,68,.5)}
-.tk-tip-ghost{color:#102444;background:#fff;border:1px solid #c9d3e3}
+.tk-tip-primary{color:#fff;border:none;background:linear-gradient(135deg,#4f46e5,#2563eb);box-shadow:0 6px 14px -4px rgba(37,99,235,.55)}
+.tk-tip-primary:hover{transform:translateY(-1px);box-shadow:0 10px 18px -6px rgba(37,99,235,.6)}
+.tk-tip-ghost{color:#1d4ed8;background:#fff;border:1px solid #bfdbfe}
 .tk-tip-ghost:hover{background:#eff6ff}
 .tk-tip-btn:focus-visible,.tk-tip-x:focus-visible,.tk-tip-off:focus-visible{outline:3px solid #6366f1;outline-offset:2px}
 .tk-tip-x{flex-shrink:0;width:32px;height:32px;border:none;background:none;color:#64748b;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;border-radius:9px}

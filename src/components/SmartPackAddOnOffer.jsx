@@ -83,7 +83,7 @@ export default function SmartPackAddOnOffer({ isHebrew, invoke, onLeave, market 
       </p>
       {/* PRODUCT_TRUTH_DECORATIVE: opens the PayPlus one-time page of the SERVER add-on row (the server's pro-rata amount); SMART PACK opens only after a verified payment */}
       <button type="button" data-testid="plans-smart-pack-add-on-pay" disabled={pay.busy} onClick={onPay}
-        style={{ minHeight: 44, borderRadius: 10, border: 'none', background: pay.busy ? '#94a3b8' : '#102444', color: '#ffffff', fontWeight: 800,
+        style={{ minHeight: 44, borderRadius: 10, border: 'none', background: pay.busy ? '#94a3b8' : '#0F6672', color: '#ffffff', fontWeight: 800,
           fontSize: '0.95rem', cursor: pay.busy ? 'wait' : 'pointer' }}>
         {pay.busy ? (he ? 'דף התשלום נפתח…' : 'Opening the payment page…') : <>{he ? 'כן, להוסיף את חכם פלוס' : 'Yes, add SMART PACK'} - {num(money(quote.amountMinor))}</>}
       </button>

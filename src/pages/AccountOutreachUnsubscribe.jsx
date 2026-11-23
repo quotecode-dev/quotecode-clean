@@ -60,7 +60,7 @@ export default function AccountOutreachUnsubscribe({ isHebrew }) {
             {state === 'failed' && <p role="status" data-testid="outreach-unsubscribe-failed" style={{ color: '#9A4040', margin: '0 0 12px', fontWeight: 600 }}>{c.failed}</p>}
             {/* PRODUCT_TRUTH_DECORATIVE: withdraws only the optional help emails bound to this link (outreach_unsubscribe) */}
             <button type="button" onClick={withdraw} disabled={state === 'busy'} data-testid="outreach-unsubscribe-button"
-              style={{ background: '#102444', color: '#ffffff', border: 'none', borderRadius: 8, padding: '10px 18px', minHeight: 44, fontSize: '0.95rem', fontWeight: 600, cursor: state === 'busy' ? 'default' : 'pointer', fontFamily: 'inherit' }}>
+              style={{ background: '#0F6672', color: '#ffffff', border: 'none', borderRadius: 8, padding: '10px 18px', minHeight: 44, fontSize: '0.95rem', fontWeight: 600, cursor: state === 'busy' ? 'default' : 'pointer', fontFamily: 'inherit' }}>
               {c.button}
             </button>
           </>
