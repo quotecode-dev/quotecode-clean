@@ -15,13 +15,13 @@
 
 .qp-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; padding: 6px 12px; border-radius: 10px;
   border: 1px solid var(--qp-border-strong); background: var(--qp-card); color: var(--qp-text); font: inherit; font-weight: 700; font-size: 0.8rem; cursor: pointer; }
-.qp-btn:hover:not(:disabled) { border-color: var(--qp-accent); }
+.qp-btn:hover:not(:disabled) { border-color: var(--qp-btn); }
 .qp-btn:disabled { opacity: 0.55; cursor: not-allowed; }
 /* a one-word answer ("כן" / "Yes") is never a sliver: every button of the app's question window is at least 64px wide */
 .qp-dialog-actions .qp-btn { min-inline-size: 64px; }
-.qp-btn--primary { background: var(--qp-accent); border-color: var(--qp-accent); color: var(--qp-on-accent); }
-.qp-btn--primary:hover:not(:disabled) { background: var(--qp-accent-strong); }
-.qp-btn--ghost { background: transparent; border-color: transparent; color: var(--qp-accent); padding-inline: 6px; }
+.qp-btn--primary { background: var(--qp-btn); border-color: var(--qp-btn); color: var(--qp-on-accent); }
+.qp-btn--primary:hover:not(:disabled) { background: var(--qp-btn-strong); }
+.qp-btn--ghost { background: transparent; border-color: transparent; color: var(--qp-btn); padding-inline: 6px; }
 .qp-btn--danger { color: var(--qp-error); }
 .qp-btn--icon { min-width: 44px; padding: 6px; }
 .qp-root :focus-visible, .qp-sheet :focus-visible, .qp-dialog :focus-visible { outline: 3px solid var(--qp-focus); outline-offset: 2px; }
@@ -30,10 +30,10 @@
 .qp-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 @media (max-width: 560px) { .qp-cards { grid-template-columns: 1fr; } }
 .qp-card { position: relative; display: flex; flex-direction: column; border: 1px solid var(--qp-border-strong); border-radius: 9px; background: var(--qp-card); }
-.qp-card.is-selected { border: 2px solid var(--qp-accent); background: color-mix(in srgb, var(--qp-accent) 5%, var(--qp-card)); }
+.qp-card.is-selected { border: 2px solid var(--qp-btn); background: color-mix(in srgb, var(--qp-btn) 5%, var(--qp-card)); }
 .qp-card.is-locked { background: var(--qp-card-alt); color: var(--qp-text-2); }
 /* Task 26: the card currently shown in the Settings live preview (separate from the default = .is-selected) */
-.qp-card.is-previewed { box-shadow: 0 0 0 3px color-mix(in srgb, var(--qp-accent) 35%, transparent); }
+.qp-card.is-previewed { box-shadow: 0 0 0 3px color-mix(in srgb, var(--qp-btn) 35%, transparent); }
 /* Task 26: Settings quote-design live preview (the real customer page with the approved sample quote) */
 .qp-settings-preview { margin-top: 12px; display: flex; flex-direction: column; background: color-mix(in srgb, var(--qp-border-strong) 45%, var(--qp-bg)); border: 1px solid var(--qp-border-strong); border-radius: 10px; overflow: hidden; }
 .qp-settings-preview-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 10px; padding: 8px 10px; background: var(--qp-card); border-bottom: 1px solid var(--qp-border); }
@@ -87,7 +87,7 @@
 .qp-seg { display: inline-flex; border: 1px solid var(--qp-border-strong); border-radius: 10px; overflow: hidden; }
 .qp-seg button { min-height: 44px; padding: 4px 12px; border: 0; background: var(--qp-card); color: var(--qp-text); font: inherit; font-size: 0.78rem; font-weight: 700; cursor: pointer; }
 .qp-seg button + button { border-inline-start: 1px solid var(--qp-border-strong); }
-.qp-seg button[aria-pressed='true'] { background: var(--qp-accent); color: var(--qp-on-accent); }
+.qp-seg button[aria-pressed='true'] { background: var(--qp-btn); color: var(--qp-on-accent); }
 
 /* media manager */
 .qp-media-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 8px; }

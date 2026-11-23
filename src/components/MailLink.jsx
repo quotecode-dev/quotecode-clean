@@ -21,7 +21,7 @@ const COPY = {
   },
 };
 const btn = (primary) => ({ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', minHeight: 44, padding: '0 16px', boxSizing: 'border-box',
-  borderRadius: 9, border: primary ? 'none' : '1px solid #94a3b8', background: primary ? '#0F6672' : '#fff', color: primary ? '#fff' : '#1e293b',
+  borderRadius: 9, border: primary ? 'none' : '1px solid #94a3b8', background: primary ? '#102444' : '#fff', color: primary ? '#fff' : '#1e293b',
   fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'none' });
 
 export function MailComposeDialog({ mail, isHebrew, onClose }) {

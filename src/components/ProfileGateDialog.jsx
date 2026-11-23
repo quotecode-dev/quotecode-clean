@@ -28,7 +28,7 @@ const COPY = {
 };
 
 const field = { width: '100%', boxSizing: 'border-box', padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: 8, fontSize: '16px', fontFamily: 'inherit', minHeight: 44 };
-const btn = (primary, disabled) => ({ flex: '1 1 0', minWidth: 0, minHeight: 44, padding: '4px 12px', borderRadius: 9, border: primary ? 'none' : '1px solid #94a3b8', background: disabled ? '#e2e8f0' : (primary ? '#0F6672' : '#fff'), color: disabled ? '#64748b' : (primary ? '#fff' : '#1e293b'), fontWeight: 700, cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: 'inherit' });
+const btn = (primary, disabled) => ({ flex: '1 1 0', minWidth: 0, minHeight: 44, padding: '4px 12px', borderRadius: 9, border: primary ? 'none' : '1px solid #94a3b8', background: disabled ? '#e2e8f0' : (primary ? '#102444' : '#fff'), color: disabled ? '#64748b' : (primary ? '#fff' : '#1e293b'), fontWeight: 700, cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: 'inherit' });
 
 // missing = the keys getMissingBusinessProfileFields returned; onSave({ phone?, taxId?, name?, email? }) -> Promise<boolean>
 export default function ProfileGateDialog({ open, missing = [], isHebrew, isLocalIsraeliBusiness, currency, onSave, onClose }) {

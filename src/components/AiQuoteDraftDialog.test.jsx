@@ -40,8 +40,9 @@ describe('AiQuoteDraftDialog', () => {
     fireEvent.click(screen.getByRole('button', { name: /יצירת טיוטה עם AI/ }));
     await waitFor(() => expect(screen.getByText('טיוטה מוצעת — בדקו לפני שמוסיפים')).toBeTruthy());
     expect(p.requestDraft).toHaveBeenCalledWith('החלפת 3 חלונות בסלון');
-    expect(screen.getByText('₪1450.00')).toBeTruthy();
-    expect(screen.getByText('יש להזין מחיר — לא נמצא פריט תואם בקטלוג')).toBeTruthy();
+    expect(screen.getAllByRole('textbox', { name: 'המחיר שלכם' }).map((p) => p.value)).toEqual(['1450', '']);
+    expect(screen.getAllByRole('textbox', { name: 'המחיר שלכם' })[1].getAttribute('placeholder')).toBe('מחיר ליחידה');
+    expect(screen.queryByText(/יש להזין מחיר/)).toBeNull(); expect(screen.queryByTestId('ai-quote-draft-price')).toBeNull();
     expect(screen.getByTestId('ai-quote-draft-source').textContent).toContain('החלפת 3 חלונות בסלון');
     expect(screen.getByText(/שום דבר לא נשמר עד שתשמרו את ההצעה/)).toBeTruthy();
     expect(p.onApply).not.toHaveBeenCalled();
@@ -59,7 +60,7 @@ describe('AiQuoteDraftDialog', () => {
     const qty = screen.getAllByRole('textbox', { name: 'כמות' });
     expect(qty.map((q) => q.value)).toEqual(['40', '22', '']);
     expect(screen.getAllByRole('combobox', { name: 'יחידה' }).map((u) => u.value)).toEqual(['m2', 'm2', 'm2']);
-    expect(screen.getAllByTestId('ai-quote-draft-price')[0].textContent).toBe('מחיר: ₪120.00 · מהקטלוג: ריצוף למ״ר');
+    expect(screen.getAllByRole('textbox', { name: 'המחיר שלכם' }).map((p) => p.value)).toEqual(['120', '', '']); expect(screen.getAllByTestId('ai-quote-draft-price')).toHaveLength(1);
     expect(screen.getByText(/הפריט ״ריצוף״ נמצא בקטלוג, אבל לא ברור אם יחידת התמחור שלו תואמת/)).toBeTruthy();
     expect(screen.getByTestId('ai-quote-draft-missing').textContent).toBe('חסר: כמות');
     expect(screen.getByTestId('ai-quote-draft-questions').textContent).toContain('מה שטח הריצוף לפירוק?');
@@ -85,7 +86,7 @@ describe('AiQuoteDraftDialog', () => {
     fireEvent.click(screen.getByRole('button', { name: /יצירת טיוטה עם AI/ }));
     await waitFor(() => expect(screen.getAllByTestId('ai-quote-draft-line')).toHaveLength(3));
     fireEvent.change(screen.getAllByRole('combobox', { name: 'יחידה' })[0], { target: { value: 'unit' } });
-    expect(screen.queryByText('₪120.00')).toBeNull();
+    expect(screen.getAllByRole('textbox', { name: 'המחיר שלכם' })[0].value).toBe('');
     fireEvent.change(screen.getAllByRole('textbox', { name: 'תיאור הפריט' })[0], { target: { value: 'ריצוף חדר שינה' } });
     fireEvent.click(screen.getByRole('checkbox', { name: 'פירוק ריצוף קיים' }));
     fireEvent.click(screen.getByRole('button', { name: /הוספה להצעה \(פריטים מסומנים: 2\)/ }));
@@ -102,7 +103,7 @@ describe('AiQuoteDraftDialog', () => {
     describeJob('ריצוף חדר הורים 40 מ״ר, ריצוף חדר ילדים 22 מ״ר');
     fireEvent.click(screen.getByRole('button', { name: /יצירת טיוטה עם AI/ }));
     await waitFor(() => expect(screen.getAllByTestId('ai-quote-draft-line')).toHaveLength(2));
-    expect(screen.getAllByTestId('ai-quote-draft-evidence').map((e) => e.textContent)).toEqual(['מהתיאור: „ריצוף חדר הורים 40 מ״ר”', 'מהתיאור: „ריצוף חדר ילדים 22 מ״ר”']);
+    expect(screen.getAllByTestId('ai-quote-draft-evidence').map((e) => e.textContent)).toEqual(['מהתיאור: „ריצוף חדר ילדים 22 מ״ר”']);
     expect(screen.getByTestId('ai-quote-draft-missing').textContent).toContain('לא הצלחנו לאמת מול התיאור');
     expect(screen.getByTestId('ai-quote-draft-unassigned').textContent).toContain('22 מ״ר');
     // the Owner gives a ticked line that quantity: the warning is no longer true
@@ -119,7 +120,7 @@ describe('AiQuoteDraftDialog', () => {
   // Night task 2026-10-22: English uses English quotation marks (never the Hebrew low mark „)
   it('English: the evidence is quoted with “ ”', async () => {
     const p = props({ isHebrew: false, sym: '$', requestDraft: vi.fn(async () => ({ status: 'ok', subject: '', questions: [], unassignedMeasures: [], items: [
-      L({ description: 'Tile the master bedroom', quantity: 40, unit: 'm2', evidence: 'tile the master bedroom 40 m2' }),
+      L({ description: 'Tile the master bedroom', unit: 'm2', quantityBasis: 'missing', missing: 'unverified', evidence: 'tile the master bedroom 40 m2' }),
     ] })) });
     render(<AiQuoteDraftDialog {...p} />);
     fireEvent.change(screen.getByLabelText('What is the job?'), { target: { value: 'tile the master bedroom 40 m2' } });

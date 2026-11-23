@@ -283,7 +283,7 @@ export default function NotificationCenter({ client, userId, isHebrew, isLocalIs
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
               {readPersisted && unread > 0 && (
                 // PRODUCT_TRUTH_CAPABILITY: reminders_automation
-                <button type="button" onClick={markAll} style={{ background: 'none', border: 0, color: '#0F6672', fontWeight: 600, fontSize: '0.75rem', cursor: 'pointer', padding: '6px 0', fontFamily: 'inherit' }}>{C.center.markAll}</button>
+                <button type="button" onClick={markAll} style={{ background: 'none', border: 0, color: '#102444', fontWeight: 600, fontSize: '0.75rem', cursor: 'pointer', padding: '6px 0', fontFamily: 'inherit' }}>{C.center.markAll}</button>
               )}
               {/* Owner 2026-10-20: the panel closes on its own X too (not only outside / Escape) */}
               {/* PRODUCT_TRUTH_CAPABILITY: reminders_automation */}
@@ -305,7 +305,7 @@ export default function NotificationCenter({ client, userId, isHebrew, isLocalIs
                 {C.welcome.body}{' '}
                 {/* PRODUCT_TRUTH_CAPABILITY: reminders_automation */}
                 <button type="button" data-testid="notification-welcome-settings" onClick={openRemindersSettings}
-                  style={{ display: 'inline', padding: 0, margin: 0, border: 0, background: 'none', color: '#0F6672', fontWeight: 700, fontSize: 'inherit', lineHeight: 'inherit', textDecoration: 'underline', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'start' }}>
+                  style={{ display: 'inline', padding: 0, margin: 0, border: 0, background: 'none', color: '#102444', fontWeight: 700, fontSize: 'inherit', lineHeight: 'inherit', textDecoration: 'underline', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'start' }}>
                   {C.welcome.settingsLink}
                 </button>.
               </div>
@@ -318,7 +318,7 @@ export default function NotificationCenter({ client, userId, isHebrew, isLocalIs
                 <span>{C.welcome.ai}</span>
                 {/* PRODUCT_TRUTH_CAPABILITY: ai_chat */}
                 <button type="button" data-testid="notification-welcome-ai" onClick={openAiChatFromWelcome}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', border: '1px solid #0F6672', borderRadius: 999, background: 'none', color: '#0F6672', fontWeight: 700, fontSize: '0.72rem', cursor: 'pointer', fontFamily: 'inherit' }}>
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', border: '1px solid #102444', borderRadius: 999, background: 'none', color: '#102444', fontWeight: 700, fontSize: '0.72rem', cursor: 'pointer', fontFamily: 'inherit' }}>
                   <TekangoBotIcon size={16} />
                   <span>{C.welcome.aiButton}</span>
                 </button>
@@ -359,7 +359,7 @@ export default function NotificationCenter({ client, userId, isHebrew, isLocalIs
                             // Owner 2026-10-20: one notification marked read on its own (the panel stays open)
                             // PRODUCT_TRUTH_CAPABILITY: reminders_automation
                             <button type="button" data-testid="notification-mark-read" onClick={() => markOne(i.key)}
-                              style={{ background: 'none', border: 0, color: '#0F6672', fontWeight: 600, fontSize: '0.74rem', cursor: 'pointer', padding: '6px 4px', minHeight: mobile ? 44 : 30, fontFamily: 'inherit' }}>
+                              style={{ background: 'none', border: 0, color: '#102444', fontWeight: 600, fontSize: '0.74rem', cursor: 'pointer', padding: '6px 4px', minHeight: mobile ? 44 : 30, fontFamily: 'inherit' }}>
                               {A.markRead}
                             </button>
                           )}
@@ -444,5 +444,5 @@ function closeBtnStyle(phone) {
 
 // the subject buttons: an outlined pill (the welcome item's AI button style); a 44px touch target on the phone
 function actionBtnStyle(phone) {
-  return { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minHeight: phone ? 44 : 30, padding: '4px 12px', border: '1px solid #0F6672', borderRadius: 999, background: 'none', color: '#0F6672', fontWeight: 700, fontSize: '0.74rem', cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' };
+  return { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minHeight: phone ? 44 : 30, padding: '4px 12px', border: '1px solid #102444', borderRadius: 999, background: 'none', color: '#102444', fontWeight: 700, fontSize: '0.74rem', cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' };
 }

@@ -282,7 +282,7 @@ describe('PublicQuoteHeader Call CTA (Owner 2026-10-07: upper outer corner, scre
     const { container } = renderHe({ quoteData: heData() });
     const a = container.querySelector('.pq-letterhead.pq-lh-mobile .pq-lh-call a');
     expect(a).not.toBeNull();
-    expect(a.style.color).toBe('rgb(3, 105, 161)');
+    expect(a.style.color).toBe('rgb(16, 36, 68)');
     expect(parseFloat(a.style.fontSize) * 16).toBeGreaterThanOrEqual(12);
     cleanup();
     window.matchMedia = vi.fn().mockImplementation((q) => ({ matches: false, media: q, addEventListener: vi.fn(), removeEventListener: vi.fn(), addListener: vi.fn(), removeListener: vi.fn() }));

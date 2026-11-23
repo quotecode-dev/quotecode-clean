@@ -1,4 +1,4 @@
-import { Fragment, useState, useEffect, useRef } from 'react';
+import { Fragment, useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { phonePlaceholder } from '../utils/phoneDisplay';
 import { businessDial, joinPhone } from '../utils/phoneDial';
 import AddItemWizard from './AddItemWizard';
@@ -84,6 +84,8 @@ export default function QuoteForm({
   // Owner console 2026-11-08 (stage 4 of the one quote builder, decision 6): save one unit as a unit template / add one unit from a saved unit template
   onSaveUnitTemplate = null,
   onAddUnitFromTemplate = null,
+  // Owner 2026-11-22 (the simplify sketch, item 9): "Save as a template" in the editor ⋯ menu - opens the save window for the open form, saved or not
+  onSaveAsTemplate = null,
   discount, setDiscount,
   terms, setTerms,
   warranty, setWarranty,
@@ -325,6 +327,8 @@ export default function QuoteForm({
   // the rows of every list share one key store, so a row keeps its typed entry and focus when its item object is replaced or it moves
   const rowKeys = useRef(null);
   if (!rowKeys.current) rowKeys.current = { map: new WeakMap(), seq: 0, focus: null };
+  // 2026-11-22 (the simplify sketch): "Remove the sections" in the editor bar's "⋯" runs the editor's own action (its message offers undo)
+  const treeActions = useRef(null);
   // 2026-11-12: rows added from the work window open their (collapsed) group, so the new work is seen
   // PRODUCT_TRUTH_CAPABILITY: professional_reuse
   // a professional row (and a heading holding one) is duplicated only with the reuse entitlement - otherwise the upgrade window opens
@@ -415,9 +419,14 @@ export default function QuoteForm({
     }
   }, [clientAddress]);
 
+  // the simplify sketch (Owner 22/11, fix 8): the client-step errors - a missing name = the red edge and the red placeholder of the name
+  // field (screen readers get the sentence); an old quote with no client type gets its message under the switch; nothing is pushed down
+  const [clientErrs, setClientErrs] = useState({});
+  useEffect(() => { if (clientType) setClientErrs((p) => (p.type ? { ...p, type: false } : p)); }, [clientType]);
   const handleClientSelect = (e) => {
     const val = e.target.value;
     setClientName(val);
+    setClientErrs((p) => (p.name ? { ...p, name: false } : p));
     const found = clients.find(c => c.company_name?.toLowerCase() === val.toLowerCase());
     if (found) {
       setClientEmail(found.email || '');
@@ -425,8 +434,33 @@ export default function QuoteForm({
       setClientType(found.client_type || '');
       setClientTaxId(found.tax_id || '');
       setClientAddress(found.address || '');
+    } else if (matchedClient) {
+      // the simplify sketch (22/11): editing the name of a picked saved client releases the pick - the typed name is a new client and the
+      // picked client's details are emptied (what "+ add a new client" did), so another client's phone / e-mail / number is never kept
+      setClientEmail(''); setClientPhone(''); setClientTaxId(''); setClientAddress('');
     }
   };
+  // the simplify sketch (Owner 22/11): one name field - the saved clients that match the typed text show under it (each with its type)
+  const [suggestOpen, setSuggestOpen] = useState(false);
+  const nameInput = useRef(null);
+  const nameQ = String(clientName || '').trim().toLowerCase();
+  const suggestions = (clients || []).filter((c) => String(c.company_name || '').trim() && (!nameQ || String(c.company_name).toLowerCase().split(/s+/).some((wd) => wd.startsWith(nameQ)) || String(c.company_name).toLowerCase().startsWith(nameQ)))
+    .sort((a, b) => String(a.company_name || '').localeCompare(String(b.company_name || ''), isHebrew ? 'he' : 'en', { numeric: true, sensitivity: 'base' }));
+  const showSuggest = suggestOpen && suggestions.length > 0 && !(suggestions.length === 1 && String(suggestions[0].company_name).trim().toLowerCase() === nameQ);
+  const pickClient = (c) => { setSuggestOpen(false); handleClientSelect({ target: { value: c.company_name || '' } }); nameInput.current?.blur(); };
+  // the business number field opens / closes smoothly under the switch; while closing it stays for the animation (a layout effect, so no
+  // frame shows it without its animation)
+  const [taxAnim, setTaxAnim] = useState(null);
+  const prevClientType = useRef(clientType);
+  useLayoutEffect(() => {
+    const prev = prevClientType.current; prevClientType.current = clientType;
+    if (prev === clientType) return undefined;
+    const next = clientType === 'business' ? 'in' : (prev === 'business' ? 'out' : null);
+    setTaxAnim(next);
+    if (!next) return undefined;
+    const timer = setTimeout(() => setTaxAnim(null), next === 'in' ? 260 : 240);
+    return () => clearTimeout(timer);
+  }, [clientType]);
 
   // Owner 2026-10-15: the price step knows whether a real item exists, and a discount is a percentage between 0 and 100
   const realItemsNow = (items || []).filter((it) => it && !isUntouchedPlaceholderItem(it) && String(it.description || '').trim() !== '');
@@ -458,12 +492,17 @@ export default function QuoteForm({
   // Owner 2026-11-11 (finding 5, option א; typed L-09): a business client's tax id is required in the Israeli (Local) market only - the
   // market decides, never the UI language; abroad it is marked optional and the quote saves without it
   const taxIdRequired = clientType === 'business' && isLocalIsraeliBusiness !== false;
-  // Owner console 2026-11-11 (typed: "ללא מע״מ" bold and in another colour) + the sketch of 20/11 (typed L-09): the VAT notice of a BUSINESS
-  // client, Israel only (the market decides, never the language) - at the top of the client step; in the work screen behind the "ללא מע״מ" chip.
-  // A private client's prices include VAT: the totals say it ("מע״מ (18%) · כלול").
-  const vatNotice = isLocalIsraeliBusiness && clientType === 'business' ? (
-    <div className="sq-vat-notice" data-testid="sq-vat-notice" data-client-type={clientType} role="status">
-      {isHebrew ? <>שימו לב: הסכומים ללקוח עסקי הינם <strong className="sq-vat-word">ללא מע״מ</strong>, והמע״מ יתווסף למחיר הסופי</> : <>Please note: amounts for business clients <strong className="sq-vat-word">exclude VAT</strong>. VAT will be added to the final price</>}
+  // the simplify sketch (Owner 22/11): the VAT line of the Israeli market (the market decides, never the language) - always there, grey, at the
+  // top of the client step and under the editor bar. Both sentences share one cell (the inactive one hidden, not removed), so switching the
+  // client type never moves the screen; an old quote with no type keeps the same height with neither shown
+  const vatLine = isLocalIsraeliBusiness ? (
+    <div className="qe-vslot" data-testid="sq-vat-line" data-client-type={clientType || ''}>
+      <div className={`qe-vline${clientType === 'business' ? '' : ' off'}`} data-testid="sq-vat-business" aria-hidden={clientType === 'business' ? undefined : true}>
+        {isHebrew ? <>שימו לב: הסכומים ללקוח עסקי הינם <b>ללא מע״מ</b>, והמע״מ יתווסף למחיר הסופי</> : <>Please note: amounts for business clients <b>exclude VAT</b>. VAT will be added to the final price</>}
+      </div>
+      <div className={`qe-vline${clientType === 'private' ? '' : ' off'}`} data-testid="sq-vat-private" aria-hidden={clientType === 'private' ? undefined : true}>
+        {isHebrew ? <>שימו לב: הסכומים ללקוח פרטי <b>כוללים מע״מ</b>, והמע״מ לא יתווסף למחיר הסופי</> : <>Note: amounts for a private client <b>include VAT</b>; VAT is not added to the final price.</>}
+      </div>
     </div>
   ) : null;
   // "שמירת הלקוח והמשך" of the client step (Owner 2026-11-13, answer 3 "א" - the demo button): the same required fields as a save (name,
@@ -473,11 +512,11 @@ export default function QuoteForm({
   const returningToQuote = Boolean(editingQuoteId) || (items || []).some((it) => it && !isUntouchedPlaceholderItem(it) && String(it.description || '').trim());
   const clientButtonText = matchedClient ? (returningToQuote ? (isHebrew ? 'חזרה להצעה' : 'Back to the quote') : (isHebrew ? 'להמשך' : 'Continue'))
     : (returningToQuote ? (isHebrew ? 'שמירת הלקוח וחזרה להצעה' : 'Save the client and back to the quote') : (isHebrew ? 'שמירת הלקוח והמשך' : 'Save the client and continue'));
-  const [clientError, setClientError] = useState('');
   const continueFromClient = async () => {
     if (savingClient) return;
-    if (!String(clientName || '').trim() || !clientType) { setClientError(isHebrew ? 'מלאו את שם הלקוח ובחרו לקוח פרטי או עסקי.' : 'Fill in the client name and choose a private or business client.'); return; }
-    setClientError('');
+    const missing = { name: !String(clientName || '').trim(), type: !clientType };
+    if (missing.name || missing.type) { setClientErrs(missing); return; }
+    setClientErrs({});
     const form = document.querySelector('form.pf-editor-form');
     const fields = form ? [...form.querySelectorAll('input, select')].filter((el) => el.required) : [];
     const bad = fields.find((el) => !el.checkValidity());
@@ -597,7 +636,6 @@ export default function QuoteForm({
     return () => { document.removeEventListener('pointerdown', out); document.removeEventListener('keydown', esc); };
   }, [barMenu]);
   const [clientHelp, setClientHelp] = useState(null);
-  const [vatOpen, setVatOpen] = useState(false);
   useEffect(() => {
     if (!detailsPage) return undefined;
     const esc = (e) => { if (e.key === 'Escape') backFromDetailsPage(); };
@@ -635,6 +673,7 @@ export default function QuoteForm({
   const subShown = isLocalIsraeliBusiness && clientType === 'private' ? totalAmount + (Number(discountAmount) || 0) : subtotal;
   const showDiscount = discount > 0 || Math.round(Number(discountAmount) || 0) >= 1;
   const discountLabel = discount > 0 ? <>{isHebrew ? 'הנחה' : 'Discount'} (<bdi dir="ltr" className="pf-num">{discount}%</bdi>)</> : (isHebrew ? 'הנחת עיגול' : 'Rounding discount');
+  // the totals say how the prices are meant: "מע״מ (18%)" - a private client's prices include VAT ("מע״מ (18%) · כלול")
   const vatLabel = <>{isHebrew ? 'מע״מ' : 'VAT'} (<bdi dir="ltr" className="pf-num">18%</bdi>){clientType === 'private' ? (isHebrew ? ' · כלול' : ' · included') : ''}</>;
   const totalRows = [
     ['sub', isHebrew ? 'סכום ביניים' : 'Subtotal', money(subShown)],
@@ -642,10 +681,28 @@ export default function QuoteForm({
     isLocalIsraeliBusiness ? ['vat', vatLabel, money(taxAmount)] : null,
   ].filter(Boolean);
   const partialMark = (items || []).some((it) => it && it._invalid) && <span data-testid="sq-total-partial" className="qe-partial">{isHebrew ? 'הסכום עדיין חלקי' : 'Partial total'}</span>;
-  const vatChip = isLocalIsraeliBusiness && clientType === 'business' ? (
-    // PRODUCT_TRUTH_DECORATIVE: shows / hides the VAT notice of a business client (Israel)
-    <button type="button" className="qt-vchip" aria-expanded={vatOpen} data-testid="sq-vat-chip" onClick={() => setVatOpen((v) => !v)}>{isHebrew ? 'ללא מע״מ' : 'Excl. VAT'}</button>
-  ) : null;
+  // the client's number: a business client's number (required in Israel only - never an Israeli id forced abroad) opens under the switch; a
+  // private client's ID (optional) stays in the contact details. biz = the business row (also while it closes after a switch to private)
+  const taxRow = (biz) => {
+    const req = biz && isLocalIsraeliBusiness !== false;
+    return fieldRow('tax', biz
+      ? (isHebrew ? 'מספר עוסק מורשה / חברה' : 'Business / company number') + (req ? (isHebrew ? ' (חובה)' : ' (required)') : (isHebrew ? ' (לא חובה)' : ' (optional)'))
+      : (isHebrew ? 'ת״ז (לא חובה)' : 'ID (optional)'), 'sq-client-tax-id', (
+      <input id="sq-client-tax-id" className="qe-in qe-ltr" inputMode={req ? 'numeric' : undefined}
+        placeholder={biz ? (isHebrew ? 'הקלידו מספר עוסק מורשה או חברה' : 'Type the business or company number') : undefined} data-testid="sq-client-tax-id" type="text" value={clientTaxId}
+        onChange={(e) => { setClientTaxId(e.target.value); if (taxIdMissing) setTaxIdMissing(false); }}
+        onInvalid={(e) => { e.preventDefault(); setTaxIdMissing(true); e.target.scrollIntoView?.({ block: 'center', behavior: 'smooth' }); e.target.focus({ preventScroll: true }); }}
+        required={taxIdRequired} aria-invalid={taxIdMissing && taxIdRequired ? true : undefined}
+        pattern={taxIdRequired ? TAX_ID_NOT_BLANK : undefined}
+        aria-describedby={taxIdMissing && taxIdRequired ? 'sq-client-tax-id-missing' : undefined}
+        style={taxIdMissing && taxIdRequired ? { borderColor: NEON.red } : undefined} />
+    ), { help: biz ? (req ? (isHebrew ? 'הקלידו את מספר העוסק המורשה או החברה של הלקוח. זהו שדה חובה ללקוח עסקי.' : 'Type the client\'s licensed dealer or company number. It is required for a business client.')
+      : (isHebrew ? 'מספר העסק או החברה של הלקוח, אם יש. לא חובה.' : 'The client\'s business or company number, if there is one. Optional.')) : (isHebrew ? 'מספר תעודת הזהות של הלקוח, אם רוצים שיופיע בהצעה. לא חובה.' : 'The client\'s ID number, if you want it on the quote. Optional.'), testId: 'sq-help-client-tax',
+    after: taxIdMissing && taxIdRequired ? (
+      <p id="sq-client-tax-id-missing" data-testid="sq-client-tax-id-missing" role="alert" className="qe-err">
+        {isHebrew ? 'חסר מספר עוסק. ללקוח עסקי צריך למלא מספר עוסק מורשה או חברה.' : 'The business number is missing. A business client needs a business or company number.'}
+      </p>) : null });
+  };
 
   return (
     <div className="pf-screen qe" style={{ background: 'transparent', padding: 0, borderRadius: 0, marginBottom: 0, border: 'none', boxShadow: 'none', fontFamily: FONT_HE }} dir={isHebrew ? 'rtl' : 'ltr'}>
@@ -746,6 +803,14 @@ export default function QuoteForm({
                   // PRODUCT_TRUTH_DECORATIVE: "from a saved template" (stage 4) - opens the unit templates; one section with its rows is added
                   <button type="button" role="menuitem" data-testid="unit-from-template" onClick={runMenu(onAddUnitFromTemplate)}><SketchIcon name="tmpl" size={17} /><span className="qt-menu-label">{isHebrew ? 'מתבנית שמורה' : 'From a saved template'}</span></button>
                 )}
+                {onWork && typeof onSaveAsTemplate === 'function' && (
+                  // PRODUCT_TRUTH_DECORATIVE: opens the save-template window for the open quote (saved or not); the template is saved only in that window
+                  <button type="button" role="menuitem" data-testid="editor-save-template" onClick={runMenu(onSaveAsTemplate)}><SketchIcon name="tmpl" size={17} /><span className="qt-menu-label">{isHebrew ? 'שמירה כתבנית' : 'Save as a template'}</span></button>
+                )}
+                {onWork && (sections || []).length > 0 && (
+                  // PRODUCT_TRUTH_DECORATIVE: removes the division into sections - every row stays in the quote; the message offers undo
+                  <button type="button" role="menuitem" data-testid="editor-flatten" onClick={runMenu(() => treeActions.current?.flatten?.())}><X size={17} strokeWidth={2} aria-hidden="true" /><span className="qt-menu-label">{isHebrew ? 'ביטול החלוקה לחלקים' : 'Remove the sections'}</span></button>
+                )}
                 {onWork && !hasWork && (
                   // PRODUCT_TRUTH_DECORATIVE: adds ONE local, never-saved example line to learn the row from (Owner restore item 07)
                   <button type="button" role="menuitem" data-testid="quote-show-example" onClick={runMenu(addLocalExample)}><svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" /></svg><span className="qt-menu-label">{isHebrew ? 'הצגת דוגמה (לא נשמרת)' : 'Show an example (not saved)'}</span></button>
@@ -761,53 +826,52 @@ export default function QuoteForm({
             Professional capability (catalog, measured items, sections, attachments, terms) is unchanged. */}
         {!onEditor && (<>
         <StepHeading n={1} title={isHebrew ? 'למי מכינים את ההצעה?' : 'Who is this quote for?'} />
-        {/* Owner console 2026-11-11 (the two sentences) + the sketch (20/11): the VAT notice of a business client at the top of the client step, Israel only */}
-        {vatNotice}
+        {/* the simplify sketch (Owner 22/11): the VAT line at the top of the client step, Israel only (both client types, one fixed height) */}
+        {vatLine}
         <div className="pf-m-surface qe-card" style={{ background: '#ffffff', border: '1px solid #e3e8e9', borderRadius: '10px', padding: '12px' }}>
-          {fieldRow('existing', isHebrew ? 'בחירת לקוח קיים (לא חובה)' : 'Choose an existing client (optional)', 'sq-client-existing', (
-            // an existing client fills its details (no duplicate is made); "+ add a new client" empties a picked client's details for a new one
-            <select id="sq-client-existing" data-testid="sq-client-existing" className="qe-in" value={matchedClient ? String(matchedClient.id) : (clientName.trim() ? '__new' : '')}
-              onChange={(e) => {
-                const v = e.target.value;
-                if (v === '__new') { if (matchedClient) { setClientName(''); setClientEmail(''); setClientPhone(''); setClientTaxId(''); setClientAddress(''); } return; }
-                const c = clients.find((x) => String(x.id) === v);
-                if (c) handleClientSelect({ target: { value: c.company_name || '' } });
-              }}>
-              <option value="__new">{isHebrew ? '+ הוספת לקוח חדש' : '+ Add a new client'}</option>
-              {/* Owner console 2026-11-18, typed: "רשימת הלקוחות" / "Client list" (the longer wording was cut at phone width) */}
-              <option value="" disabled hidden>{isHebrew ? 'רשימת הלקוחות' : 'Client list'}</option>
-              {[...clients].sort((a, b) => String(a.company_name || '').localeCompare(String(b.company_name || ''), isHebrew ? 'he' : 'en', { numeric: true, sensitivity: 'base' }))
-                .map((c) => <option key={c.id} value={String(c.id)}>{c.company_name}</option>)}
-            </select>
-          ), { help: isHebrew ? '״הוספת לקוח חדש״ נמצאת בראש הרשימה. אפשר גם לבחור לקוח שמור או למלא ישירות את השם והסוג למטה. לקוח חדש נשמר ברשימה בלחיצה על ״שמירת הלקוח והמשך״.' : '"Add a new client" is at the top of the list. You can also pick a saved client or fill in the name and type below. A new client is saved to the list when you click "Save the client and continue".', testId: 'sq-help-client-existing' })}
           {fieldRow('name', t.clientName, 'sq-client-name', (
-            <input id="sq-client-name" type="text" className="qe-in" value={clientName} onChange={handleClientSelect} placeholder={isHebrew ? 'הקלידו את שם הלקוח' : 'Type the client name'} data-help-field="client_name" required />
-          ), { help: isHebrew ? 'הקלידו את שם הלקוח שיופיע בהצעת המחיר. אין צורך לבחור לקוח מהרשימה כדי להוסיף חדש.' : 'Type the client name that appears on the quote. There is no need to pick from the list to add a new one.', testId: 'sq-help-client-name' })}
+            // the simplify sketch (Owner 22/11): one name field; the saved clients that match show under it while typing - a pick fills the client
+            <div className="qe-cbw" onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setSuggestOpen(false); }}>
+              <input ref={nameInput} id="sq-client-name" type="text" className={`qe-in${clientErrs.name ? ' qe-bad' : ''}`} value={clientName} autoComplete="off"
+                role="combobox" aria-autocomplete="list" aria-expanded={showSuggest} aria-controls="sq-client-suggest" aria-invalid={clientErrs.name ? true : undefined}
+                onChange={(e) => { handleClientSelect(e); setSuggestOpen(true); }} onFocus={() => setSuggestOpen(true)}
+                onKeyDown={(e) => { if (e.key === 'Escape' || e.key === 'Tab') setSuggestOpen(false); if (e.key === 'ArrowDown' && showSuggest) { e.preventDefault(); e.currentTarget.parentElement.querySelector('.qe-ccl button')?.focus(); } }}
+                onInvalid={(e) => { e.preventDefault(); setClientErrs((p) => ({ ...p, name: true })); }}
+                placeholder={isHebrew ? 'הקלידו את שם הלקוח' : 'Type the client name'} data-help-field="client_name" required />
+              {showSuggest && (
+                <ul id="sq-client-suggest" role="listbox" className="qe-ccl" data-testid="sq-client-suggest" aria-label={isHebrew ? 'לקוחות שמורים' : 'Saved clients'}>
+                  {suggestions.map((c) => (
+                    <li key={c.id} role="option" aria-selected="false">
+                      {/* PRODUCT_TRUTH_DECORATIVE: picks a saved client - its name, type and details fill the client step (no duplicate is made) */}
+                      <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => pickClient(c)}>{c.company_name}
+                        {c.client_type === 'business' || c.client_type === 'private' ? <small>{c.client_type === 'business' ? (isHebrew ? 'לקוח עסקי' : 'Business client') : (isHebrew ? 'לקוח פרטי' : 'Private client')}</small> : null}</button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {clientErrs.name && <span className="sr-only" role="alert">{isHebrew ? 'הקלידו את שם הלקוח.' : 'Type the client name.'}</span>}
+            </div>
+          ), { help: isHebrew ? 'הקלידו את שם הלקוח. לקוח שכבר שמור מופיע ברשימה מתחת לשדה, ובחירה בו ממלאת את הפרטים שלו.' : 'Type the client name. A saved client appears in the list under the field, and choosing it fills in its details.', testId: 'sq-help-client-name' })}
           {fieldRow('type', isHebrew ? 'סוג הלקוח' : 'Client type', 'sq-client-type', (
-            <select id="sq-client-type" className="qe-in" value={clientType} onChange={(e) => setClientType(e.target.value)} data-help-field="client_type" required={!editingQuoteId}>
-              <option value="" disabled>{isHebrew ? 'בחרו סוג לקוח' : 'Choose the client type'}</option>
-              <option value="private">{isHebrew ? 'לקוח פרטי' : 'Private client'}</option>
-              <option value="business">{isHebrew ? 'לקוח עסקי' : 'Business client'}</option>
-            </select>
-          ), { help: isHebrew ? 'לקוח פרטי הוא אדם או משפחה. לקוח עסקי הוא חברה או עוסק.' : 'A private client is a person or a family. A business client is a company or a self-employed business.', testId: 'sq-help-client-type' })}
-          {/* a business client's number (required in Israel only - never an Israeli id forced abroad); a private client's ID in the contact details */}
-          {(clientType === 'business' || showClientContact) && fieldRow('tax', clientType === 'business'
-            ? (isHebrew ? 'מספר עוסק מורשה / חברה' : 'Business / company number') + (taxIdRequired ? (isHebrew ? ' (חובה)' : ' (required)') : (isHebrew ? ' (לא חובה)' : ' (optional)'))
-            : (isHebrew ? 'ת״ז (לא חובה)' : 'ID (optional)'), 'sq-client-tax-id', (
-            <input id="sq-client-tax-id" className="qe-in qe-ltr" inputMode={clientType === 'business' && taxIdRequired ? 'numeric' : undefined}
-              placeholder={clientType === 'business' ? (isHebrew ? 'הקלידו מספר עוסק מורשה או חברה' : 'Type the business or company number') : undefined} data-testid="sq-client-tax-id" type="text" value={clientTaxId}
-              onChange={(e) => { setClientTaxId(e.target.value); if (taxIdMissing) setTaxIdMissing(false); }}
-              onInvalid={(e) => { e.preventDefault(); setTaxIdMissing(true); e.target.scrollIntoView?.({ block: 'center', behavior: 'smooth' }); e.target.focus({ preventScroll: true }); }}
-              required={taxIdRequired} aria-invalid={taxIdMissing && taxIdRequired ? true : undefined}
-              pattern={taxIdRequired ? TAX_ID_NOT_BLANK : undefined}
-              aria-describedby={taxIdMissing && taxIdRequired ? 'sq-client-tax-id-missing' : undefined}
-              style={taxIdMissing && taxIdRequired ? { borderColor: NEON.red } : undefined} />
-          ), { help: clientType === 'business' ? (taxIdRequired ? (isHebrew ? 'הקלידו את מספר העוסק המורשה או החברה של הלקוח. זהו שדה חובה ללקוח עסקי.' : 'Type the client\'s licensed dealer or company number. It is required for a business client.')
-            : (isHebrew ? 'מספר העסק או החברה של הלקוח, אם יש. לא חובה.' : 'The client\'s business or company number, if there is one. Optional.')) : null, testId: 'sq-help-client-tax',
-          after: taxIdMissing && taxIdRequired ? (
-            <p id="sq-client-tax-id-missing" data-testid="sq-client-tax-id-missing" role="alert" className="qe-err">
-              {isHebrew ? 'חסר מספר עוסק. ללקוח עסקי צריך למלא מספר עוסק מורשה או חברה.' : 'The business number is missing. A business client needs a business or company number.'}
-            </p>) : null })}
+            // the simplify sketch (Owner 22/11): a Private / Business switch with a sliding thumb, "פרטי" by default; an old quote saved with no
+            // type shows no side until one is chosen
+            <div id="sq-client-type" data-testid="sq-client-type" role="radiogroup" aria-label={isHebrew ? 'סוג הלקוח' : 'Client type'} data-help-field="client_type"
+              className={`qe-segc${clientType === 'business' ? ' biz' : ''}${clientType === 'business' || clientType === 'private' ? '' : ' none'}`}
+              aria-invalid={clientErrs.type ? true : undefined} aria-describedby={clientErrs.type ? 'sq-client-type-missing' : undefined}>
+              {[['private', isHebrew ? 'פרטי' : 'Private'], ['business', isHebrew ? 'עסקי' : 'Business']].map(([v, label]) => (
+                // PRODUCT_TRUTH_DECORATIVE: chooses a private or a business client (the arrow keys move between the two)
+                <button key={v} type="button" role="radio" aria-checked={clientType === v} className={clientType === v ? 'on' : undefined} data-testid={`sq-client-type-${v}`}
+                  tabIndex={clientType === v || (clientType !== 'private' && clientType !== 'business' && v === 'private') ? 0 : -1}
+                  onClick={() => { if (clientType !== v) setClientType(v); }}
+                  onKeyDown={(e) => { if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) return; e.preventDefault(); const o = v === 'private' ? 'business' : 'private'; setClientType(o); e.currentTarget.parentElement.querySelector(`[data-testid="sq-client-type-${o}"]`)?.focus(); }}>{label}</button>
+              ))}
+            </div>
+          ), { help: isHebrew ? 'לקוח פרטי הוא אדם או משפחה. לקוח עסקי הוא חברה או עוסק.' : 'A private client is a person or a family. A business client is a company or a self-employed business.', testId: 'sq-help-client-type',
+            after: clientErrs.type ? <p id="sq-client-type-missing" data-testid="sq-client-type-missing" role="alert" className="qe-err">{isHebrew ? 'בחרו לקוח פרטי או עסקי.' : 'Choose a private or business client.'}</p> : null })}
+          {/* the simplify sketch (Owner 22/11): the business number opens / closes smoothly under the switch */}
+          {(clientType === 'business' || taxAnim === 'out') && (
+            <div className={`qe-fgrow${taxAnim ? ` ${taxAnim}` : ''}`} data-testid="sq-client-tax-grow"><div>{taxRow(true)}</div></div>
+          )}
 
           {/* Owner round 1 (2026-10-15): contact details and the attention contact are optional - one toggle (folded by default, 2026-11-15) */}
           {/* PRODUCT_TRUTH_DECORATIVE: shows / hides the optional client contact fields (email, phone, attention contact) */}
@@ -816,6 +880,8 @@ export default function QuoteForm({
             <ChevronDown size={15} style={{ transform: showClientContact ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }} />
           </button>
           {showClientContact && (<>
+            {/* a private client's ID (optional) stays in the contact details */}
+            {clientType !== 'business' && taxAnim !== 'out' && taxRow(false)}
             {fieldRow('phone', isHebrew ? 'טלפון' : 'Phone', 'sq-client-phone', (
               // Owner 2026-11-11 (findings 17 + 21): the code alone ("+1", "+972"); the number reads left to right in both languages (IRON numeric bidi)
               <div className="qe-ph" style={{ display: 'flex', flexDirection: isHebrew ? 'row-reverse' : 'row', minWidth: 0 }}>
@@ -846,7 +912,6 @@ export default function QuoteForm({
               <input id="sq-client-role" type="text" className="qe-in" value={attnRole || ''} onChange={(e) => setAttnRole(e.target.value)} placeholder={isHebrew ? 'לדוגמה: מנהל פרויקטים' : 'e.g. Project Manager'} />
             ))}
           </>)}
-          {flowStep === 'client' && clientError && <p className="qe-err" role="alert" data-testid="sq-client-error">{clientError}</p>}
           {flowStep === 'client' && (
             <div className="sq-client-continue">
               {/* PRODUCT_TRUTH_DECORATIVE: saves a new client to the client list (a chosen client is not duplicated) and continues to the work screen of the same quote */}
@@ -858,6 +923,8 @@ export default function QuoteForm({
         </>)}
 
         {flowStep !== 'client' && (<>
+        {/* the simplify sketch (Owner 22/11): the same VAT line right under the editor bar, in place of the chip */}
+        {onEditor && vatLine}
         <div className="sq-g-work" data-testid="sq-editor-grid">
           <QuoteTreeEditor isHebrew={isHebrew} international={isLocalIsraeliBusiness === false} items={items} setItems={setItems} sections={sections || []}
             setSections={(next) => { setSections(next); if ((next || []).length && structureMode !== 'divided') setQuoteStructureMode('divided'); if (!(next || []).length && structureMode === 'divided') setQuoteStructureMode('regular'); }}
@@ -867,8 +934,7 @@ export default function QuoteForm({
             canDuplicateRow={canDuplicateRow} onDuplicateLocked={() => setShowUpgradeConfirm('reuse')}
             keyStore={rowKeys.current} onPendingChange={setPendingRows} onPageChange={setEditorPage}
             canUseMeasured={canUseProfessionalQuotes !== false} onMeasuredLocked={() => setShowUpgradeConfirm('professional')}
-            lineExtra={vatChip} />
-          {vatChip && vatOpen && vatNotice}
+            treeActionsRef={treeActions} />
           {/* the totals under the work, always shown (the sketch's totalsCard): the same columns as the rows, so every amount ends on one axis */}
           <div className="qt-items qt-tots" aria-label={isHebrew ? 'סיכום ההצעה' : 'Quote summary'} data-testid="sq-totals">
             {totalRows.map(([k, label, value]) => <div key={k} className="qt-ir qt-trw"><span>{label}</span><span className="qt-ir-s">{value}</span><span /></div>)}
@@ -961,7 +1027,7 @@ export default function QuoteForm({
                           <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: NEON.bgInput, padding: '4px 8px', borderRadius: '6px', border: `1px solid ${NEON.borderStrong}`, fontSize: '0.8rem' }}>
                             {/* PRODUCT_TRUTH_DECORATIVE: opens an already-uploaded attachment via a signed URL; sub-action of the already-documented attachments capability */}
                             {file.id && onOpenAttachment ? (
-                              <button type="button" onClick={() => onOpenAttachment(file)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: NEON.violetLight, textDecoration: 'underline', font: 'inherit', textAlign: 'start' }}>{displayName} ({displaySize} MB)</button>
+                              <button type="button" onClick={() => onOpenAttachment(file)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: NEON.button, textDecoration: 'underline', font: 'inherit', textAlign: 'start' }}>{displayName} ({displaySize} MB)</button>
                             ) : (<span style={{ color: NEON.textSecondary }}>{displayName} ({displaySize} MB)</span>)}
                             {/* PRODUCT_TRUTH_DECORATIVE: removes a single file from the in-progress attachments list before save; a list-item delete control */}
                             <button type="button" onClick={() => removeFile(idx)} aria-label={isHebrew ? `הסרת הקובץ ${displayName}` : `Remove attachment ${displayName}`} style={{ background: 'rgba(239, 68, 68, 0.15)', color: NEON.red, border: 'none', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px', display: 'flex', alignItems: 'center', minWidth: 32, minHeight: 32, justifyContent: 'center' }}><X size={12} strokeWidth={3} /></button>

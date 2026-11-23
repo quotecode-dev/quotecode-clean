@@ -125,7 +125,7 @@ export default function ShareDefaultsSettings({ isHebrew, client, userId, onBack
         {save.state === 'error' && save.errors.length === 0 && <div role="alert" style={{ fontSize: '0.8rem', color: '#991b1b', fontWeight: 600 }}>{C.saveError}</div>}
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
           {/* PRODUCT_TRUTH_CAPABILITY: business_settings */}
-          <button type="submit" data-testid="sd-save" disabled={disabled} style={{ minHeight: '40px', padding: '0 18px', borderRadius: RADIUS.sm, border: 'none', background: disabled ? NEON.borderStrong : NEON.violet, color: '#fff', fontWeight: 800, cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
+          <button type="submit" data-testid="sd-save" disabled={disabled} style={{ minHeight: '40px', padding: '0 18px', borderRadius: RADIUS.sm, border: 'none', background: disabled ? NEON.borderStrong : NEON.button, color: '#fff', fontWeight: 800, cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
             {save.state === 'saving' ? C.saving : C.save}
           </button>
           {save.state === 'saved' && <span role="status" data-testid="sd-saved" style={{ fontSize: '0.8rem', color: '#166534', fontWeight: 700 }}>{C.saved}</span>}

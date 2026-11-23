@@ -594,8 +594,8 @@ export const PRODUCT_HOW_TO = Object.freeze([
       steps: [
         "לפני ההצעה הראשונה צריך טלפון עסק (ובישראל גם ח.פ / עוסק מורשה) ב\"הגדרות העסק\".",
         "לוחצים \"הצעה חדשה\". בחלון \"איך תרצו להתחיל?\" בוחרים \"ממלאים בעצמכם\" (לשלוש הדרכים האחרות יש הסבר משלהן).",
-        "בשלב \"למי מכינים את ההצעה?\" אפשר לבחור לקוח שמור ב\"בחירת לקוח קיים (לא חובה)\" (בראש הרשימה \"+ הוספת לקוח חדש\"), או למלא את שם הלקוח. בוחרים \"סוג הלקוח\" - \"לקוח פרטי\" או \"לקוח עסקי\"; ללקוח עסקי בישראל ממלאים גם \"מספר עוסק מורשה / חברה\" (חובה). טלפון, דוא״ל וכתובת נמצאים ב\"פרטי קשר (לא חובה)\". לוחצים \"שמירת הלקוח והמשך\" - לקוח חדש נשמר מיד ברשימת הלקוחות. בישראל מופיעה מיד הודעה אם הסכומים כוללים מע״מ או לא.",
-        "במסך העבודה, ב\"מבנה:\" שמעל הטבלה בוחרים \"הצעה פשוטה\", \"מחולקת לחלקים\" או \"חלקים בתוך חלקים\" (מתחת לכל אחד יש דוגמה). שורת ההקלדה נמצאת בתוך הטבלה, מתחת לשורות: בוחרים מוצר מהקטלוג או מקלידים שם (\"+ הוספת מוצר חדש\"), בוחרים \"חישוב\" - ליחידה, למ״ר, למטר, לשעה, ליום עבודה, לק״ג או מחיר גלובלי - כותבים כמות ומחיר ולוחצים \"הוספה\". מוצר חדש אפשר \"לשמור גם בקטלוג\". השורה נכנסת לטבלה, ושלוש הנקודות שלה פותחות עריכה, שכפול, הזזה למעלה או למטה והסרה. מתחת לטבלה רואים תמיד את סכום הביניים, את המע״מ (בישראל) ואת הסה״כ.",
+        "בשלב \"למי מכינים את ההצעה?\" מקלידים את שם הלקוח בשדה \"הקלידו את שם הלקוח\" - לקוח שמור מופיע ברשימה מתחת לשדה תוך כדי הקלדה, ובחירה בו ממלאת את הפרטים שלו. ב\"סוג הלקוח\" בוחרים \"פרטי\" (ברירת המחדל) או \"עסקי\"; ללקוח עסקי בישראל נפתח מתחת גם \"מספר עוסק מורשה / חברה\" (חובה). טלפון, דוא״ל וכתובת נמצאים ב\"פרטי קשר (לא חובה)\". לוחצים \"שמירת הלקוח והמשך\" - לקוח חדש נשמר מיד ברשימת הלקוחות. בישראל שורת המע״מ מופיעה תמיד: ללקוח פרטי הסכומים כוללים מע״מ, וללקוח עסקי הם ללא מע״מ.",
+        "במסך העבודה שורת ההקלדה נמצאת בתוך הטבלה, מתחת לשורות: בוחרים מוצר מהקטלוג או מקלידים שם (\"+ הוספת מוצר חדש\"), בוחרים \"חישוב\" - ליחידה, למ״ר, למטר, לשעה, ליום עבודה, לק״ג או מחיר גלובלי - כותבים כמות ומחיר ולוחצים \"הוספה\". מוצר חדש אפשר \"לשמור גם בקטלוג\". השורה נכנסת לטבלה, ושלוש הנקודות שלה פותחות עריכה, שכפול, הזזה למעלה או למטה והסרה. אין בחירת מבנה: כדי לחלק את ההצעה לקומות, דירות או חדרים לוחצים \"+ חלק: קומה, דירה, חדר\". מתחת לטבלה רואים תמיד את סכום הביניים, את המע״מ (בישראל) ואת הסה״כ.",
         "ב\"פרטים נוספים להצעה (לא חובה)\" יש: \"פרויקט, כתובת ותוקף\", \"הערות לכל ההצעה\", \"תנאים ואחריות\", \"הנחה\", \"קבצים ותמונות\" ו\"עיצוב והנפקת ההצעה\". כתובת הלקוח נמצאת בפרטי הלקוח, ב\"פרטי קשר (לא חובה)\".",
         "בפס שבתחתית רואים \"סה״כ לתשלום\"; לחיצה עליו פותחת את \"סיכום ההצעה\". שם גם \"כך הלקוח יראה\" ו\"שמירת ההצעה\". שמירה אינה שליחה: ההצעה נשמרת כטיוטה, ומופיע \"נשמרה. עדיין לא נשלחה.\" - משם אפשר לראות איך הלקוח יראה אותה, לחזור לעריכה או לעבור לרשימת ההצעות. המחשבון נמצא בכותרת העליונה, ליד הפעמון.",
       ],
@@ -605,8 +605,8 @@ export const PRODUCT_HOW_TO = Object.freeze([
       steps: [
         "Before the first quote a business phone is required in \"Business Settings\".",
         "Click \"New quote\". In the \"How would you like to start?\" window choose \"Fill it in yourselves\" (the other three ways have their own steps).",
-        "In the \"Who is this quote for?\" step you can pick a saved client in \"Choose an existing client (optional)\" (\"+ Add a new client\" is at the top), or fill in the client name. Choose the \"Client type\" - \"Private client\" or \"Business client\"; a business client may get a \"Business / company number\". Phone, email and address are in \"Contact details (optional)\". Click \"Save the client and continue\" - a new client is saved to your client list right away.",
-        "In the work screen, in \"Structure:\" above the table choose \"Simple quote\", \"In sections\" or \"Sections within sections\" (each has an example under it). The entry row is inside the table, below the rows: choose a catalog product or type a name (\"+ Add a new product\"), choose the \"Pricing\" - per unit, per sq ft, per ft, per hour, per work day, per kg or a lump sum - type the quantity and the price and click \"Add\". A new product can \"Also save to the catalog\". The row enters the table, and its three dots hold edit, duplicate, move up or down and remove. Under the table the subtotal and the total are always shown.",
+        "In the \"Who is this quote for?\" step type the client name in the \"Type the client name\" field - a saved client appears in the list under the field as you type, and choosing it fills in its details. In \"Client type\" choose \"Private\" (the default) or \"Business\"; a business client may get a \"Business / company number\". Phone, email and address are in \"Contact details (optional)\". Click \"Save the client and continue\" - a new client is saved to your client list right away.",
+        "In the work screen the entry row is inside the table, below the rows: choose a catalog product or type a name (\"+ Add a new product\"), choose the \"Pricing\" - per unit, per sq ft, per ft, per hour, per work day, per kg or a lump sum - type the quantity and the price and click \"Add\". A new product can \"Also save to the catalog\". The row enters the table, and its three dots hold edit, duplicate, move up or down and remove. There is no structure choice: to divide the quote into floors, apartments or rooms click \"+ Section: floor, apartment, room\". Under the table the subtotal and the total are always shown.",
         "\"More quote details (optional)\" holds \"Project, address and validity\", \"Notes for the whole quote\", \"Terms and warranty\", \"Discount\", \"Files and images\" and \"Quote design and issuing\". The client address is in the client details, under \"Contact details (optional)\".",
         "The bar at the bottom shows the \"Total\"; a click on it opens the \"Quote summary\". It also has \"Client view\" and \"Save the quote\". Saving is not sending: the quote is saved as a draft and \"Saved. Not sent yet.\" appears - from there you can see how the client will see it, go back to editing or go to the quote list. The calculator is in the top header, next to the bell.",
       ],
@@ -614,8 +614,8 @@ export const PRODUCT_HOW_TO = Object.freeze([
     evidence: [
       { file: 'src/components/NewQuoteMenu.jsx', labels: ["הצעה חדשה","New quote","איך תרצו להתחיל?","How would you like to start?"] },
       { file: 'src/utils/newQuoteChoices.js', labels: ["ממלאים בעצמכם","Fill it in yourselves"] },
-      { file: 'src/components/QuoteForm.jsx', labels: ["למי מכינים את ההצעה?","Who is this quote for?","בחירת לקוח קיים (לא חובה)","Choose an existing client (optional)","+ הוספת לקוח חדש","+ Add a new client","סוג הלקוח","Client type","לקוח פרטי","Private client","לקוח עסקי","Business client","מספר עוסק מורשה / חברה","Business / company number","פרטי קשר (לא חובה)","Contact details (optional)","שמירת הלקוח והמשך","Save the client and continue","פרטים נוספים להצעה (לא חובה)","More quote details (optional)","סיכום ההצעה","Quote summary","שמירת ההצעה","Save the quote"] },
-      { file: 'src/components/quoteTree/QuoteTreeEditor.jsx', labels: ["מבנה:","Structure:","הצעה פשוטה","Simple quote","מחולקת לחלקים","In sections","חלקים בתוך חלקים","Sections within sections","+ הוספת מוצר חדש","+ Add a new product","חישוב","Pricing","הוספה","Add","לשמור גם בקטלוג","Also save to the catalog"] },
+      { file: 'src/components/QuoteForm.jsx', labels: ["למי מכינים את ההצעה?","Who is this quote for?","הקלידו את שם הלקוח","Type the client name","סוג הלקוח","Client type","פרטי","Private","עסקי","Business","מספר עוסק מורשה / חברה","Business / company number","פרטי קשר (לא חובה)","Contact details (optional)","שמירת הלקוח והמשך","Save the client and continue","פרטים נוספים להצעה (לא חובה)","More quote details (optional)","סיכום ההצעה","Quote summary","שמירת ההצעה","Save the quote"] },
+      { file: 'src/components/quoteTree/QuoteTreeEditor.jsx', labels: ["+ חלק: קומה, דירה, חדר","+ Section: floor, apartment, room","+ הוספת מוצר חדש","+ Add a new product","חישוב","Pricing","הוספה","Add","לשמור גם בקטלוג","Also save to the catalog"] },
       { file: 'src/components/QuoteSavedScreen.jsx', labels: ["נשמרה. עדיין לא נשלחה.","Saved. Not sent yet."] },
       { file: 'src/pages/Dashboard.jsx', labels: ["הגדרות העסק","Business Settings"] },
     ],
@@ -627,24 +627,24 @@ export const PRODUCT_HOW_TO = Object.freeze([
     he: {
       task: "הצעה לכמה דירות, חדרים או קומות",
       steps: [
-        "ב\"מבנה:\" שמעל הטבלה בוחרים \"מחולקת לחלקים\" או \"חלקים בתוך חלקים\" ולוחצים \"הוספת חלק: דירה, קומה, חדר או נושא אחר\". בוחרים מה מוסיפים (קומה, דירה, חדר או נושא בשם אחר), כמה (עד 100 בכל פעם), ואת השמות (שדה ריק = שם לפי הסדר). כל חלק הוא כותרת נפרדת עם העבודות שלו - גם כשהדירות זהות, כל דירה מופיעה בנפרד, ואפשר לשכפל חלק עם כל מה שבתוכו.",
-        "שורת ההקלדה אחת: לחיצה על שם של חלק (או על ה\"+\" שלו) מעבירה אליו את שורת ההקלדה, ומתחתיה כתוב לאן השורה נכנסת (\"אל:\"). \"+ הוספת עבודה לכל ההצעה\" מחזיר אותה לכל ההצעה. ב\"חלקים בתוך חלקים\" אפשר להוסיף חלק בתוך חלק - חדרים בתוך דירה ודירות בתוך קומה, עד 4 רמות. ליד כל חלק מוצג הסכום של כל מה שבתוכו, והמשולש סוגר ופותח אותו.",
-        "שלוש הנקודות של חלק פותחות: \"הוספת עבודה או מוצר כאן\", \"הוספת חלק בתוך\", \"שינוי שם\" (במקום, עם \"שמירת השם\"), \"שכפול עם התוכן\", \"העתקת עבודות מהראשון\" (מהחלק הראשון באותה רמה), \"שמירה כתבנית\" ו\"הסרה עם התוכן\" - ואפשר לבטל. שורה עוברת לחלק אחר דרך שלוש הנקודות שלה (\"העברה לחלק אחר\"). \"מתבנית שמורה\" נמצא בשלוש הנקודות של העורך, למעלה. הצעות ישנות שבהן דירה סומנה כמה עותקים זהים (× ומספר) נשארות כמו שהן.",
+        "כדי לחלק את ההצעה לוחצים \"+ חלק: קומה, דירה, חדר\" (בהצעה שכבר יש בה חלקים: \"+ חלק חדש\" בסוף ההצעה). בשורה אחת בוחרים מה מוסיפים (קומה, דירה, חדר או נושא בשם אחר) וכמה (עד 100 בכל פעם), ולוחצים \"הוספה\". השמות נוצרים לבד (דירה 1, דירה 2), ושינוי שם - בלחיצה על השם. כל חלק הוא כותרת נפרדת עם העבודות שלו - גם כשהדירות זהות, כל דירה מופיעה בנפרד, ואפשר לשכפל חלק עם כל מה שבתוכו.",
+        "שורת ההקלדה אחת: בחלק שעובדים עליו כתוב \"מה להוסיף?\" ושורת ההקלדה פתוחה, ובכותרת של כל חלק אחר יש \"+ עבודה\" שמעביר אליו את שורת ההקלדה. בסוף ההצעה \"+ עבודה כללית\" מוסיף עבודה שאינה בתוך חלק. חלק בתוך חלק אפשר תמיד, בכפתור \"+ חלק בתוך\" של החלק שעובדים עליו - חדרים בתוך דירה ודירות בתוך קומה, עד 4 רמות. ליד כל חלק מוצג הסכום של כל מה שבתוכו, והמשולש סוגר ופותח אותו.",
+        "שלוש הנקודות של חלק פותחות: \"שינוי שם\" (במקום, עם \"שמירת השם\"), \"שכפול עם התוכן\", \"העתקת עבודות מהראשון\" (מהחלק הראשון באותה רמה), \"שמירה כתבנית\" ו\"הסרה עם התוכן\" - ואפשר לבטל. שורה עוברת לחלק אחר דרך שלוש הנקודות שלה (\"העברה לחלק אחר\"). בשלוש הנקודות של העורך, למעלה, נמצאים \"מתבנית שמורה\" ו\"ביטול החלוקה לחלקים\" - החלקים יורדים וכל העבודות נשארות בהצעה. הצעות ישנות שבהן דירה סומנה כמה עותקים זהים (× ומספר) נשארות כמו שהן.",
         "הלקוח רואה את הכותרות ואת הכותרות שבתוכן, עם חץ ליד כל כותרת שסוגר ופותח את הפירוט (חץ גדול לכותרת ראשית וקטן לכותרת שבתוכה), ובראש הרשימה \"תצוגת מסמך מלא\" ו\"תצוגת שורות סיכום\". בהדפסה ובקובץ בוחרים מסמך מלא או חלקי, ושם אין חיצים.",
       ],
     },
     en: {
       task: "A quote for several apartments, rooms or floors",
       steps: [
-        "In \"Structure:\" above the table choose \"In sections\" or \"Sections within sections\" and click \"Add a section: apartment, floor, room or other\". Choose what you add (a floor, apartment, room or another topic), how many (up to 100 at a time), and the names (an empty field = a name in order). Each section is a separate heading with its own work - identical apartments are each shown separately too, and a section can be duplicated with everything inside it.",
-        "There is one entry row: a click on a section's name (or on its \"+\") moves the entry row to it, and the line under it says where the row goes (\"To:\"). \"+ Add work to the whole quote\" takes it back to the whole quote. In \"Sections within sections\" a section can be added inside a section - rooms inside an apartment and apartments inside a floor, up to 4 levels. Each section shows the total of everything inside it, and its triangle closes and opens it.",
-        "A section's three dots hold: \"Add work or a product here\", \"Add a section inside\", \"Rename\" (in place, with \"Save the name\"), \"Duplicate with its content\", \"Copy the works from the first\" (from the first section at the same level), \"Save as a template\" and \"Remove with its content\" - and it can be undone. A row moves to another section through its own three dots (\"Move to another section\"). \"From a saved template\" is in the editor's three dots at the top. Older quotes where an apartment was marked as several identical copies (× and a number) stay as they are.",
+        "To divide the quote click \"+ Section: floor, apartment, room\" (in a quote that already has sections: \"+ New section\" at the end of the quote). In one line choose what you add (a floor, apartment, room or another topic) and how many (up to 100 at a time), and click \"Add\". The names are made for you (Apartment 1, Apartment 2); to rename, click the name. Each section is a separate heading with its own work - identical apartments are each shown separately too, and a section can be duplicated with everything inside it.",
+        "There is one entry row: the section you work on shows \"What to add?\" with the entry row open, and every other section heading has \"+ Work\", which moves the entry row to it. At the end of the quote \"+ General work\" adds work that is not in a section. A section inside a section is always possible, with the \"+ Section inside\" button of the section you work on - rooms inside an apartment and apartments inside a floor, up to 4 levels. Each section shows the total of everything inside it, and its triangle closes and opens it.",
+        "A section's three dots hold: \"Rename\" (in place, with \"Save the name\"), \"Duplicate with its content\", \"Copy the works from the first\" (from the first section at the same level), \"Save as a template\" and \"Remove with its content\" - and it can be undone. A row moves to another section through its own three dots (\"Move to another section\"). The editor's three dots at the top hold \"From a saved template\" and \"Remove the sections\" - the sections go and all the work stays in the quote. Older quotes where an apartment was marked as several identical copies (× and a number) stay as they are.",
         "The client sees the headings and the headings inside them, an arrow beside each heading that closes and opens its details (a big arrow for a main heading and a small one for a heading inside it), and \"Full document view\" and \"Summary rows view\" above the list. Printing and the file offer a full or a partial document, with no arrows.",
       ],
     },
     evidence: [
-      { file: 'src/components/QuoteForm.jsx', labels: ["מתבנית שמורה","From a saved template"] },
-      { file: 'src/components/quoteTree/QuoteTreeEditor.jsx', labels: ["מבנה:","Structure:","מחולקת לחלקים","In sections","חלקים בתוך חלקים","Sections within sections","הוספת חלק: דירה, קומה, חדר או נושא אחר","Add a section: apartment, floor, room or other","אל:","To:","+ הוספת עבודה לכל ההצעה","+ Add work to the whole quote","הוספת עבודה או מוצר כאן","Add work or a product here","הוספת חלק בתוך","Add a section inside","שינוי שם","Rename","שמירת השם","Save the name","שכפול עם התוכן","Duplicate with its content","העתקת עבודות מהראשון","Copy the works from the first","שמירה כתבנית","Save as a template","הסרה עם התוכן","Remove with its content","העברה לחלק אחר","Move to another section"] },
+      { file: 'src/components/QuoteForm.jsx', labels: ["מתבנית שמורה","From a saved template","ביטול החלוקה לחלקים","Remove the sections"] },
+      { file: 'src/components/quoteTree/QuoteTreeEditor.jsx', labels: ["+ חלק: קומה, דירה, חדר","+ Section: floor, apartment, room","+ חלק חדש","+ New section","הוספה","Add","מה להוסיף?","What to add?","+ עבודה","+ Work","+ עבודה כללית","+ General work","+ חלק בתוך","+ Section inside","שינוי שם","Rename","שמירת השם","Save the name","שכפול עם התוכן","Duplicate with its content","העתקת עבודות מהראשון","Copy the works from the first","שמירה כתבנית","Save as a template","הסרה עם התוכן","Remove with its content","העברה לחלק אחר","Move to another section"] },
       { file: 'src/pages/PublicQuote.jsx', labels: ["תצוגת מסמך מלא","תצוגת שורות סיכום"] },
       { file: 'src/pages/PublicQuoteEn.jsx', labels: ["Full document view","Summary rows view"] },
     ],
@@ -704,20 +704,19 @@ export const PRODUCT_HOW_TO = Object.freeze([
     he: {
       task: "שמירת הצעה כתבנית והתחלה מתבנית",
       steps: [
-        "כששומרים הצעה חדשה בפעם הראשונה (\"שמירת ההצעה\") מופיעה השאלה \"האם לשמור הצעה זאת כתבנית?\". לוחצים \"כן\", נותנים שם ובוחרים מה לשמור. נשמרים הנושא והפריטים, בלי פרטי הלקוח. בהצעה שכבר נשמרה הכפתור הוא \"עדכון ההצעה\", והשאלה לא מופיעה.",
+        "כדי לשמור את ההצעה כתבנית: במסך העבודה לוחצים על שלוש הנקודות של העורך, למעלה, ובוחרים \"שמירה כתבנית\" - גם לפני ששומרים את ההצעה עצמה. נותנים שם ובוחרים מה לשמור. נשמרים הנושא והפריטים, בלי פרטי הלקוח. שמירת ההצעה (\"שמירת ההצעה\" או \"עדכון ההצעה\") לא שואלת על תבנית.",
         "כדי להתחיל מתבנית: לוחצים \"הצעה חדשה\", בוחרים \"מתבנית שמורה\", ממלאים את הלקוח ולוחצים \"שמירת הלקוח והמשך\", ואז בוחרים את התבנית. סוג הלקוח שבחרתם לא משתנה; כשהמחירים בתבנית לפי בסיס מע״מ אחר, נשאלים אם להשתמש בהם.",
       ],
     },
     en: {
       task: "Saving a quote as a template and starting from a template",
       steps: [
-        "When a new quote is saved for the first time (\"Save the quote\") the question \"Save this quote as a template?\" appears. Click \"Yes\", give it a name and choose what to keep. The subject and the items are saved, without the customer details. A quote saved before shows \"Update the quote\" and is not asked.",
+        "To save the quote as a template: in the work screen click the editor's three dots at the top and choose \"Save as a template\" - even before the quote itself is saved. Give it a name and choose what to keep. The subject and the items are saved, without the customer details. Saving the quote (\"Save the quote\" or \"Update the quote\") does not ask about a template.",
         "To start from a template: click \"New quote\", choose \"From a saved template\", fill in the client and click \"Save the client and continue\", then pick the template. The client type you chose does not change.",
       ],
     },
     evidence: [
-      { file: 'src/components/QuoteForm.jsx', labels: ["שמירת ההצעה","Save the quote","עדכון ההצעה","Update the quote","שמירת הלקוח והמשך","Save the client and continue"] },
-      { file: 'src/pages/Dashboard.jsx', labels: ["האם לשמור הצעה זאת כתבנית?","Save this quote as a template?"] },
+      { file: 'src/components/QuoteForm.jsx', labels: ["שמירה כתבנית","Save as a template","שמירת ההצעה","Save the quote","עדכון ההצעה","Update the quote","שמירת הלקוח והמשך","Save the client and continue"] },
       { file: 'src/utils/newQuoteChoices.js', labels: ["מתבנית שמורה","From a saved template"] },
       { file: 'src/components/NewQuoteMenu.jsx', labels: ["הצעה חדשה","New quote"] },
     ],
@@ -730,7 +729,7 @@ export const PRODUCT_HOW_TO = Object.freeze([
       steps: [
         "לוחצים \"הצעה חדשה\", בוחרים \"מתארים ל-AI\", ממלאים את הלקוח ולוחצים \"שמירת הלקוח והמשך\".",
         "מתארים את העבודה במילים, או מכתיבים בקול בלחיצה על המיקרופון בפינת השדה. אפשר לתאר גם מבנה, למשל: שתי דירות זהות, בכל אחת ריצוף במטבח - וה-AI מציע את הדירות, מספר העותקים, העבודות והחדרים.",
-        "ה-AI מציע שורות לבדיקה. מחיר מוצע רק לפריט מהקטלוג או כשכתבתם אותו. מה שלא ברור מסומן ולא מנוחש, ואם לא כתוב אם הדירות זהות - הוא שואל. בודקים, מתקנים ומאשרים לפני שמשהו נכנס להצעה.",
+        "ה-AI מציע שורות לבדיקה. בכל שורה יש \"המחיר שלכם\": הוא מתמלא רק לפריט מהקטלוג או כשכתבתם את המחיר, ואפשר לכתוב או לשנות אותו. הסבר מופיע רק כשיש מה לבדוק; מה שלא ברור מסומן ולא מנוחש, ואם לא כתוב אם הדירות זהות - הוא שואל. בודקים, מתקנים ומאשרים לפני שמשהו נכנס להצעה.",
       ],
     },
     en: {
@@ -738,13 +737,14 @@ export const PRODUCT_HOW_TO = Object.freeze([
       steps: [
         "Click \"New quote\", choose \"Describe it to AI\", fill in the client and click \"Save the client and continue\".",
         "Describe the job in words, or dictate it by clicking the microphone in the corner of the field. You can describe a structure too, for example: two identical apartments, flooring in the kitchen of each - and the AI suggests the apartments, the number of copies, the work and the rooms.",
-        "The AI suggests lines to check. A price is suggested only for an item from your catalog or when you wrote it. What is unclear is marked, never guessed, and when it is not written whether the apartments are identical, it asks. Review, correct and approve before anything enters the quote.",
+        "The AI suggests lines to check. Every line has \"Your price\": it is filled only for an item from your catalog or when you wrote the price, and you can type or change it. An explanation appears only when something needs checking; what is unclear is marked, never guessed, and when it is not written whether the apartments are identical, it asks. Review, correct and approve before anything enters the quote.",
       ],
     },
     evidence: [
       { file: 'src/utils/newQuoteChoices.js', labels: ["מתארים ל-AI","Describe it to AI"] },
       { file: 'src/components/NewQuoteMenu.jsx', labels: ["הצעה חדשה","New quote"] },
       { file: 'src/components/QuoteForm.jsx', labels: ["שמירת הלקוח והמשך","Save the client and continue"] },
+      { file: 'src/components/AiQuoteDraftDialog.jsx', labels: ["המחיר שלכם","Your price","מחיר ליחידה","Unit price"] },
     ],
   },
   // Owner console 2026-11-03 (typed approval incl. L-14, L-17): quote from a file (SMART PACK)
@@ -756,7 +756,7 @@ export const PRODUCT_HOW_TO = Object.freeze([
       task: "הצעת מחיר מקובץ",
       steps: [
         "לוחצים \"הצעה חדשה\", בוחרים \"מעלים קובץ\" (הצעת מחיר מקובץ), ממלאים את הלקוח ולוחצים \"שמירת הלקוח והמשך\".",
-        "לוחצים \"בחרו קובץ\", בוחרים קובץ PDF או JPG אחד ולוחצים \"קריאת הפרטים\".",
+        "לוחצים \"בחרו קובץ\" ובוחרים קובץ PDF או JPG אחד. הקריאה מתחילה מיד אחרי הבחירה.",
         "בכל שורה מוצגים \"מחיר במסמך\" ו\"המחיר שלכם\". ממלאים את המחיר שלכם ולוחצים \"הוספת השורות להצעה\". הקובץ לא נשמר.",
       ],
     },
@@ -764,7 +764,7 @@ export const PRODUCT_HOW_TO = Object.freeze([
       task: "A quote from a file",
       steps: [
         "Click \"New quote\", choose \"Upload a file\" (Quote from a file), fill in the client and click \"Save the client and continue\".",
-        "Click \"Choose a file\", pick one PDF or JPG and click \"Read details\".",
+        "Click \"Choose a file\" and pick one PDF or JPG. Reading starts right after you pick it.",
         "Each line shows \"Price in the document\" and \"Your price\". Fill in your price and click \"Add the lines to the quote\". The file is not stored.",
       ],
     },
@@ -772,7 +772,7 @@ export const PRODUCT_HOW_TO = Object.freeze([
       { file: 'src/utils/newQuoteChoices.js', labels: ["מעלים קובץ","Upload a file"] },
       { file: 'src/components/NewQuoteMenu.jsx', labels: ["הצעה חדשה","New quote"] },
       { file: 'src/components/QuoteForm.jsx', labels: ["שמירת הלקוח והמשך","Save the client and continue"] },
-      { file: 'src/components/QuoteFromFileDialog.jsx', labels: ["בחרו קובץ","קריאת הפרטים","מחיר במסמך","המחיר שלכם","הוספת השורות להצעה","Choose a file","Read details","Price in the document","Your price","Add the lines to the quote"] },
+      { file: 'src/components/QuoteFromFileDialog.jsx', labels: ["בחרו קובץ","מחיר במסמך","המחיר שלכם","הוספת השורות להצעה","Choose a file","Price in the document","Your price","Add the lines to the quote"] },
     ],
   },
   // Owner console 2026-11-06 (typed approval incl. L-14): "עריכה חכמה" - edit an existing unsigned quote with the smart-quote AI, opened from the quote's row.
@@ -1105,34 +1105,33 @@ export const PRODUCT_HOW_TO = Object.freeze([
     he: {
       task: "מע״מ בהצעה",
       steps: [
-        "בשלב \"למי מכינים את ההצעה?\" בוחרים \"סוג הלקוח\": \"לקוח עסקי\" - הסכומים ללא מע״מ, והמע״מ יתווסף למחיר הסופי (הודעה על כך מופיעה מיד, ובמסך העבודה ליד \"מבנה:\" יש \"ללא מע״מ\" שפותח אותה); או \"לקוח פרטי\" - המחיר כולל מע״מ, ולא יתווסף מע״מ לסכום הכללי. המחיר בכל שורה פתוח לשינוי.",
+        "בשלב \"למי מכינים את ההצעה?\" בוחרים ב\"סוג הלקוח\" \"פרטי\" (ברירת המחדל) או \"עסקי\". שורת המע״מ מופיעה תמיד, באותו מקום, בשלב הלקוח ובמסך העבודה: ללקוח פרטי - הסכומים כוללים מע״מ, והמע״מ לא יתווסף למחיר הסופי; ללקוח עסקי - הסכומים ללא מע״מ, והמע״מ יתווסף למחיר הסופי. המחיר בכל שורה פתוח לשינוי.",
         "שיעור המע״מ מחושב אוטומטית (18% בישראל) ואינו הגדרה שמשנים. מתחת לטבלה רואים תמיד את \"סכום ביניים\", את \"מע״מ (18%)\" (ללקוח פרטי: \"מע״מ (18%) · כלול\") ואת הסכום הכולל; גם \"סיכום ההצעה\" מציג אותם.",
       ],
     },
     en: {
       task: "VAT in a quote",
       steps: [
-        "In the \"Who is this quote for?\" step choose the \"Client type\" (\"Business client\" or \"Private client\").",
+        "In the \"Who is this quote for?\" step choose the \"Client type\" (\"Private\", the default, or \"Business\").",
         "For an international business no VAT is added automatically, and the VAT rate is not a setting. The \"Quote summary\" shows the total.",
       ],
     },
     enLocal: {
       task: 'VAT in a quote',
       steps: [
-        'In the "Who is this quote for?" step choose the "Client type": "Business client" - amounts are before VAT and VAT is added to the final price; or "Private client" - the price includes VAT and no VAT is added to the total.',
+        'In the "Who is this quote for?" step choose the "Client type": "Private" (the default) - the price includes VAT and no VAT is added to the total; or "Business" - amounts are before VAT and VAT is added to the final price. The VAT line is always shown, in the same place, in the client step and in the work screen.',
         "The VAT rate is calculated automatically (18% in Israel) and is not a setting. Under the table you always see the \"Subtotal\", the \"VAT (18%)\" (for a private client: \"VAT (18%) · included\") and the total; the \"Quote summary\" shows them too.",
       ],
     },
     heIntl: {
       task: 'מע״מ בהצעה',
       steps: [
-        'בשלב "למי מכינים את ההצעה?" בוחרים "סוג הלקוח" ("לקוח עסקי" או "לקוח פרטי").',
+        'בשלב "למי מכינים את ההצעה?" בוחרים "סוג הלקוח" ("פרטי", ברירת המחדל, או "עסקי").',
         'בעסק בינלאומי לא מתווסף מע״מ אוטומטית, ושיעור המע״מ אינו הגדרה. "סיכום ההצעה" מציג את הסכום הכולל.',
       ],
     },
     evidence: [
-      { file: 'src/components/QuoteForm.jsx', labels: ["למי מכינים את ההצעה?","Who is this quote for?","סוג הלקוח","Client type","לקוח עסקי","לקוח פרטי","Business client","Private client","ללא מע״מ","כלול","included","סכום ביניים","Subtotal","סיכום ההצעה","Quote summary"] },
-      { file: 'src/components/quoteTree/QuoteTreeEditor.jsx', labels: ['מבנה:', 'Structure:'] },
+      { file: 'src/components/QuoteForm.jsx', labels: ["למי מכינים את ההצעה?","Who is this quote for?","סוג הלקוח","Client type","פרטי","עסקי","Private","Business","ללא מע״מ","כלול","included","סכום ביניים","Subtotal","סיכום ההצעה","Quote summary"] },
     ],
   },
   {

@@ -133,7 +133,7 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
             {billingReturn.state === 'timeout' && typeof billingReturn.onCheckAgain === 'function' && (
               // PRODUCT_TRUTH_DECORATIVE: reads the account's own server summary again after a payment; changes nothing, buys nothing
               <button type="button" data-testid="plans-modal-billing-check-again" onClick={billingReturn.onCheckAgain}
-                style={{ display: 'block', margin: '8px auto 0', background: '#0F6672', color: 'white', border: 'none', borderRadius: '8px', padding: '8px 16px', fontWeight: 700, cursor: 'pointer' }}>
+                style={{ display: 'block', margin: '8px auto 0', background: '#102444', color: 'white', border: 'none', borderRadius: '8px', padding: '8px 16px', fontWeight: 700, cursor: 'pointer' }}>
                 {isHebrew ? 'בדיקה חוזרת' : 'Check again'}
               </button>
             )}
@@ -176,7 +176,7 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
                 {line?.kind === 'error' && typeof onRetrySummary === 'function' && (
                   // PRODUCT_TRUTH_DECORATIVE: re-requests the server account summary; changes no data
                   <button type="button" data-testid="plans-modal-retry" onClick={() => onRetrySummary()}
-                    style={{ display: 'block', margin: '8px auto 0', minHeight: 40, background: '#0F6672', color: 'white', border: 'none', borderRadius: '8px', padding: '8px 16px', fontWeight: 700, cursor: 'pointer' }}>
+                    style={{ display: 'block', margin: '8px auto 0', minHeight: 40, background: '#102444', color: 'white', border: 'none', borderRadius: '8px', padding: '8px 16px', fontWeight: 700, cursor: 'pointer' }}>
                     {isHebrew ? 'טעינה מחדש' : 'Reload'}
                   </button>
                 )}

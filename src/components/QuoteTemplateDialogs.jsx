@@ -103,7 +103,7 @@ function DialogShell({ titleId, title, isHebrew, onClose, children, testId }) {
     </div>
   );
 }
-const btn = (primary, disabled) => ({ minHeight: 44, padding: '0 16px', borderRadius: 9, border: primary ? 'none' : '1px solid #94a3b8', background: disabled ? '#e2e8f0' : (primary ? '#0F6672' : '#fff'), color: disabled ? '#64748b' : (primary ? '#fff' : '#1e293b'), fontWeight: 700, cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: 'inherit' });
+const btn = (primary, disabled) => ({ minHeight: 44, padding: '0 16px', borderRadius: 9, border: primary ? 'none' : '1px solid #94a3b8', background: disabled ? '#e2e8f0' : (primary ? '#102444' : '#fff'), color: disabled ? '#64748b' : (primary ? '#fff' : '#1e293b'), fontWeight: 700, cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: 'inherit' });
 
 function Summary({ C, s, formatMoney }) {
   if (!s) return null;
@@ -313,7 +313,7 @@ export function TemplatePickerDialog({ isHebrew, client, userId, formatMoney, on
             {shown.map((row) => (
               // PRODUCT_TRUTH_CAPABILITY: quote_create
               <button key={row.id} type="button" role="option" aria-selected={row.id === selectedId} data-testid="template-option" onClick={() => setSelectedId(row.id)}
-                style={{ minHeight: 44, textAlign: 'start', padding: '8px 12px', borderRadius: 9, border: `2px solid ${row.id === selectedId ? '#0F6672' : '#e2e8f0'}`, background: row.id === selectedId ? '#E3F1F2' : '#fff', color: '#1e293b', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', overflowWrap: 'anywhere' }}>
+                style={{ minHeight: 44, textAlign: 'start', padding: '8px 12px', borderRadius: 9, border: `2px solid ${row.id === selectedId ? '#102444' : '#e2e8f0'}`, background: row.id === selectedId ? '#e9edf3' : '#fff', color: '#1e293b', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', overflowWrap: 'anywhere' }}>
                 {row.name}
               </button>
             ))}

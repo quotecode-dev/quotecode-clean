@@ -433,7 +433,7 @@ function RowLine({ item, index, rowId, t, isHebrew, international, sym, fmtMoney
           <span data-testid={`qrow-calc-${rowId}`} style={{ fontSize: '0.74rem', color: NEON.textSecondary }}>{qty && !item._invalid ? (<>{t.qtyFromSizes}: <bdi dir="ltr" className="pf-num">{formatQuantity(qty, item.pricing_unit)}</bdi> {calcUnit}</>) : ''}</span>
           {/* PRODUCT_TRUTH_DECORATIVE: adds another size line to this row (the item window's "another measurement"); sub-control of the measured row */}
           <button type="button" data-testid={`qrow-moresize-${rowId}`} onClick={() => setExtra([...extra, { widthCm: '', heightCm: '', label: '' }])}
-            style={{ background: 'none', border: 'none', color: NEON.violet, fontSize: '0.76rem', fontWeight: 700, cursor: 'pointer', minHeight: '40px', padding: '0 4px' }}>+ {t.moreSize}</button>
+            style={{ background: 'none', border: 'none', color: NEON.button, fontSize: '0.76rem', fontWeight: 700, cursor: 'pointer', minHeight: '40px', padding: '0 4px' }}>+ {t.moreSize}</button>
           {/* PRODUCT_TRUTH_DECORATIVE: restore item 02 (Owner 2026-11-08) - "I already know the area / length" beside the sizes again (it had moved into the row menu) */}
           <button type="button" data-testid={`qrow-sizemode-${rowId}`} data-mode="sizes" onClick={() => changeSizeMode(true)} style={inlineLink}>{method === 'area' ? t.knowArea : t.knowLength}</button>
           {showSizeErr && sizeErr?.main && <p role="alert" data-testid={`qrow-sizeerr-${rowId}`} style={errStyle}>{sizeErr.main}</p>}
@@ -516,7 +516,7 @@ function RowLine({ item, index, rowId, t, isHebrew, international, sym, fmtMoney
             {/* PRODUCT_TRUTH_DECORATIVE: shared price (stage 3) - keep the new price only in this row */}
             <button type="button" data-testid={`qrow-link-here-${rowId}`} onClick={() => setLinkAsk(null)} style={linkBtn}>{t.linkedHere}</button>
             {/* PRODUCT_TRUTH_DECORATIVE: shared price (stage 3) - the linked rows take the new price, each by its own sizes and unit count */}
-            <button type="button" data-testid={`qrow-link-all-${rowId}`} onClick={() => { const from = linkAsk.from; setLinkAsk(null); onLinkedAll?.(index, from); }} style={{ ...linkBtn, background: NEON.violet, color: '#fff', borderColor: NEON.violet }}>{linked.count === 1 ? t.linkedAll1 : t.linkedAll}</button>
+            <button type="button" data-testid={`qrow-link-all-${rowId}`} onClick={() => { const from = linkAsk.from; setLinkAsk(null); onLinkedAll?.(index, from); }} style={{ ...linkBtn, background: NEON.button, color: '#fff', borderColor: NEON.button }}>{linked.count === 1 ? t.linkedAll1 : t.linkedAll}</button>
             {/* PRODUCT_TRUTH_DECORATIVE: shared price (stage 3) - cancel: this row returns to its previous price */}
             <button type="button" data-testid={`qrow-link-cancel-${rowId}`} onClick={() => { const from = linkAsk.from; setLinkAsk(null); apply({ unitPrice: from }); }} style={linkBtn}>{t.linkedCancel}</button>
           </span>
@@ -554,13 +554,13 @@ function RowLine({ item, index, rowId, t, isHebrew, international, sym, fmtMoney
             </div>
           ))}
           {/* PRODUCT_TRUTH_DECORATIVE: adds one more detail line to this row */}
-          <button type="button" onClick={() => apply({ specRows: [...specRows, { label: '', value: '' }] })} style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: NEON.violet, fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', minHeight: '40px', padding: 0 }}>+ {t.addDetail}</button>
+          <button type="button" onClick={() => apply({ specRows: [...specRows, { label: '', value: '' }] })} style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: NEON.button, fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', minHeight: '40px', padding: 0 }}>+ {t.addDetail}</button>
         </div>
       )}
     </div>
   );
 }
-const inlineLink = { background: 'none', border: 'none', color: NEON.violet, fontSize: '0.76rem', fontWeight: 700, cursor: 'pointer', minHeight: '40px', padding: '0 4px', textDecoration: 'underline' };
+const inlineLink = { background: 'none', border: 'none', color: NEON.button, fontSize: '0.76rem', fontWeight: 700, cursor: 'pointer', minHeight: '40px', padding: '0 4px', textDecoration: 'underline' };
 const linkBtn = { minHeight: '40px', padding: '0 12px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' };
 const menuBtn = { display: 'block', width: '100%', textAlign: 'start', padding: '8px 10px', minHeight: '40px', background: 'none', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.84rem', color: NEON.textPrimary };
 const iconBtn = { minWidth: '40px', minHeight: '40px', border: 'none', borderRadius: '8px', background: 'none', color: NEON.textSecondary, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' };

@@ -54,7 +54,7 @@ describe('the entry row (one per quote, inside the table, below the rows)', () =
     expect(r.querySelector('.qt-ir-s').textContent).toBe('₪300.00');
     // the entry row comes after the rows (the Owner: "שורת ההקלדה מתחת לשורות")
     expect(r.compareDocumentPosition(entry()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(screen.getByTestId('qt-undo').textContent).toContain('השורה נוספה להצעה.');
+    expect(screen.queryByTestId('qt-undo')).toBeNull();
   });
   it('a name and a quantity above 0 are required; an empty price is "not priced yet", never 0', () => {
     render(<Harness />);
@@ -120,7 +120,7 @@ describe('the entry row (one per quote, inside the table, below the rows)', () =
     fill({ name: 'מחיצה 2', qty: '1', price: '400' }); fireEvent.click(screen.getByRole('checkbox'));
     await act(async () => { add(); });
     expect(onSaveToCatalog).toHaveBeenCalledWith(expect.objectContaining({ name: 'מחיצה 2', price: 400 }));
-    expect(screen.getByTestId('qt-undo').textContent).toContain('השורה נוספה ונשמרה גם בקטלוג.');
+    expect(screen.queryByTestId('qt-undo')).toBeNull();
   });
   it('Enter in the entry row adds nothing and never submits the form around the editor; typing is reported as a pending row', () => {
     const onSubmit = vi.fn((e) => e.preventDefault()); const onPendingChange = vi.fn();
@@ -209,72 +209,115 @@ describe('rows and their "⋯" menu', () => {
   });
 });
 
-describe('the "מבנה:" menu and the sections', () => {
-  it('one menu with the three structures, their new names and an example under each; choosing one removes nothing', () => {
+describe('the sections (no "Structure" choice - the simplify sketch 22/11)', () => {
+  it('no Structure menu, no "To:"; a quote without sections offers "+ חלק: קומה, דירה, חדר" under "מה להוסיף?"', () => {
     render(<Harness initialItems={[row('א')]} />);
-    fireEvent.click(screen.getByTestId('qt-structure'));
-    expect(['simple', 'grouped', 'tiered'].map((k) => screen.getByTestId(`qt-structure-${k}`).querySelector('b').textContent)).toEqual(['הצעה פשוטה', 'מחולקת לחלקים', 'חלקים בתוך חלקים']);
-    expect(screen.getByTestId('qt-structure-grouped').querySelector('small').textContent).toBe('למשל: דירה 1, דירה 2, חצר');
-    expect(screen.getByTestId('qt-structure-simple').getAttribute('aria-checked')).toBe('true');
-    fireEvent.click(screen.getByTestId('qt-structure-grouped'));
-    expect(state.structure).toBe('grouped');
+    expect(screen.queryByTestId('qt-structure')).toBeNull();
+    expect(screen.queryByTestId('qt-form-to')).toBeNull();
+    expect(screen.getByTestId('qt-eq').textContent).toBe('מה להוסיף?+ חלק: קומה, דירה, חדר');
+    expect(screen.queryByTestId('qt-eq-path')).toBeNull();
     expect(rowNames()).toEqual(['א']);
-    expect(screen.getByTestId('qt-add-first').textContent).toContain('הוספת חלק: דירה, קומה, חדר או נושא אחר');
   });
-  it('the add panel in the page: kind -> how many (1 to 100) -> names (an empty name = a name in order; distinct among siblings)', () => {
-    render(<Harness structure="grouped" initialSections={[]} />);
+  it('the add line: kind, how many (− / +, 1 to 100), "הוספה"; names made in order; errors share the hint cell; no message', () => {
+    render(<Harness />);
     fireEvent.click(screen.getByTestId('qt-add-first'));
+    expect(screen.getByTestId('qt-wizard').getAttribute('aria-label')).toBe('איזה חלק מוסיפים?');
+    expect(['floor', 'apartment', 'room', 'section'].map((k) => screen.getByTestId(`qt-kind-${k}`).textContent)).toEqual(['קומה', 'דירה', 'חדר', 'נושא בשם אחר']);
+    fireEvent.click(screen.getByTestId('qt-wizard-create'));
+    expect(state.sections).toHaveLength(0);
+    expect(document.getElementById('qt-h-hint').className).toContain('qt-hint--bad');
+    expect(document.getElementById('qt-h-hint').textContent).toBe('בחרו מה מוסיפים: קומה, דירה, חדר או נושא בשם אחר.');
     fireEvent.click(screen.getByTestId('qt-kind-apartment'));
     expect(screen.getByTestId('qt-count').value).toBe('1');
-    type(screen.getByTestId('qt-count'), '0'); fireEvent.click(screen.getByTestId('qt-count-next'));
-    expect(screen.getByTestId('qt-wizard').textContent).toContain('כתבו מספר שלם, 1 ומעלה.');
-    type(screen.getByTestId('qt-count'), '101'); fireEvent.click(screen.getByTestId('qt-count-next'));
-    expect(screen.getByTestId('qt-wizard').textContent).toContain('אפשר להוסיף עד 100 בכל פעם.');
-    type(screen.getByTestId('qt-count'), '2'); fireEvent.click(screen.getByTestId('qt-count-next'));
-    type(screen.getByTestId('qt-name-0'), 'דירה 7'); type(screen.getByTestId('qt-name-1'), 'דירה 7');
+    fireEvent.click(screen.getByTestId('qt-count-less'));
+    expect(screen.getByTestId('qt-count').value).toBe('1');
+    type(screen.getByTestId('qt-count'), '0'); fireEvent.click(screen.getByTestId('qt-wizard-create'));
+    expect(screen.getByTestId('qt-count-error').textContent).toBe('כתבו מספר שלם, 1 ומעלה.');
+    type(screen.getByTestId('qt-count'), '101'); fireEvent.click(screen.getByTestId('qt-wizard-create'));
+    expect(screen.getByTestId('qt-count-error').textContent).toBe('אפשר להוסיף עד 100 בכל פעם.');
+    type(screen.getByTestId('qt-count'), '1'); fireEvent.click(screen.getByTestId('qt-count-more'));
+    expect(screen.getByTestId('qt-count').value).toBe('2');
+    expect(document.getElementById('qt-h-hint').textContent).toBe('ייווצרו: דירה 1, דירה 2. שינוי שם - בלחיצה על השם.');
     fireEvent.click(screen.getByTestId('qt-wizard-create'));
-    expect(screen.getByTestId('qt-names-error').textContent).toBe('יש כבר חלק בשם הזה באותה רמה. תנו לכל אחד שם שונה.');
-    type(screen.getByTestId('qt-name-1'), '');
-    fireEvent.click(screen.getByTestId('qt-page-back'));
-    fireEvent.click(screen.getByTestId('qt-count-next'));
-    expect(screen.getByTestId('qt-name-0').value).toBe('דירה 7');
-    fireEvent.click(screen.getByTestId('qt-wizard-create'));
-    expect(state.sections.map((s) => s.name)).toEqual(['דירה 7', 'דירה 2']);
+    expect(state.sections.map((s) => s.name)).toEqual(['דירה 1', 'דירה 2']);
+    expect(screen.queryByTestId('qt-wizard')).toBeNull();
+    expect(screen.queryByTestId('qt-undo')).toBeNull();
   });
-  it('the entry row goes with the chosen section ("אל: דירה 1"); a row added there belongs to it; "+ הוספת עבודה לכל ההצעה" brings it back', async () => {
+  it('a click on a section name makes it the section you work on: its path over "מה להוסיף?"; "+ עבודה כללית" goes back', () => {
     render(<Harness initialSections={[sec('h1', 'דירה 1'), sec('h2', 'דירה 2', { sort_order: 1 })]} />);
-    expect(screen.getByTestId('qt-form-to').textContent).toBe('אל: כל ההצעה');
+    expect(screen.getByTestId('qt-eq-path').textContent).toBe('עבודה כללית (לא בתוך חלק)');
+    expect(screen.getByTestId('qt-add-first').textContent).toBe('+ חלק חדש');
+    expect(screen.queryByTestId('qt-qline')).toBeNull();
     fireEvent.click(screen.getAllByTestId('qt-heading')[1].querySelector('.qt-hn'));
-    expect(screen.getByTestId('qt-form-to').textContent).toBe('אל: דירה 2');
+    expect(screen.getByTestId('qt-eq-path').textContent).toBe('דירה 2');
+    expect(screen.getByTestId('qt-add-inside').textContent).toBe('+ חלק בתוך דירה 2');
     expect(screen.getAllByTestId('qt-heading')[1].contains(entry())).toBe(true);
+    expect(screen.getByTestId('qt-qline').textContent).toBe('מה להוסיף?להצעה כולה+ חלק חדש+ עבודה כללית');
     fill({ name: 'חלון', qty: '1', price: '5' }); add();
     expect(state.items[0].section_key).toBe('h2');
     fireEvent.click(screen.getByTestId('qt-target-whole'));
-    expect(screen.getByTestId('qt-form-to').textContent).toBe('אל: כל ההצעה');
+    expect(screen.getByTestId('qt-eq-path').textContent).toBe('עבודה כללית (לא בתוך חלק)');
   });
   it('a path is shown in the UI direction with the names in their order (a Latin name never flips it)', () => {
     render(<Harness initialSections={[sec('f', 'קומה 1', { kind: 'floor' }), sec('a', 'Kitchen', { parent_key: 'f', kind: 'room' })]} />);
     fireEvent.click(screen.getAllByTestId('qt-heading')[1].querySelector('.qt-hn'));
-    const to = screen.getByTestId('qt-form-to');
-    expect(to.textContent).toBe('אל: קומה 1‏ ← ‏Kitchen'); // a direction mark on both sides of the arrow
+    const to = screen.getByTestId('qt-eq-path');
+    expect(to.textContent).toBe('קומה 1‏ ← ‏Kitchen');
     expect(to.querySelector('[dir]').getAttribute('dir')).toBe('rtl');
   });
-  it('the section "⋯": add here, add inside (only with sections within sections, never for copies), rename, duplicate, copy the first, template, remove', () => {
+  it('every kind at every level, up to 4 levels (the 4th adds no more)', async () => {
+    render(<Harness initialSections={[sec('f', 'קומה 1', { kind: 'floor' }), sec('a', 'דירה 1', { parent_key: 'f' }), sec('r', 'חדר 1', { kind: 'room', parent_key: 'a' })]} />);
+    fireEvent.click(screen.getAllByTestId('qt-heading')[2].querySelector('.qt-hn'));
+    fireEvent.click(screen.getByTestId('qt-add-inside'));
+    expect(screen.getByTestId('qt-wizard').getAttribute('aria-label')).toBe('איזה חלק מוסיפים בתוך "חדר 1"?');
+    expect(['floor', 'apartment', 'room', 'section'].every((k) => screen.queryByTestId(`qt-kind-${k}`))).toBe(true);
+    fireEvent.click(screen.getByTestId('qt-kind-section'));
+    type(screen.getByTestId('qt-sname'), 'מרפסת');
+    fireEvent.click(screen.getByTestId('qt-wizard-create'));
+    expect(state.sections.find((x) => x.parent_key === 'r')).toMatchObject({ name: 'מרפסת', kind: 'section' });
+    await act(async () => { await new Promise((r) => setTimeout(r, 0)); });
+    expect(screen.getByTestId('qt-eq-path').textContent).toBe(['קומה 1', 'דירה 1', 'חדר 1', 'מרפסת'].join('\u200F ← \u200F'));
+    expect(screen.queryByTestId('qt-add-inside')).toBeNull();
+  });
+  it('the section "⋯": rename, duplicate, copy the first, template, remove; adding is on the page; never inside identical copies', () => {
     const onSaveHeadingTemplate = vi.fn();
-    render(<Harness structure="tiered" onSaveHeadingTemplate={onSaveHeadingTemplate} initialItems={[row('ריצוף', { section_key: 'h1' })]}
+    render(<Harness onSaveHeadingTemplate={onSaveHeadingTemplate} initialItems={[row('ריצוף', { section_key: 'h1' })]}
       initialSections={[sec('h1', 'דירה 1'), sec('h2', 'דירה 2', { sort_order: 1, repeat_count: 3 })]} />);
     fireEvent.click(screen.getAllByTestId('qt-heading-actions')[0]);
-    expect(menuLabels()).toEqual(['הוספת עבודה או מוצר כאן', 'הוספת חלק בתוך', 'שינוי שם', 'שכפול עם התוכן', 'העתקת עבודות מהראשון', 'שמירה כתבנית', 'הסרה עם התוכן']);
+    expect(menuLabels()).toEqual(['שינוי שם', 'שכפול עם התוכן', 'העתקת עבודות מהראשון', 'שמירה כתבנית', 'הסרה עם התוכן']);
     expect(screen.getByTestId('unit-copy-first').disabled).toBe(true);
     fireEvent.click(screen.getByTestId('qt-head-template'));
     expect(onSaveHeadingTemplate).toHaveBeenCalledWith(expect.objectContaining({ key: 'h1' }));
     fireEvent.click(screen.getAllByTestId('qt-heading-actions')[1]);
-    expect(screen.queryByTestId('qt-add-inside')).toBeNull(); // a heading of identical copies
-    expect(screen.queryByTestId('qt-head-template')).toBeNull(); // nothing in it
-    cleanup();
-    render(<Harness structure="grouped" initialSections={[sec('h1', 'דירה 1')]} />);
-    fireEvent.click(screen.getByTestId('qt-heading-actions'));
+    expect(screen.queryByTestId('qt-head-template')).toBeNull();
+    fireEvent.click(screen.getAllByTestId('qt-head-add')[1]);
     expect(screen.queryByTestId('qt-add-inside')).toBeNull();
+    fireEvent.click(screen.getAllByTestId('qt-head-add')[0]);
+    expect(screen.getByTestId('qt-add-inside').textContent).toBe('+ חלק בתוך דירה 1');
+  });
+  it('on the section you work on a click on its name renames it (pen mark); a saved name gives no message', () => {
+    render(<Harness initialSections={[sec('h1', 'דירה 1')]} />);
+    const hn = () => screen.getByTestId('qt-heading').querySelector('.qt-hn');
+    fireEvent.click(hn());
+    expect(hn().querySelector('.qt-pen')).toBeTruthy();
+    expect(hn().getAttribute('aria-label')).toBe('שינוי שם: דירה 1');
+    fireEvent.click(hn());
+    type(screen.getByTestId('qt-rename'), 'דירה 9'); fireEvent.click(screen.getByTestId('qt-save-name'));
+    expect(state.sections.map((s) => s.name)).toEqual(['דירה 9']);
+    expect(screen.queryByTestId('qt-undo')).toBeNull();
+  });
+  it('"Remove the sections" (treeActionsRef): every row stays at the quote level; undo puts the sections back', () => {
+    const ref = { current: null };
+    function H() { const [items, setItems] = useState([row('א', { section_key: 'h1' }), row('ב')]); const [sections, setSections] = useState([sec('h1', 'דירה 1')]); state = { items, sections };
+      return <QuoteTreeEditor isHebrew international={false} items={items} setItems={setItems} sections={sections} setSections={setSections} services={[]} sym="₪" fmtMoney={(n) => Number(n || 0).toFixed(2)} treeActionsRef={ref} />; }
+    render(<H />);
+    act(() => { ref.current.flatten(); });
+    expect(state.sections).toEqual([]);
+    expect(state.items.map((it) => [it.description, it.section_key])).toEqual([['א', null], ['ב', null]]);
+    expect(screen.getByTestId('qt-undo').textContent).toContain('החלוקה לחלקים בוטלה. כל העבודות נשארו בהצעה.');
+    fireEvent.click(screen.getByRole('button', { name: 'ביטול הפעולה האחרונה' }));
+    expect(state.sections.map((s) => s.key)).toEqual(['h1']);
+    expect(state.items[0].section_key).toBe('h1');
   });
   it('rename in place: an empty or a taken name is refused; a good one is kept', () => {
     render(<Harness initialSections={[sec('h1', 'דירה 1'), sec('h2', 'דירה 2', { sort_order: 1 })]} />);
@@ -319,13 +362,17 @@ describe('the "?" of the columns and English', () => {
     expect(document.querySelector('.qt-helpbox').textContent).toBe('בחרו על מה משלמים: יחידות, שטח, אורך, זמן, משקל או מחיר לכל העבודה.');
     fireEvent.click(screen.getAllByTestId('qt-help-pricing')[0]);
     expect(document.querySelector('.qt-helpbox')).toBeNull();
+    expect(screen.getAllByTestId('qt-help-pricing')[0].textContent).toBe('חישוב');
   });
-  it('English mirrors Hebrew: left to right, the same structures and words', () => {
+  it('English mirrors Hebrew: left to right, the same lines and words', () => {
     render(<Harness isHebrew={false} />);
     expect(screen.getByTestId('qt-editor').getAttribute('dir')).toBe('ltr');
-    fireEvent.click(screen.getByTestId('qt-structure'));
-    expect(['simple', 'grouped', 'tiered'].map((k) => screen.getByTestId(`qt-structure-${k}`).querySelector('b').textContent)).toEqual(['Simple quote', 'In sections', 'Sections within sections']);
-    expect(screen.getByTestId('qt-form-to').textContent).toBe('To: Whole quote');
+    expect(screen.queryByTestId('qt-structure')).toBeNull();
+    expect(screen.getByTestId('qt-eq').textContent).toBe('What to add?+ Section: floor, apartment, room');
     expect(screen.getByTestId('qt-line-sum').textContent).toBe('Not priced yet');
+    fireEvent.click(screen.getByTestId('qt-add-first'));
+    expect(screen.getByTestId('qt-wizard').getAttribute('aria-label')).toBe('Which section do you add?');
+    fireEvent.click(screen.getByTestId('qt-kind-room')); fireEvent.click(screen.getByTestId('qt-count-more'));
+    expect(document.getElementById('qt-h-hint').textContent).toBe('This adds: Room 1, Room 2. To rename, click the name.');
   });
 });
