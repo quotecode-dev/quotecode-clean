@@ -4,8 +4,11 @@
 // portrait-tablet rules stay as they were.
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const css = readFileSync(new URL('./components/adminV2.css', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+const SRC = dirname(fileURLToPath(import.meta.url));
+const css = readFileSync(resolve(SRC, 'components/adminV2.css'), 'utf8').replace(/\r\n/g, '\n');
 const block = (query) => { const i = css.indexOf(`@media (${query}) {`); if (i < 0) return ''; let depth = 0; for (let j = css.indexOf('{', i); j < css.length; j += 1) { if (css[j] === '{') depth += 1; if (css[j] === '}') { depth -= 1; if (depth === 0) return css.slice(i, j + 1); } } return ''; };
 
 describe('admin head actions (Owner 2026-11-24, L-21)', () => {
