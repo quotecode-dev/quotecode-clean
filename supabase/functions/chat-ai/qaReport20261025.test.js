@@ -98,7 +98,7 @@ describe('QA report 2026-10-25: answers', () => {
     // Owner console 2026-11-03 (typed approval incl. L-17): a quote-from-file question takes its short answer first; every other "how" unchanged
     // Owner 2026-11-24 (typed: "מאשר את שלב 4 בתוכנית הצ׳אט ... כולל שינוי ב-L-14 ו-L-17"): a "how" OR "why" question with steps is answered by
     // the steps alone (no "yes - X exists" opener); a plan-locked capability keeps its fixed answer before them, SMART PACK one short line
-    expect(index).toContain('const capabilityAnswer = shortFile || stepsAnswer || capabilityTruth.answer;');
+    expect(index).toContain('const capabilityAnswer = shortFile || stepsAnswer || describeOnly || capabilityTruth.answer;');
     expect(index).toContain("(HOW_QUESTION.test(lastUserMessage) || WHY_QUESTION.test(lastUserMessage))");
     expect(index).toContain("truthStatus === 'PLAN_LOCKED' ? `${capabilityTruth.answer}\\n\\n${steps}`");
   });
