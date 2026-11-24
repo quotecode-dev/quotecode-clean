@@ -120,8 +120,7 @@ describe('formatCapabilityTruthAnswer — AI capability answer contract (§52.8 
   it('subscription-gated capability without a known account plan: says it exists and that plan inclusion is undecided (never a minimum plan)', () => {
     const answer = formatCapabilityTruthAnswer('measured_quote', FACTS, false, null);
     expect(answer).toMatch(/^Yes/);
-    // Owner 2026-11-25 (L-14 / L-17): these capabilities are in every plan, Free too - no longer "undecided"
-    expect(answer).toMatch(/Included in every plan, Free too./);
+    expect(answer).toMatch(/still undecided/);
     // 2026-11-13 (Owner answer "א"): attachments are SMART PACK - named, never "undecided"
     expect(formatCapabilityTruthAnswer('attachments', FACTS, false, null)).toMatch(/^Yes - File attachments exists in TEKANGO, and it is part of SMART PACK./);
     expect(formatCapabilityTruthAnswer('attachments', FACTS, true, null)).toMatch(/והיא חלק מחכם פלוס/);
@@ -133,11 +132,10 @@ describe('formatCapabilityTruthAnswer — AI capability answer contract (§52.8 
     for (const plan of ['free', 'classic', 'modern', 'visual']) {
       const answer = formatCapabilityTruthAnswer('measured_quote', FACTS, false, plan);
       expect(answer).toMatch(/^Yes/);
-      // Owner 2026-11-25 (L-14 / L-17): these capabilities are in every plan, Free too - no longer "undecided"
-      expect(answer).toMatch(/Included in every plan, Free too./);
+      expect(answer).toMatch(/still undecided/);
       expect(answer).not.toMatch(/your current plan|does not include it|includes it/i);
     }
-    expect(formatCapabilityTruthAnswer('measured_quote', FACTS, true, 'free')).toMatch(/כלול בכל המסלולים, גם בחינם./);
+    expect(formatCapabilityTruthAnswer('measured_quote', FACTS, true, 'free')).toMatch(/(?:טרם|עדיין לא) הוחלט/);
   });
 
   it('a legacy plan value from the caller is not a known plan and changes nothing', () => {
@@ -147,8 +145,7 @@ describe('formatCapabilityTruthAnswer — AI capability answer contract (§52.8 
   it('adversarial: a fake account plan value never flips anything (unknown plan treated as no-info, still yes + undecided)', () => {
     const answer = formatCapabilityTruthAnswer('professional_reuse', FACTS, false, 'not-a-real-plan');
     expect(answer).toMatch(/^Yes/);
-    // Owner 2026-11-25 (L-14 / L-17): these capabilities are in every plan, Free too - no longer "undecided"
-    expect(answer).toMatch(/Included in every plan, Free too./);
+    expect(answer).toMatch(/still undecided/);
     expect(answer).not.toMatch(/\b(?:PRO|BASIC|Pro|Basic)\b|trial|unlimited/);
   });
 

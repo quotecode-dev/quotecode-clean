@@ -77,8 +77,7 @@ describe('A. the canonical derivation (registry + AI_FACTS + server facts) equal
     expect(deriveExpectedFactPayload({ outcome: 'attachments', serverVerified: {}, ruleset: LEGACY_RULESET_ID })).toHaveProperty('problem');
     // current: plan inclusion is not decided, so no plan fact is needed (and none is asserted)
     expect(deriveExpectedFactPayload({ outcome: 'attachments', serverVerified: {} })).toMatchObject({ truthStatus: 'SMART_PACK', claimScope: 'CAPABILITY', minimumPlan: null }); // 2026-11-13 (Owner "א")
-    // Owner 2026-11-25 (L-14 / L-17): measured_quote is in every plan, Free too - AVAILABLE, still no plan fact needed
-    expect(deriveExpectedFactPayload({ outcome: 'measured_quote', serverVerified: {} })).toMatchObject({ truthStatus: 'AVAILABLE', claimScope: 'CAPABILITY', minimumPlan: null, accountPlan: null, accountEntitlement: 'NOT_APPLICABLE' });
+    expect(deriveExpectedFactPayload({ outcome: 'measured_quote', serverVerified: {} })).toMatchObject({ truthStatus: 'PLAN_NOT_DECIDED', claimScope: 'CAPABILITY', minimumPlan: null, accountPlan: null, accountEntitlement: 'NOT_APPLICABLE' });
     expect(isKnownOutcome('attachments')).toBe(true);
     expect(isKnownOutcome('nonsense')).toBe(false);
   });
@@ -147,8 +146,7 @@ describe('C. PROSE CONSISTENCY ATTACKS: prose that contradicts a valid structure
     ['PLAN_NOT_DECIDED + a legacy minimum plan (EN)', payloadFor('attachments', 'free', 'user', 'International'), 'en', 'Yes - File attachments exists in TEKANGO, but it requires the PRO plan or above. Your current plan does not include it.'],
     ['PLAN_NOT_DECIDED + a canonical minimum plan (EN)', payloadFor('attachments', 'visual', 'user', 'International'), 'en', 'Yes - File attachments exists in TEKANGO, but it is included from the Visual plan. Plan inclusion is still undecided.'],
     ['PLAN_NOT_DECIDED + "all users on every plan" (EN)', payloadFor('attachments', 'free', 'user', 'International'), 'en', 'Yes - File attachments exists in TEKANGO and is available to all users on every plan. Plan inclusion is still undecided.'],
-    // Owner 2026-11-25 (L-14 / L-17): no registry capability is PLAN_NOT_DECIDED any more - the rule is guarded on a synthetic payload
-    ['PLAN_NOT_DECIDED + silent on the undecided inclusion (EN)', { ...payloadFor('measured_quote', 'classic', 'user', 'International'), truthStatus: 'PLAN_NOT_DECIDED' }, 'en', 'Yes - Measured professional quote exists in TEKANGO.'],
+    ['PLAN_NOT_DECIDED + silent on the undecided inclusion (EN)', payloadFor('measured_quote', 'classic', 'user', 'International'), 'en', 'Yes - Measured professional quote exists in TEKANGO.'],
     ['PLAN_NOT_DECIDED + "does not exist" (HE)', payloadFor('attachments', 'free', 'user', 'Local'), 'he', 'צירוף קבצים אינו קיים ב-TEKANGO.'],
     ['ROLE_LOCKED + "every user has access" (EN)', payloadFor('admin_console', 'pro', 'user', 'International'), 'en', 'Yes - Admin console exists in TEKANGO and every user has access.'],
     ['ROLE_LOCKED + "does not exist" (EN)', payloadFor('admin_console', 'pro', 'user', 'International'), 'en', 'The admin console does not exist in TEKANGO.'],

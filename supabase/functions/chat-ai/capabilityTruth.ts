@@ -18,7 +18,6 @@ import { AI_FACTS } from "./aiFacts.generated.ts";
 import { resolveCapabilityAnswerState, checkStructuredStateInvariants } from "./capabilityAnswerState.ts";
 import { classifyHelpIntent } from "./helpContext.ts";
 import type { ProductTruthFactPayload } from "../_shared/productTruthContract.ts";
-import { ALL_PLANS_SUBSCRIPTION_CAPABILITIES } from "../_shared/productTruthContract.ts";
 import { planName } from "../_shared/subscriptionContract.ts";
 import { buildCapabilityFactPayload, buildClarificationFactPayload, buildComparisonFactPayload, buildLifecycleFactPayload, NO_ACCOUNT_FACTS, type PayloadAccountFacts } from "./productTruthPayload.ts";
 
@@ -415,7 +414,7 @@ const CLASSIFIERS: ReadonlyArray<readonly [string, readonly RegExp[]]> = [
   ['quote_edit', [/\bedit\b.{0,15}\bquote\b/i, /לערוך הצעה/]],
   // Owner 2026-10-25 (typed L-17, QA report): templates ("יש תבניות?", "do you have templates") are part of creating a quote
   // Owner 2026-11-24 (L-17, live re-run he-1): "איך מכינים הצעת מחיר" is creating a quote too
-  ['quote_create', [/\bcreate\s+(a\s+)?(new\s+)?quote\b/i, /\bhow many quotes\b/i, /ליצור הצעה/, /(?<!(בלי|ללא|מבלי)\s+)(מכינים|להכין|הכנת|מכין|מכינה)\s+(את\s+)?הצע/, /כמה הצעות/, /תבני(ת|ות)/, /\btemplates?\b/i]],
+  ['quote_create', [/\bcreate\s+(a\s+)?(new\s+)?quote\b/i, /\bhow many quotes\b/i, /ליצור הצעה/, /(מכינים|להכין|הכנת|מכין|מכינה)\s+(את\s+)?הצע/, /כמה הצעות/, /תבני(ת|ות)/, /\btemplates?\b/i]],
   ['smart_quote', [/\bsmart quote\b/i, /הצעה חכמה/]],
   // Owner 2026-10-25 (typed L-17, QA report): marking a quote paid is its status (never the "no payment processing" answer)
   ['quote_status', [/\bquote status\b/i, /סטטוס הצעה/, /\b(mark(ed|ing)?|set)\b.{0,25}\bpaid\b/i, /(לסמן|מסמנים|מסמן|סימון|לשנות).{0,25}(כ)?(שולמה|שולם|ששולמה)/]],
@@ -636,10 +635,7 @@ function renderCapabilityProse(p: ProductTruthFactPayload, name: string, desc: s
           ? `כן — האפשרות ״${name}״ קיימת ב-TEKANGO, החל ממסלול ${planName(p.minimumPlan, 'he') ?? ''}. ${desc}`
           : `Yes - ${name} exists in TEKANGO, from the ${planName(p.minimumPlan, 'en') ?? ''} plan. ${desc}`;
       }
-      // Owner console 2026-11-25 (typed: "מאשר להחליף בצ׳אט את המשפט 'עדיין לא הוחלט אילו מסלולים' ב'כלול בכל המסלולים, גם בחינם' לחמש היכולות, כולל שינוי ב-L-14 ו-L-17")
-      const allPlans = ALL_PLANS_SUBSCRIPTION_CAPABILITIES.includes(String(AI_FACTS.capabilities.find((c) => c.id === p.capabilityId)?.subscriptionCapabilityId ?? ''));
-      const allPlansLine = allPlans ? (isHebrew ? ' כלול בכל המסלולים, גם בחינם.' : ' Included in every plan, Free too.') : '';
-      return isHebrew ? `כן — האפשרות ״${name}״ קיימת ב-TEKANGO. ${desc}${allPlansLine}` : `Yes - ${name} exists in TEKANGO. ${desc}${allPlansLine}`;
+      return isHebrew ? `כן — האפשרות ״${name}״ קיימת ב-TEKANGO. ${desc}` : `Yes - ${name} exists in TEKANGO. ${desc}`;
     }
     default:
       // Exhaustive by construction: a truth status that has no capability wording must fail loudly, never fall into available-prose.

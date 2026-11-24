@@ -26,11 +26,10 @@ describe('FINDING 3 - expected truth is derived from independent authorities (re
   it('derives every truth kind', () => {
     expect(truthOf('editor_calculator').kind).toBe(TRUTH_KINDS.AVAILABLE);
     // current truth: subscription-gated, plan inclusion not decided (OPEN-02 / OPEN-13) - whatever the account plan
-    // Owner 2026-11-25 (L-14 / L-17): the not-plan-gated subscription capabilities are in every plan, Free too - AVAILABLE
-    for (const tier of TIERS) expect(truthOf('quote_edit', tier)).toMatchObject({ kind: TRUTH_KINDS.AVAILABLE, gate: 'subscription', minimumPlan: null });
+    for (const tier of TIERS) expect(truthOf('quote_edit', tier)).toMatchObject({ kind: TRUTH_KINDS.PLAN_NOT_DECIDED, gate: 'subscription', minimumPlan: null });
     // 2026-11-13 (Owner answer "א"): attachments are part of SMART PACK - their own truth kind, whatever the account plan
     for (const tier of TIERS) expect(truthOf('attachments', tier)).toMatchObject({ kind: TRUTH_KINDS.SMART_PACK, gate: 'subscription', minimumPlan: null });
-    expect(truthOf('measured_quote', 'free').kind).toBe(TRUTH_KINDS.AVAILABLE); // Owner 2026-11-25 (L-14 / L-17): in every plan, Free too
+    expect(truthOf('measured_quote', 'free').kind).toBe(TRUTH_KINDS.PLAN_NOT_DECIDED);
     // legacy_v39 (historical evidence only)
     expect(legacyTruthOf('attachments', 'free').kind).toBe(TRUTH_KINDS.PLAN_LOCKED);
     expect(legacyTruthOf('attachments', 'pro').kind).toBe(TRUTH_KINDS.AVAILABLE);
@@ -53,8 +52,7 @@ describe('FINDING 3 - expected truth is derived from independent authorities (re
   it('fails closed (UNDERIVABLE) when the facts needed are missing or the id is unknown', () => {
     expect(deriveExpectedCapabilityTruth({ expectedResult: 'attachments', ruleset: LEGACY_RULESET_ID }).kind).toBe('UNDERIVABLE');
     // current: no plan fact is needed to state "exists, plan inclusion not decided"
-    // Owner 2026-11-25 (L-14 / L-17): the not-plan-gated subscription capabilities are in every plan, Free too - AVAILABLE
-    expect(deriveExpectedCapabilityTruth({ expectedResult: 'measured_quote' }).kind).toBe(TRUTH_KINDS.AVAILABLE);
+    expect(deriveExpectedCapabilityTruth({ expectedResult: 'measured_quote' }).kind).toBe(TRUTH_KINDS.PLAN_NOT_DECIDED);
     expect(deriveExpectedCapabilityTruth({ expectedResult: 'attachments' }).kind).toBe(TRUTH_KINDS.SMART_PACK);
     expect(deriveExpectedCapabilityTruth({ expectedResult: 'admin_console', serverPlan: 'pro' }).kind).toBe('UNDERIVABLE');
     expect(deriveExpectedCapabilityTruth({ expectedResult: 'not_a_capability' }).kind).toBe('UNDERIVABLE');
@@ -245,16 +243,12 @@ describe('FINDING 3 - adversarial polarity (HE)', () => {
 
 describe('SUBSCRIPTIONS CUTOVER - PLAN_NOT_DECIDED polarity (OPEN-02 / OPEN-13): exists, plan inclusion not decided', () => {
   const GATED = ['quote_edit', 'quote_duplicate', 'measured_quote', 'professional_reuse', 'owner_whatsapp_share'];
-  // Owner console 2026-11-25 (typed: "מאשר להחליף בצ׳אט את המשפט 'עדיין לא הוחלט אילו מסלולים' ב'כלול בכל המסלולים, גם בחינם' לחמש
-  // היכולות, כולל שינוי ב-L-14 ו-L-17"): these five are not plan-gated (the server grants them to every account) - AVAILABLE, "in every plan"
-  it.each(GATED)('the real runtime render of "%s" (EN + HE, every canonical plan) passes AVAILABLE, says it is in every plan, Free too, and names no tier', (id) => {
+  it.each(GATED)('the real runtime render of "%s" (EN + HE, every canonical plan) passes PLAN_NOT_DECIDED and names no plan', (id) => {
     for (const lang of LANGS) for (const tier of [...TIERS, null]) {
       const text = render(id, lang, tier);
-      expect(truthOf(id, tier ?? undefined).kind).toBe('AVAILABLE');
       expect(verdict(truthOf(id, tier ?? undefined), text, lang), text).toEqual([]);
       expect(text).not.toMatch(/\b(?:PRO|BASIC|Pro|Basic)\b|trial|ניסיון|unlimited|ללא הגבלה/);
-      expect(text).toMatch(lang === 'he' ? /כלול בכל המסלולים, גם בחינם\.$/ : /Included in every plan, Free too\.$/);
-      expect(text).not.toMatch(lang === 'he' ? /(?:טרם|עדיין לא) הוחלט/ : /undecided/);
+      expect(text).toMatch(lang === 'he' ? /(?:טרם|עדיין לא) הוחלט/ : /undecided/);
     }
   });
   // 2026-11-13 (Owner answer "א"): attachments are SMART PACK - the runtime render names it, never "not decided"

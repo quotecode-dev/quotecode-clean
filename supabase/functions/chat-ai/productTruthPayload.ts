@@ -8,7 +8,7 @@
 // or receives generated prose. Every payload is validated (validateProductTruthPayload) before it is returned: a payload
 // that would contradict itself throws - the request fails closed rather than emitting a wrong structured truth.
 import {
-  PLAN_TIER_VALUES, SMART_PACK_SUBSCRIPTION_CAPABILITIES, ALL_PLANS_SUBSCRIPTION_CAPABILITIES, PRODUCT_TRUTH_PAYLOAD_KEYS, PRODUCT_TRUTH_PAYLOAD_KIND, PRODUCT_TRUTH_PAYLOAD_SCHEMA_VERSION, validateProductTruthPayload,
+  PLAN_TIER_VALUES, SMART_PACK_SUBSCRIPTION_CAPABILITIES, PRODUCT_TRUTH_PAYLOAD_KEYS, PRODUCT_TRUTH_PAYLOAD_KIND, PRODUCT_TRUTH_PAYLOAD_SCHEMA_VERSION, validateProductTruthPayload,
   type AccountEntitlement, type AccountMarket, type ClaimScope, type MarketScope, type ProductTruthFactPayload, type RegistryState, type TruthStatus,
 } from "../_shared/productTruthContract.ts";
 import type { CapabilityAnswerState } from "./capabilityAnswerState.ts";
@@ -105,8 +105,6 @@ export function buildCapabilityFactPayload(state: CapabilityAnswerState, fact: C
   if (state.subscriptionGate) {
     // 2026-11-13 (Owner answer "א"): a SMART PACK capability says so; any other gated one: plan inclusion not decided (OPEN-02 / OPEN-13)
     const smartPack = SMART_PACK_SUBSCRIPTION_CAPABILITIES.includes(state.subscriptionGate.subscriptionCapabilityId);
-    // Owner console 2026-11-25 (typed: "מאשר להחליף בצ׳אט את המשפט 'עדיין לא הוחלט אילו מסלולים' ב'כלול בכל המסלולים, גם בחינם' לחמש היכולות, כולל שינוי ב-L-14 ו-L-17")
-    if (ALL_PLANS_SUBSCRIPTION_CAPABILITIES.includes(state.subscriptionGate.subscriptionCapabilityId)) return seal({ ...common, registryState, truthStatus: 'AVAILABLE', claimScope: 'CAPABILITY' });
     return seal({ ...common, registryState, truthStatus: smartPack ? 'SMART_PACK' : 'PLAN_NOT_DECIDED', claimScope: 'CAPABILITY' });
   }
   if (state.planRestriction) {

@@ -135,8 +135,7 @@ describe('BLOCKER 3 §4.4 — invalid plan/role resolves fail-closed, never unqu
   it('an unrecognized plan tier string never resolves accountHasIt to true or false - it fails closed to unknown, and the answer still discloses the plan restriction rather than an unqualified "available"', () => {
     const answer = formatCapabilityTruthAnswer('measured_quote', FACTS, false, 'NOT_A_REAL_PLAN_TIER', null);
     // Subscriptions cutover: plan inclusion is not decided (OPEN-13), so the answer discloses THAT - never "available to you".
-    // Owner 2026-11-25 (L-14 / L-17): these capabilities are in every plan, Free too - no longer "undecided"
-    expect(answer).toMatch(/Included in every plan, Free too./);
+    expect(answer).toMatch(/still undecided/);
     expect(answer).not.toMatch(/\bPRO\b/);
     expect(answer).not.toMatch(/does not include it/i); // that phrasing is reserved for a CONFIRMED false (accountHasIt===false)
   });

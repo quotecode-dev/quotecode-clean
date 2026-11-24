@@ -1446,8 +1446,6 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
                             fontSize: '0.85rem',
                             border: msg.role === 'assistant' ? `1px solid ${NEON.border}` : 'none',
                             lineHeight: '1.4',
-                            // Owner console 2026-11-25 (typed: "מאשר ב: צעדים בשורות נפרדות בחלון הצ׳אט, כולל שינוי ב-L-25"): each step on its own line
-                            whiteSpace: msg.role === 'assistant' ? 'pre-line' : undefined,
                             textAlign: isHebrew ? 'right' : 'left'
                           }}>
                             {msg.role === 'user' && msg.screenshot && (
