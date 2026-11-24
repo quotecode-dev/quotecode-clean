@@ -196,4 +196,17 @@ describe('stage 2: a connected account (Owner 2026-10-27, "מאשר את שלב 
     fireEvent.click(screen.getByTestId('social-publish-confirmed-p7'));
     await waitFor(() => expect(invoke).toHaveBeenCalledWith('agents-room', { body: { action: 'publish_now', id: 'p7', confirm: 'not_published' } }));
   });
+
+  // Owner 2026-11-24 (typed: "מאשר תיקון הפרסום לאינסטגרם: המתנה לסיום העיבוד של מטא לפני הפרסום והודעה ברורה לשגיאה 9007, כולל שינוי ב-L-22,
+  // שחרור עד הלייב"): 9007 = the image was not processed yet - nothing published, "Publish now" stays and is safe
+  it.each([[true], [false]])('isHebrew=%s: error 9007 says the image was not processed yet and that "Publish now" is safe', async (isHebrew) => {
+    const notReady = { ...post('p8', 'ig_intl', 'approved'), decided_at: '2026-11-23T19:56:33Z', error: 'publish_failed: meta_400_9007' };
+    invoke.mockResolvedValue({ data: { ...STATE, autoChannels: ['fb_il', 'fb_intl', 'ig_il', 'ig_intl'], posts: [notReady] }, error: null });
+    render(<AdminSocialPosts isHebrew={isHebrew} />);
+    await screen.findByTestId('social-posts');
+    expect(screen.getByTestId('social-failed-p8').textContent).toBe(isHebrew
+      ? 'מטא עוד לא סיימה לעבד את התמונה, ולכן הפוסט לא פורסם. אפשר ללחוץ "פרסום עכשיו" - זה בטוח ולא ייצור כפילות.'
+      : 'Meta had not finished processing the image, so the post was not published. You can press "Publish now" - it is safe and will not create a duplicate.');
+    expect(screen.getByTestId('social-publish-now-p8')).toBeTruthy();
+  });
 });

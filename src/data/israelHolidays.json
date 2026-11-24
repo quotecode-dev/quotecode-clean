@@ -1144,10 +1144,22 @@
  ],
  "observances": [
   {
+   "date": "2020-01-07",
+   "key": "asara_btevet",
+   "he": "עשרה בטבת",
+   "en": "Tenth of Tevet"
+  },
+  {
    "date": "2020-02-10",
    "key": "tu_bishvat",
    "he": "ט״ו בשבט",
    "en": "Tu BiShvat"
+  },
+  {
+   "date": "2020-03-09",
+   "key": "taanit_esther",
+   "he": "תענית אסתר",
+   "en": "Fast of Esther"
   },
   {
    "date": "2020-03-10",
@@ -1222,6 +1234,12 @@
    "en": "Erev Shavuot"
   },
   {
+   "date": "2020-07-09",
+   "key": "shiva_asar_btamuz",
+   "he": "י״ז בתמוז",
+   "en": "Seventeenth of Tammuz"
+  },
+  {
    "date": "2020-07-30",
    "key": "tisha_bav",
    "he": "תשעה באב",
@@ -1232,6 +1250,12 @@
    "key": "erev_rosh_hashanah",
    "he": "ערב ראש השנה",
    "en": "Erev Rosh Hashanah"
+  },
+  {
+   "date": "2020-09-21",
+   "key": "tzom_gedaliah",
+   "he": "צום גדליה",
+   "en": "Fast of Gedaliah"
   },
   {
    "date": "2020-09-27",
@@ -1330,10 +1354,22 @@
    "en": "Hanukkah (day 8)"
   },
   {
+   "date": "2020-12-25",
+   "key": "asara_btevet",
+   "he": "עשרה בטבת",
+   "en": "Tenth of Tevet"
+  },
+  {
    "date": "2021-01-28",
    "key": "tu_bishvat",
    "he": "ט״ו בשבט",
    "en": "Tu BiShvat"
+  },
+  {
+   "date": "2021-02-25",
+   "key": "taanit_esther",
+   "he": "תענית אסתר",
+   "en": "Fast of Esther"
   },
   {
    "date": "2021-02-26",
@@ -1408,6 +1444,12 @@
    "en": "Erev Shavuot"
   },
   {
+   "date": "2021-06-27",
+   "key": "shiva_asar_btamuz",
+   "he": "י״ז בתמוז",
+   "en": "Seventeenth of Tammuz"
+  },
+  {
    "date": "2021-07-18",
    "key": "tisha_bav",
    "he": "תשעה באב",
@@ -1418,6 +1460,12 @@
    "key": "erev_rosh_hashanah",
    "he": "ערב ראש השנה",
    "en": "Erev Rosh Hashanah"
+  },
+  {
+   "date": "2021-09-09",
+   "key": "tzom_gedaliah",
+   "he": "צום גדליה",
+   "en": "Fast of Gedaliah"
   },
   {
    "date": "2021-09-15",
@@ -1516,10 +1564,22 @@
    "en": "Hanukkah (day 8)"
   },
   {
+   "date": "2021-12-14",
+   "key": "asara_btevet",
+   "he": "עשרה בטבת",
+   "en": "Tenth of Tevet"
+  },
+  {
    "date": "2022-01-17",
    "key": "tu_bishvat",
    "he": "ט״ו בשבט",
    "en": "Tu BiShvat"
+  },
+  {
+   "date": "2022-03-16",
+   "key": "taanit_esther",
+   "he": "תענית אסתר",
+   "en": "Fast of Esther"
   },
   {
    "date": "2022-03-17",
@@ -1594,6 +1654,12 @@
    "en": "Erev Shavuot"
   },
   {
+   "date": "2022-07-17",
+   "key": "shiva_asar_btamuz",
+   "he": "י״ז בתמוז",
+   "en": "Seventeenth of Tammuz"
+  },
+  {
    "date": "2022-08-07",
    "key": "tisha_bav",
    "he": "תשעה באב",
@@ -1604,6 +1670,12 @@
    "key": "erev_rosh_hashanah",
    "he": "ערב ראש השנה",
    "en": "Erev Rosh Hashanah"
+  },
+  {
+   "date": "2022-09-28",
+   "key": "tzom_gedaliah",
+   "he": "צום גדליה",
+   "en": "Fast of Gedaliah"
   },
   {
    "date": "2022-10-04",
@@ -1702,10 +1774,22 @@
    "en": "Hanukkah (day 8)"
   },
   {
+   "date": "2023-01-03",
+   "key": "asara_btevet",
+   "he": "עשרה בטבת",
+   "en": "Tenth of Tevet"
+  },
+  {
    "date": "2023-02-06",
    "key": "tu_bishvat",
    "he": "ט״ו בשבט",
    "en": "Tu BiShvat"
+  },
+  {
+   "date": "2023-03-06",
+   "key": "taanit_esther",
+   "he": "תענית אסתר",
+   "en": "Fast of Esther"
   },
   {
    "date": "2023-03-07",
@@ -1780,6 +1864,12 @@
    "en": "Erev Shavuot"
   },
   {
+   "date": "2023-07-06",
+   "key": "shiva_asar_btamuz",
+   "he": "י״ז בתמוז",
+   "en": "Seventeenth of Tammuz"
+  },
+  {
    "date": "2023-07-27",
    "key": "tisha_bav",
    "he": "תשעה באב",
@@ -1790,6 +1880,12 @@
    "key": "erev_rosh_hashanah",
    "he": "ערב ראש השנה",
    "en": "Erev Rosh Hashanah"
+  },
+  {
+   "date": "2023-09-18",
+   "key": "tzom_gedaliah",
+   "he": "צום גדליה",
+   "en": "Fast of Gedaliah"
   },
   {
    "date": "2023-09-24",
@@ -1888,10 +1984,22 @@
    "en": "Hanukkah (day 8)"
   },
   {
+   "date": "2023-12-22",
+   "key": "asara_btevet",
+   "he": "עשרה בטבת",
+   "en": "Tenth of Tevet"
+  },
+  {
    "date": "2024-01-25",
    "key": "tu_bishvat",
    "he": "ט״ו בשבט",
    "en": "Tu BiShvat"
+  },
+  {
+   "date": "2024-03-21",
+   "key": "taanit_esther",
+   "he": "תענית אסתר",
+   "en": "Fast of Esther"
   },
   {
    "date": "2024-03-24",
@@ -1966,6 +2074,12 @@
    "en": "Erev Shavuot"
   },
   {
+   "date": "2024-07-23",
+   "key": "shiva_asar_btamuz",
+   "he": "י״ז בתמוז",
+   "en": "Seventeenth of Tammuz"
+  },
+  {
    "date": "2024-08-13",
    "key": "tisha_bav",
    "he": "תשעה באב",
@@ -1976,6 +2090,12 @@
    "key": "erev_rosh_hashanah",
    "he": "ערב ראש השנה",
    "en": "Erev Rosh Hashanah"
+  },
+  {
+   "date": "2024-10-06",
+   "key": "tzom_gedaliah",
+   "he": "צום גדליה",
+   "en": "Fast of Gedaliah"
   },
   {
    "date": "2024-10-11",
@@ -2074,10 +2194,22 @@
    "en": "Hanukkah (day 8)"
   },
   {
+   "date": "2025-01-10",
+   "key": "asara_btevet",
+   "he": "עשרה בטבת",
+   "en": "Tenth of Tevet"
+  },
+  {
    "date": "2025-02-13",
    "key": "tu_bishvat",
    "he": "ט״ו בשבט",
    "en": "Tu BiShvat"
+  },
+  {
+   "date": "2025-03-13",
+   "key": "taanit_esther",
+   "he": "תענית אסתר",
+   "en": "Fast of Esther"
   },
   {
    "date": "2025-03-14",
@@ -2152,6 +2284,12 @@
    "en": "Erev Shavuot"
   },
   {
+   "date": "2025-07-13",
+   "key": "shiva_asar_btamuz",
+   "he": "י״ז בתמוז",
+   "en": "Seventeenth of Tammuz"
+  },
+  {
    "date": "2025-08-03",
    "key": "tisha_bav",
    "he": "תשעה באב",
@@ -2162,6 +2300,12 @@
    "key": "erev_rosh_hashanah",
    "he": "ערב ראש השנה",
    "en": "Erev Rosh Hashanah"
+  },
+  {
+   "date": "2025-09-25",
+   "key": "tzom_gedaliah",
+   "he": "צום גדליה",
+   "en": "Fast of Gedaliah"
   },
   {
    "date": "2025-10-01",
@@ -2260,10 +2404,22 @@
    "en": "Hanukkah (day 8)"
   },
   {
+   "date": "2025-12-30",
+   "key": "asara_btevet",
+   "he": "עשרה בטבת",
+   "en": "Tenth of Tevet"
+  },
+  {
    "date": "2026-02-02",
    "key": "tu_bishvat",
    "he": "ט״ו בשבט",
    "en": "Tu BiShvat"
+  },
+  {
+   "date": "2026-03-02",
+   "key": "taanit_esther",
+   "he": "תענית אסתר",
+   "en": "Fast of Esther"
   },
   {
    "date": "2026-03-03",
@@ -2338,6 +2494,12 @@
    "en": "Erev Shavuot"
   },
   {
+   "date": "2026-07-02",
+   "key": "shiva_asar_btamuz",
+   "he": "י״ז בתמוז",
+   "en": "Seventeenth of Tammuz"
+  },
+  {
    "date": "2026-07-23",
    "key": "tisha_bav",
    "he": "תשעה באב",
@@ -2348,6 +2510,12 @@
    "key": "erev_rosh_hashanah",
    "he": "ערב ראש השנה",
    "en": "Erev Rosh Hashanah"
+  },
+  {
+   "date": "2026-09-14",
+   "key": "tzom_gedaliah",
+   "he": "צום גדליה",
+   "en": "Fast of Gedaliah"
   },
   {
    "date": "2026-09-20",
@@ -2446,10 +2614,22 @@
    "en": "Hanukkah (day 8)"
   },
   {
+   "date": "2026-12-20",
+   "key": "asara_btevet",
+   "he": "עשרה בטבת",
+   "en": "Tenth of Tevet"
+  },
+  {
    "date": "2027-01-23",
    "key": "tu_bishvat",
    "he": "ט״ו בשבט",
    "en": "Tu BiShvat"
+  },
+  {
+   "date": "2027-03-22",
+   "key": "taanit_esther",
+   "he": "תענית אסתר",
+   "en": "Fast of Esther"
   },
   {
    "date": "2027-03-23",
@@ -2524,6 +2704,12 @@
    "en": "Erev Shavuot"
   },
   {
+   "date": "2027-07-22",
+   "key": "shiva_asar_btamuz",
+   "he": "י״ז בתמוז",
+   "en": "Seventeenth of Tammuz"
+  },
+  {
    "date": "2027-08-12",
    "key": "tisha_bav",
    "he": "תשעה באב",
@@ -2534,6 +2720,12 @@
    "key": "erev_rosh_hashanah",
    "he": "ערב ראש השנה",
    "en": "Erev Rosh Hashanah"
+  },
+  {
+   "date": "2027-10-04",
+   "key": "tzom_gedaliah",
+   "he": "צום גדליה",
+   "en": "Fast of Gedaliah"
   },
   {
    "date": "2027-10-10",
@@ -2632,10 +2824,22 @@
    "en": "Hanukkah (day 8)"
   },
   {
+   "date": "2028-01-09",
+   "key": "asara_btevet",
+   "he": "עשרה בטבת",
+   "en": "Tenth of Tevet"
+  },
+  {
    "date": "2028-02-12",
    "key": "tu_bishvat",
    "he": "ט״ו בשבט",
    "en": "Tu BiShvat"
+  },
+  {
+   "date": "2028-03-09",
+   "key": "taanit_esther",
+   "he": "תענית אסתר",
+   "en": "Fast of Esther"
   },
   {
    "date": "2028-03-12",
@@ -2710,6 +2914,12 @@
    "en": "Erev Shavuot"
   },
   {
+   "date": "2028-07-11",
+   "key": "shiva_asar_btamuz",
+   "he": "י״ז בתמוז",
+   "en": "Seventeenth of Tammuz"
+  },
+  {
    "date": "2028-08-01",
    "key": "tisha_bav",
    "he": "תשעה באב",
@@ -2720,6 +2930,12 @@
    "key": "erev_rosh_hashanah",
    "he": "ערב ראש השנה",
    "en": "Erev Rosh Hashanah"
+  },
+  {
+   "date": "2028-09-24",
+   "key": "tzom_gedaliah",
+   "he": "צום גדליה",
+   "en": "Fast of Gedaliah"
   },
   {
    "date": "2028-09-29",
@@ -2818,10 +3034,22 @@
    "en": "Hanukkah (day 8)"
   },
   {
+   "date": "2028-12-28",
+   "key": "asara_btevet",
+   "he": "עשרה בטבת",
+   "en": "Tenth of Tevet"
+  },
+  {
    "date": "2029-01-31",
    "key": "tu_bishvat",
    "he": "ט״ו בשבט",
    "en": "Tu BiShvat"
+  },
+  {
+   "date": "2029-02-28",
+   "key": "taanit_esther",
+   "he": "תענית אסתר",
+   "en": "Fast of Esther"
   },
   {
    "date": "2029-03-01",
@@ -2896,6 +3124,12 @@
    "en": "Erev Shavuot"
   },
   {
+   "date": "2029-07-01",
+   "key": "shiva_asar_btamuz",
+   "he": "י״ז בתמוז",
+   "en": "Seventeenth of Tammuz"
+  },
+  {
    "date": "2029-07-22",
    "key": "tisha_bav",
    "he": "תשעה באב",
@@ -2906,6 +3140,12 @@
    "key": "erev_rosh_hashanah",
    "he": "ערב ראש השנה",
    "en": "Erev Rosh Hashanah"
+  },
+  {
+   "date": "2029-09-12",
+   "key": "tzom_gedaliah",
+   "he": "צום גדליה",
+   "en": "Fast of Gedaliah"
   },
   {
    "date": "2029-09-18",
@@ -3004,10 +3244,22 @@
    "en": "Hanukkah (day 8)"
   },
   {
+   "date": "2029-12-16",
+   "key": "asara_btevet",
+   "he": "עשרה בטבת",
+   "en": "Tenth of Tevet"
+  },
+  {
    "date": "2030-01-19",
    "key": "tu_bishvat",
    "he": "ט״ו בשבט",
    "en": "Tu BiShvat"
+  },
+  {
+   "date": "2030-03-18",
+   "key": "taanit_esther",
+   "he": "תענית אסתר",
+   "en": "Fast of Esther"
   },
   {
    "date": "2030-03-19",
@@ -3082,6 +3334,12 @@
    "en": "Erev Shavuot"
   },
   {
+   "date": "2030-07-18",
+   "key": "shiva_asar_btamuz",
+   "he": "י״ז בתמוז",
+   "en": "Seventeenth of Tammuz"
+  },
+  {
    "date": "2030-08-08",
    "key": "tisha_bav",
    "he": "תשעה באב",
@@ -3092,6 +3350,12 @@
    "key": "erev_rosh_hashanah",
    "he": "ערב ראש השנה",
    "en": "Erev Rosh Hashanah"
+  },
+  {
+   "date": "2030-09-30",
+   "key": "tzom_gedaliah",
+   "he": "צום גדליה",
+   "en": "Fast of Gedaliah"
   },
   {
    "date": "2030-10-06",
@@ -3190,10 +3454,22 @@
    "en": "Hanukkah (day 8)"
   },
   {
+   "date": "2031-01-05",
+   "key": "asara_btevet",
+   "he": "עשרה בטבת",
+   "en": "Tenth of Tevet"
+  },
+  {
    "date": "2031-02-08",
    "key": "tu_bishvat",
    "he": "ט״ו בשבט",
    "en": "Tu BiShvat"
+  },
+  {
+   "date": "2031-03-06",
+   "key": "taanit_esther",
+   "he": "תענית אסתר",
+   "en": "Fast of Esther"
   },
   {
    "date": "2031-03-09",
@@ -3268,6 +3544,12 @@
    "en": "Erev Shavuot"
   },
   {
+   "date": "2031-07-08",
+   "key": "shiva_asar_btamuz",
+   "he": "י״ז בתמוז",
+   "en": "Seventeenth of Tammuz"
+  },
+  {
    "date": "2031-07-29",
    "key": "tisha_bav",
    "he": "תשעה באב",
@@ -3278,6 +3560,12 @@
    "key": "erev_rosh_hashanah",
    "he": "ערב ראש השנה",
    "en": "Erev Rosh Hashanah"
+  },
+  {
+   "date": "2031-09-21",
+   "key": "tzom_gedaliah",
+   "he": "צום גדליה",
+   "en": "Fast of Gedaliah"
   },
   {
    "date": "2031-09-26",
@@ -3376,10 +3664,22 @@
    "en": "Hanukkah (day 8)"
   },
   {
+   "date": "2031-12-25",
+   "key": "asara_btevet",
+   "he": "עשרה בטבת",
+   "en": "Tenth of Tevet"
+  },
+  {
    "date": "2032-01-28",
    "key": "tu_bishvat",
    "he": "ט״ו בשבט",
    "en": "Tu BiShvat"
+  },
+  {
+   "date": "2032-02-25",
+   "key": "taanit_esther",
+   "he": "תענית אסתר",
+   "en": "Fast of Esther"
   },
   {
    "date": "2032-02-26",
@@ -3454,6 +3754,12 @@
    "en": "Erev Shavuot"
   },
   {
+   "date": "2032-06-27",
+   "key": "shiva_asar_btamuz",
+   "he": "י״ז בתמוז",
+   "en": "Seventeenth of Tammuz"
+  },
+  {
    "date": "2032-07-18",
    "key": "tisha_bav",
    "he": "תשעה באב",
@@ -3464,6 +3770,12 @@
    "key": "erev_rosh_hashanah",
    "he": "ערב ראש השנה",
    "en": "Erev Rosh Hashanah"
+  },
+  {
+   "date": "2032-09-08",
+   "key": "tzom_gedaliah",
+   "he": "צום גדליה",
+   "en": "Fast of Gedaliah"
   },
   {
    "date": "2032-09-14",
@@ -3562,10 +3874,22 @@
    "en": "Hanukkah (day 8)"
   },
   {
+   "date": "2032-12-12",
+   "key": "asara_btevet",
+   "he": "עשרה בטבת",
+   "en": "Tenth of Tevet"
+  },
+  {
    "date": "2033-01-15",
    "key": "tu_bishvat",
    "he": "ט״ו בשבט",
    "en": "Tu BiShvat"
+  },
+  {
+   "date": "2033-03-14",
+   "key": "taanit_esther",
+   "he": "תענית אסתר",
+   "en": "Fast of Esther"
   },
   {
    "date": "2033-03-15",
@@ -3640,6 +3964,12 @@
    "en": "Erev Shavuot"
   },
   {
+   "date": "2033-07-14",
+   "key": "shiva_asar_btamuz",
+   "he": "י״ז בתמוז",
+   "en": "Seventeenth of Tammuz"
+  },
+  {
    "date": "2033-08-04",
    "key": "tisha_bav",
    "he": "תשעה באב",
@@ -3650,6 +3980,12 @@
    "key": "erev_rosh_hashanah",
    "he": "ערב ראש השנה",
    "en": "Erev Rosh Hashanah"
+  },
+  {
+   "date": "2033-09-26",
+   "key": "tzom_gedaliah",
+   "he": "צום גדליה",
+   "en": "Fast of Gedaliah"
   },
   {
    "date": "2033-10-02",
@@ -3748,10 +4084,22 @@
    "en": "Hanukkah (day 8)"
   },
   {
+   "date": "2034-01-01",
+   "key": "asara_btevet",
+   "he": "עשרה בטבת",
+   "en": "Tenth of Tevet"
+  },
+  {
    "date": "2034-02-04",
    "key": "tu_bishvat",
    "he": "ט״ו בשבט",
    "en": "Tu BiShvat"
+  },
+  {
+   "date": "2034-03-02",
+   "key": "taanit_esther",
+   "he": "תענית אסתר",
+   "en": "Fast of Esther"
   },
   {
    "date": "2034-03-05",
@@ -3826,6 +4174,12 @@
    "en": "Erev Shavuot"
   },
   {
+   "date": "2034-07-04",
+   "key": "shiva_asar_btamuz",
+   "he": "י״ז בתמוז",
+   "en": "Seventeenth of Tammuz"
+  },
+  {
    "date": "2034-07-25",
    "key": "tisha_bav",
    "he": "תשעה באב",
@@ -3836,6 +4190,12 @@
    "key": "erev_rosh_hashanah",
    "he": "ערב ראש השנה",
    "en": "Erev Rosh Hashanah"
+  },
+  {
+   "date": "2034-09-17",
+   "key": "tzom_gedaliah",
+   "he": "צום גדליה",
+   "en": "Fast of Gedaliah"
   },
   {
    "date": "2034-09-22",
@@ -3934,10 +4294,22 @@
    "en": "Hanukkah (day 8)"
   },
   {
+   "date": "2034-12-22",
+   "key": "asara_btevet",
+   "he": "עשרה בטבת",
+   "en": "Tenth of Tevet"
+  },
+  {
    "date": "2035-01-25",
    "key": "tu_bishvat",
    "he": "ט״ו בשבט",
    "en": "Tu BiShvat"
+  },
+  {
+   "date": "2035-03-22",
+   "key": "taanit_esther",
+   "he": "תענית אסתר",
+   "en": "Fast of Esther"
   },
   {
    "date": "2035-03-25",
@@ -4012,6 +4384,12 @@
    "en": "Erev Shavuot"
   },
   {
+   "date": "2035-07-24",
+   "key": "shiva_asar_btamuz",
+   "he": "י״ז בתמוז",
+   "en": "Seventeenth of Tammuz"
+  },
+  {
    "date": "2035-08-14",
    "key": "tisha_bav",
    "he": "תשעה באב",
@@ -4022,6 +4400,12 @@
    "key": "erev_rosh_hashanah",
    "he": "ערב ראש השנה",
    "en": "Erev Rosh Hashanah"
+  },
+  {
+   "date": "2035-10-07",
+   "key": "tzom_gedaliah",
+   "he": "צום גדליה",
+   "en": "Fast of Gedaliah"
   },
   {
    "date": "2035-10-12",
@@ -4120,10 +4504,22 @@
    "en": "Hanukkah (day 8)"
   },
   {
+   "date": "2036-01-10",
+   "key": "asara_btevet",
+   "he": "עשרה בטבת",
+   "en": "Tenth of Tevet"
+  },
+  {
    "date": "2036-02-13",
    "key": "tu_bishvat",
    "he": "ט״ו בשבט",
    "en": "Tu BiShvat"
+  },
+  {
+   "date": "2036-03-12",
+   "key": "taanit_esther",
+   "he": "תענית אסתר",
+   "en": "Fast of Esther"
   },
   {
    "date": "2036-03-13",
@@ -4198,6 +4594,12 @@
    "en": "Erev Shavuot"
   },
   {
+   "date": "2036-07-13",
+   "key": "shiva_asar_btamuz",
+   "he": "י״ז בתמוז",
+   "en": "Seventeenth of Tammuz"
+  },
+  {
    "date": "2036-08-03",
    "key": "tisha_bav",
    "he": "תשעה באב",
@@ -4208,6 +4610,12 @@
    "key": "erev_rosh_hashanah",
    "he": "ערב ראש השנה",
    "en": "Erev Rosh Hashanah"
+  },
+  {
+   "date": "2036-09-24",
+   "key": "tzom_gedaliah",
+   "he": "צום גדליה",
+   "en": "Fast of Gedaliah"
   },
   {
    "date": "2036-09-30",
@@ -4306,10 +4714,22 @@
    "en": "Hanukkah (day 8)"
   },
   {
+   "date": "2036-12-28",
+   "key": "asara_btevet",
+   "he": "עשרה בטבת",
+   "en": "Tenth of Tevet"
+  },
+  {
    "date": "2037-01-31",
    "key": "tu_bishvat",
    "he": "ט״ו בשבט",
    "en": "Tu BiShvat"
+  },
+  {
+   "date": "2037-02-26",
+   "key": "taanit_esther",
+   "he": "תענית אסתר",
+   "en": "Fast of Esther"
   },
   {
    "date": "2037-03-01",
@@ -4384,6 +4804,12 @@
    "en": "Erev Shavuot"
   },
   {
+   "date": "2037-06-30",
+   "key": "shiva_asar_btamuz",
+   "he": "י״ז בתמוז",
+   "en": "Seventeenth of Tammuz"
+  },
+  {
    "date": "2037-07-21",
    "key": "tisha_bav",
    "he": "תשעה באב",
@@ -4394,6 +4820,12 @@
    "key": "erev_rosh_hashanah",
    "he": "ערב ראש השנה",
    "en": "Erev Rosh Hashanah"
+  },
+  {
+   "date": "2037-09-13",
+   "key": "tzom_gedaliah",
+   "he": "צום גדליה",
+   "en": "Fast of Gedaliah"
   },
   {
    "date": "2037-09-18",
@@ -4492,10 +4924,22 @@
    "en": "Hanukkah (day 8)"
   },
   {
+   "date": "2037-12-18",
+   "key": "asara_btevet",
+   "he": "עשרה בטבת",
+   "en": "Tenth of Tevet"
+  },
+  {
    "date": "2038-01-21",
    "key": "tu_bishvat",
    "he": "ט״ו בשבט",
    "en": "Tu BiShvat"
+  },
+  {
+   "date": "2038-03-18",
+   "key": "taanit_esther",
+   "he": "תענית אסתר",
+   "en": "Fast of Esther"
   },
   {
    "date": "2038-03-21",
@@ -4570,6 +5014,12 @@
    "en": "Erev Shavuot"
   },
   {
+   "date": "2038-07-20",
+   "key": "shiva_asar_btamuz",
+   "he": "י״ז בתמוז",
+   "en": "Seventeenth of Tammuz"
+  },
+  {
    "date": "2038-08-10",
    "key": "tisha_bav",
    "he": "תשעה באב",
@@ -4580,6 +5030,12 @@
    "key": "erev_rosh_hashanah",
    "he": "ערב ראש השנה",
    "en": "Erev Rosh Hashanah"
+  },
+  {
+   "date": "2038-10-03",
+   "key": "tzom_gedaliah",
+   "he": "צום גדליה",
+   "en": "Fast of Gedaliah"
   },
   {
    "date": "2038-10-08",
@@ -4678,10 +5134,22 @@
    "en": "Hanukkah (day 8)"
   },
   {
+   "date": "2039-01-06",
+   "key": "asara_btevet",
+   "he": "עשרה בטבת",
+   "en": "Tenth of Tevet"
+  },
+  {
    "date": "2039-02-09",
    "key": "tu_bishvat",
    "he": "ט״ו בשבט",
    "en": "Tu BiShvat"
+  },
+  {
+   "date": "2039-03-09",
+   "key": "taanit_esther",
+   "he": "תענית אסתר",
+   "en": "Fast of Esther"
   },
   {
    "date": "2039-03-10",
@@ -4756,6 +5224,12 @@
    "en": "Erev Shavuot"
   },
   {
+   "date": "2039-07-10",
+   "key": "shiva_asar_btamuz",
+   "he": "י״ז בתמוז",
+   "en": "Seventeenth of Tammuz"
+  },
+  {
    "date": "2039-07-31",
    "key": "tisha_bav",
    "he": "תשעה באב",
@@ -4766,6 +5240,12 @@
    "key": "erev_rosh_hashanah",
    "he": "ערב ראש השנה",
    "en": "Erev Rosh Hashanah"
+  },
+  {
+   "date": "2039-09-21",
+   "key": "tzom_gedaliah",
+   "he": "צום גדליה",
+   "en": "Fast of Gedaliah"
   },
   {
    "date": "2039-09-27",
@@ -4864,10 +5344,22 @@
    "en": "Hanukkah (day 8)"
   },
   {
+   "date": "2039-12-27",
+   "key": "asara_btevet",
+   "he": "עשרה בטבת",
+   "en": "Tenth of Tevet"
+  },
+  {
    "date": "2040-01-30",
    "key": "tu_bishvat",
    "he": "ט״ו בשבט",
    "en": "Tu BiShvat"
+  },
+  {
+   "date": "2040-02-27",
+   "key": "taanit_esther",
+   "he": "תענית אסתר",
+   "en": "Fast of Esther"
   },
   {
    "date": "2040-02-28",
@@ -4942,6 +5434,12 @@
    "en": "Erev Shavuot"
   },
   {
+   "date": "2040-06-28",
+   "key": "shiva_asar_btamuz",
+   "he": "י״ז בתמוז",
+   "en": "Seventeenth of Tammuz"
+  },
+  {
    "date": "2040-07-19",
    "key": "tisha_bav",
    "he": "תשעה באב",
@@ -4952,6 +5450,12 @@
    "key": "erev_rosh_hashanah",
    "he": "ערב ראש השנה",
    "en": "Erev Rosh Hashanah"
+  },
+  {
+   "date": "2040-09-10",
+   "key": "tzom_gedaliah",
+   "he": "צום גדליה",
+   "en": "Fast of Gedaliah"
   },
   {
    "date": "2040-09-16",
@@ -5048,6 +5552,12 @@
    "key": "chanukah",
    "he": "חנוכה (יום ח׳)",
    "en": "Hanukkah (day 8)"
+  },
+  {
+   "date": "2040-12-14",
+   "key": "asara_btevet",
+   "he": "עשרה בטבת",
+   "en": "Tenth of Tevet"
   }
  ]
 }

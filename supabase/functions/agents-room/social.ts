@@ -261,9 +261,29 @@ const post = async (f: Fetch, url: string, form: Record<string, string>) => {
   if (!r.ok) throw await graphError(r);
   return await r.json();
 };
+// Owner 2026-11-24 (typed: "מאשר תיקון הפרסום לאינסטגרם: המתנה לסיום העיבוד של מטא לפני הפרסום והודעה ברורה לשגיאה 9007, כולל שינוי
+// ב-L-22, שחרור עד הלייב"): the post of 23/11 failed with meta_400_9007 (Meta: the media is not ready yet) because media_publish ran right
+// after the container was created. Now the container's status_code is read first: FINISHED -> publish; IN_PROGRESS -> wait 2 s and read
+// again, at most 15 times (30 s); ERROR / EXPIRED -> a definite failure (nothing was published). An answer without a status (or no answer)
+// keeps the earlier behaviour - publish at once; still in progress after 30 s -> publish anyway (a 9007 refusal is definite, retry is safe).
+export const CONTAINER_WAIT = Object.freeze({ tries: 15, ms: 2000 });
+export type Wait = { sleep: (ms: number) => Promise<void>; tries: number; ms: number };
+const realWait: Wait = { sleep: (ms) => new Promise((res) => setTimeout(res, ms)), ...CONTAINER_WAIT };
+async function waitForContainer(f: Fetch, creation: string, access: string, wait: Wait) {
+  for (let i = 0; i < wait.tries; i += 1) {
+    let status = '';
+    try {
+      const r = await f(`${GRAPH}/${creation}?${new URLSearchParams({ fields: 'status_code', access_token: access })}`);
+      if (r.ok) { const j = await r.json(); if (typeof j?.status_code === 'string') status = j.status_code; }
+    } catch { /* no answer - publish as before */ }
+    if (status === 'ERROR' || status === 'EXPIRED') throw new MetaError(`meta_container_${status.toLowerCase()}`, true);
+    if (status !== 'IN_PROGRESS') return; // FINISHED / PUBLISHED, or no status to wait on
+    if (i < wait.tries - 1) await wait.sleep(wait.ms);
+  }
+}
 // publishes one approved post; returns the public address of the new post. The token is read through `token(name)` and only sent to Meta.
 export async function publishToMeta(f: Fetch, token: (name: string) => string, channel: string, payload: Record<string, unknown>,
-  onContainer?: (containerId: string) => Promise<void>): Promise<{ url: string; id: string }> {
+  onContainer?: (containerId: string) => Promise<void>, wait: Wait = realWait): Promise<{ url: string; id: string }> {
   const t = TARGETS[channel];
   if (!t) throw new MetaError('not_connected', true);
   const access = token(t.tokenEnv);
@@ -283,6 +303,7 @@ export async function publishToMeta(f: Fetch, token: (name: string) => string, c
   } catch (e) { throw new MetaError(String((e as Error)?.message ?? 'meta_failed'), true); }
   if (!creation) throw new MetaError('meta_no_id', true);
   if (onContainer) await onContainer(creation).catch(() => undefined); // kept for the Owner's check - never re-published from it
+  await waitForContainer(f, creation, access, wait);
   const published = await post(f, `${GRAPH}/${t.igUserId}/media_publish`, { creation_id: creation, access_token: access });
   const id = String(published?.id ?? '');
   if (!id) throw new MetaError('meta_no_id', false);

@@ -15,6 +15,7 @@ import {
   EN_WEEKDAYS, EN_WEEKDAYS_SHORT, HE_WEEKDAYS, HE_WEEKDAYS_SHORT, addDays, addMonths, buildCalendarEvents, dayClassOf, dayOfMonth, eventsByDate,
   holidayDataCovers, holidaysFor, initialViewFor, marketToday, monthKey, monthTitle, monthWeeks, observancesFor, weekDates, weekday,
 } from '../utils/calendarModel';
+import EllipsisText from './EllipsisText';
 
 const CAL_CSS = `
   .pf-cal { --cal-ordinary: #F8FAFB; --cal-saturday: #F7F0E3; --cal-holiday: #E5F2EE; --cal-line: ${NEON.border}; }
@@ -141,7 +142,9 @@ export default function CalendarTab({ client, userId, isHebrew, isLocalIsraeliBu
     ? [...(holidays.get(iso) || []).map((h) => ({ text: L([h.he, h.en]), rest: true })), ...(observances.get(iso) || []).map((h) => ({ text: L([h.he, h.en]), rest: false }))]
     : []);
   const holidayNames = (iso) => holidayItems(iso).map((h) => h.text);
-  const holidayLabel = (h, className) => <div key={h.text} className={className} title={h.text} data-rest={h.rest ? undefined : 'false'} data-testid="calendar-holiday">{h.text}</div>;
+  // Owner 2026-11-24 (L-30, the four fasts): a holiday name that does not fit its cell ends with three dots and shows whole on hover / tap -
+  // the shared EllipsisText (Owner console 2026-11-19: three dots with a hover / tap bubble everywhere); a name that fits stays plain text
+  const holidayLabel = (h, className) => <EllipsisText key={h.text} as="div" plain className={className} text={h.text} data-rest={h.rest ? undefined : 'false'} data-testid="calendar-holiday" />;
 
   const step = (dir) => setSelected((s) => (view === 'month' ? addMonths(s, dir) : addDays(s, view === 'week' ? 7 * dir : dir)));
   const openEvent = (e) => {
