@@ -1570,15 +1570,17 @@ export const AI_FACTS = {
         "clients"
       ],
       "he": {
-        "task": "למה אי אפשר למחוק לקוח",
+        "task": "מחיקת לקוח, ולמה לפעמים אי אפשר",
         "steps": [
+          "בתפריט הצד לוחצים \"לקוחות\", פותחים את השורה של הלקוח ולוחצים \"מחיקה\".",
           "אי אפשר למחוק לקוח שיש לו הצעה כלשהי, גם טיוטה. מוחקים קודם את ההצעות שלו ואז את הלקוח.",
           "הצעה חתומה או מאושרת אי אפשר למחוק, ולכן לקוח עם הצעה כזו נשאר במערכת לצורכי תיעוד."
         ]
       },
       "en": {
-        "task": "Why a client cannot be deleted",
+        "task": "Deleting a client, and when it is blocked",
         "steps": [
+          "In the side menu click \"Clients\", open the client's row and click \"Delete\".",
           "A client with any quote, drafts included, cannot be deleted. Delete their quotes first, then the client.",
           "A signed or approved quote cannot be deleted, so a client with such a quote stays in the system for the records."
         ]
@@ -2335,6 +2337,24 @@ export const AI_FACTS = {
         "steps": [
           "On a computer: click the gear beside the business name at the bottom of the side menu (\"Settings and sign out\") and choose \"Sign out\".",
           "On a phone: tap \"More\" in the bottom bar and choose \"Sign out\"."
+        ]
+      }
+    },
+    {
+      "id": "calculator_location",
+      "capabilityIds": [
+        "editor_calculator"
+      ],
+      "he": {
+        "task": "איפה המחשבון",
+        "steps": [
+          "המחשבון נמצא בסרגל העליון של המסך, ליד הפעמון, בכל מסך - גם בתוך עורך ההצעה. לוחצים על אייקון \"מחשבון\"."
+        ]
+      },
+      "en": {
+        "task": "Where the calculator is",
+        "steps": [
+          "The calculator is in the top bar of the screen, next to the bell, on every screen - in the quote editor too. Click the \"Calculator\" icon."
         ]
       }
     },

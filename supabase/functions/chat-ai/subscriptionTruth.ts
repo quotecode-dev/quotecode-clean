@@ -387,7 +387,9 @@ const ANYWHERE: Readonly<Partial<Record<SubscriptionClaimViolation, readonly Reg
   ],
   // R-02: "14 days" alone (a quote validity, a payment term) is not a trial claim - see TRIAL_14 in the plan-sentence check below
   TRIAL_CLAIM: [/\b(free\s+)?trial\b/i, /(תקופת\s*(ה)?ניסיון|ניסיון\s*(חינם|חינמי)|ימי\s*(ה)?ניסיון)/],
-  MONTHLY_QUOTE_LIMIT: [/\bmonthly\s+(quote\s+)?(limit|quota|counter|allowance)\b/i, /(מכסת|מגבלת)\s+(ה)?הצעות\s+(ה)?חודשי/],
+  // Owner 2026-11-24 (chat follow-up round, L-17; live re-run en-22): only a monthly QUOTE limit is a plan claim - "the monthly usage
+  // allowance" of SMART PACK (the decided usage meter) is not, and a smart-edit answer was replaced by the price list because of it
+  MONTHLY_QUOTE_LIMIT: [/\bmonthly\s+quotes?\s+(limit|quota|counter|allowance)\b/i, /\bquotes?\b.{0,25}\bmonthly\s+(limit|quota|counter)\b/i, /(מכסת|מגבלת)\s+(ה)?הצעות\s+(ה)?חודשי/],
 };
 // R-02: a monthly counter claim is a quote count per month WITH an allowance word ("up to 20 quotes a month", "5 quotes per month on
 // the free plan") or an old "3/5 quotes" counter - never a statistic ("you sent 12 quotes a month") and never a date ("3/20/2027").
@@ -452,5 +454,6 @@ export function findSubscriptionClaimViolations(answer: unknown, marketIL: boole
 
 /** The safe replacement when a model answer is rejected: the canonical plan statement (no account claim beyond the summary). */
 export function safeSubscriptionAnswer(isHebrew: boolean, account: AccountPlanContext | null, marketIL: boolean = isHebrew, marketKnown = true): string {
-  return formatSubscriptionAnswer(['pricing', 'quota'], '', isHebrew, null, marketIL, marketKnown) + (account ? ` ${accountPlanLine(account, isHebrew ? 'he' : 'en')}` : '');
+  // Owner 2026-11-24 (L-17): the account goes in too, so a Lifetime account is never told "you can buy the package" before "Lifetime"
+  return formatSubscriptionAnswer(['pricing', 'quota'], '', isHebrew, account, marketIL, marketKnown) + (account ? ` ${accountPlanLine(account, isHebrew ? 'he' : 'en')}` : '');
 }

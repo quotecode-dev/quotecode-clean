@@ -277,6 +277,9 @@ const CLASSIFIERS: ReadonlyArray<readonly [string, readonly RegExp[]]> = [
   ]],
 
   ['editor_calculator', [
+    // Owner 2026-11-24 (chat follow-up, L-17; live re-run en-2): "where is the calculator" - the header button on every screen
+    /\b(where|how)\b(?!.{0,20}\b(metals?|crypto|unit|currency)\b).{0,25}\bcalculator\b/i,
+    /(איפה|היכן|איך)(?!.{0,20}(מתכות|קריפטו|מטבע|יחידות)).{0,20}(ה)?מחשבון/,
     // Negative lookahead excludes "metals/crypto/unit/currency calculator" so this generic pattern
     // never shadows the more specific public_* calculator patterns below it (a real collision the
     // broadened-for-paraphrase version of this pattern introduced, caught by its own test suite).
@@ -403,12 +406,15 @@ const CLASSIFIERS: ReadonlyArray<readonly [string, readonly RegExp[]]> = [
   ['catalog', [/\b(services?|items?)\s+catalog\b/i, /קטלוג שירותים/, /קטלוג/, /\bcatalog(ue)?\b/i]],
   // Owner 2026-11-24 (L-17, chat audit he-25 / en-24): logging an inquiry / lead is the "פניות" / "Leads" tab inside Clients
   ['clients', [/\bmanage\s+.{0,10}clients?\b/i, /(ניהול|לנהל) לקוחות/,
+    // Owner 2026-11-24 (L-17, live re-run en-23): deleting a client
+    /\b(delete|remove)\b.{0,15}\b(a\s+|the\s+|my\s+)?clients?\b/i, /(למחוק|מוחקים|מחיקת|למחיקת)\s+(את\s+)?(ה)?לקוח/,
     /(רושמים|לרשום|רישום|מתעדים|לתעד|שומרים|לשמור|מוסיפים|להוסיף).{0,20}פני(ה|יה|ות)|פני(ה|יה|ות)\s+(חדשה|של\s+(לקוח|מישהו))|\bלידים?\b|לשונית\s+פניות/,
     /\b(log|record|track|add|save|enter)\b.{0,30}\b(inquir(y|ies)|leads?)\b|\bnew\s+(lead|inquiry)\b|\bleads?\s+tab\b/i]],
   ['quote_duplicate', [/\bduplicate\s+.{0,10}(a|the|my)?\s*quote\b/i, /לשכפל הצעה/]],
   ['quote_edit', [/\bedit\b.{0,15}\bquote\b/i, /לערוך הצעה/]],
   // Owner 2026-10-25 (typed L-17, QA report): templates ("יש תבניות?", "do you have templates") are part of creating a quote
-  ['quote_create', [/\bcreate\s+(a\s+)?(new\s+)?quote\b/i, /\bhow many quotes\b/i, /ליצור הצעה/, /כמה הצעות/, /תבני(ת|ות)/, /\btemplates?\b/i]],
+  // Owner 2026-11-24 (L-17, live re-run he-1): "איך מכינים הצעת מחיר" is creating a quote too
+  ['quote_create', [/\bcreate\s+(a\s+)?(new\s+)?quote\b/i, /\bhow many quotes\b/i, /ליצור הצעה/, /(מכינים|להכין|הכנת|מכין|מכינה)\s+(את\s+)?הצע/, /כמה הצעות/, /תבני(ת|ות)/, /\btemplates?\b/i]],
   ['smart_quote', [/\bsmart quote\b/i, /הצעה חכמה/]],
   // Owner 2026-10-25 (typed L-17, QA report): marking a quote paid is its status (never the "no payment processing" answer)
   ['quote_status', [/\bquote status\b/i, /סטטוס הצעה/, /\b(mark(ed|ing)?|set)\b.{0,25}\bpaid\b/i, /(לסמן|מסמנים|מסמן|סימון|לשנות).{0,25}(כ)?(שולמה|שולם|ששולמה)/]],
