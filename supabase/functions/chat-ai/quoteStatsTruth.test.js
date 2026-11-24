@@ -54,10 +54,10 @@ describe('quote statistics truth (Owner 2026-10-19)', () => {
     const he = formatQuoteStatsAnswer(s, 'ILS', true);
     expect(he).toContain('• סך הכול: 2, בסך ₪1,150.00'.replace('₪1,150.00', '₪1,100.00 ו-$50.00'));
     expect(he).toContain('• אושרו (כולל ששולמו): 1, בסך ₪1,100.00');
-    expect(he).toContain('• ממתינות לחתימה (נשלחו או נצפו): 0');
+    expect(he).toContain('• ממתינות לחתימה (נשלחו או נצפו, בתוקף): 0'); // Owner 2026-11-24 (L-17): expired quotes are not awaiting
     expect(he).toContain('סטטיסטיקה');
     const en = formatQuoteStatsAnswer(computeQuoteStats([{ status: 'sent', total: 702, currency: 'USD' }], 'USD'), 'USD', false);
-    expect(en).toContain('• Awaiting signature (sent or viewed): 1, totalling $702.00');
+    expect(en).toContain('• Awaiting signature (sent or viewed, still valid): 1, totalling $702.00');
     expect(formatQuoteStatsAnswer(computeQuoteStats([], 'ILS'), 'ILS', true)).toMatch(/^עדיין אין הצעות מחיר בחשבון/);
   });
 
@@ -67,7 +67,8 @@ describe('quote statistics truth (Owner 2026-10-19)', () => {
     expect(at).toBeGreaterThan(0);
     // smart chat (Owner LIVE check 2026-10-19): a question narrowed to a client / period / state goes to the data tools instead
     expect(src).toMatch(/if \(verifiedUserId && isDashboard && accountContext && classifyQuoteStatsIntent\(lastUserMessage\) && !\(ownDataQuestion && hasDataQualifier\(lastUserMessage\)\)\)/);
-    expect(src).toMatch(/statsClient\.from\('quotes'\)\.select\('status, total, currency, view_count'\)\.eq\('user_id', verifiedUserId\)/);
+    // Owner 2026-11-24 (L-17): valid_until + tax_rate - the list's validity rule (expired quotes are not awaiting)
+    expect(src).toMatch(/statsClient\.from\('quotes'\)\.select\('status, total, currency, view_count, valid_until, tax_rate'\)\.eq\('user_id', verifiedUserId\)/);
     expect(at).toBeLessThan(src.indexOf('resolveSubscriptionTruthResponse(lastUserMessage'));
   });
 });

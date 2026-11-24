@@ -177,6 +177,19 @@ function priceLine(lang: Lang, marketIL: boolean = lang === 'he'): string {
     : `${planName(PKG, 'en')}: ${usd(p.month)} per month or ${usd(p.year)} per year. Paying annually saves ${p.annualSavingPercentExact ? '' : 'approximately '}${p.annualSavingPercentRounded}% - ${usd(p.annualSaving)} per year. Billing is always in USD; a price shown in your local currency is only an estimate.`;
 }
 
+// Owner 2026-11-24 (typed: "מאשר את שלב 4 בתוכנית הצ׳אט ... כולל שינוי ב-L-14 ו-L-17"; chat audit he-29 / en-29): the price answer also
+// names the optional SMART PACK price of the same market (AI_FACTS.addOns smart_pack - the approved add-on catalog)
+function smartPackPriceLine(lang: Lang, marketIL: boolean = lang === 'he'): string {
+  // deno-lint-ignore no-explicit-any
+  const sp = (AI_FACTS as any).addOns?.find((a: { id: string }) => a.id === 'smart_pack');
+  const p = sp?.prices?.[marketIL ? 'IL' : 'INTERNATIONAL'];
+  if (!p) return '';
+  const fmt = marketIL ? ils : usd;
+  return lang === 'he'
+    ? `חכם פלוס (תוספת לבחירה): ${fmt(p.month)} לחודש או ${fmt(p.year)} לשנה.`
+    : `SMART PACK (optional add-on): ${fmt(p.month)} per month or ${fmt(p.year)} per year.`;
+}
+
 // 2026-11-13 (chat knowledge scan of 12/11, section ג): no screen sells the catalog add-on - the answer never offers it
 function catalogLine(lang: Lang, _marketIL: boolean = lang === 'he'): string {
   return lang === 'he'
@@ -234,7 +247,7 @@ export function accountPlanLine(account: AccountPlanContext | null, lang: Lang):
   // R-16 (Owner-approved): an account the team marked Lifetime (the app shows "Lifetime subscription") is told exactly that
   if (account.isLifetime) {
     return lang === 'he'
-      ? 'החשבון שלך מוגדר כמנוי לכל החיים: כל היכולות פתוחות בו, ללא חיוב.'
+      ? 'החשבון שלכם מוגדר כמנוי לכל החיים: כל היכולות פתוחות בו, ללא חיוב.'
       : 'Your account is set up as a Lifetime subscription: every capability is open, with no charge.';
   }
   if (account.summaryState === 'ready' && account.planId) {
@@ -248,7 +261,7 @@ export function accountPlanLine(account: AccountPlanContext | null, lang: Lang):
     return lang === 'he' ? `לפי סיכום החשבון בשרת, המסלול שלכם הוא ${name}.${balance}` : `According to your account summary on the server, your plan is ${name}.${balance}`;
   }
   return lang === 'he'
-    ? 'מערכת המסלולים החדשה עדיין אינה פעילה בחשבון שלך, ולכן אין מסלול פעיל או יתרה להציג. איני יכול לאשר מסלול לפי מה שנכתב בשיחה.'
+    ? 'מערכת המסלולים החדשה עדיין אינה פעילה בחשבון שלכם, ולכן אין מסלול פעיל או יתרה להציג. איני יכול לאשר מסלול לפי מה שנכתב בשיחה.'
     : "The new plan system is not active for your account yet, so there is no active plan or balance to show. I can't confirm a plan based on what is written in the chat.";
 }
 
@@ -262,7 +275,7 @@ export function formatSubscriptionAnswer(intents: readonly SubscriptionIntent[],
   marketKnown = true): string {
   const lang: Lang = isHebrew ? 'he' : 'en';
   // Codex N13 (L-11/L-17/L-25): an account whose market is not known yet hears both markets' prices and never that it can buy
-  const price = (l: Lang) => (marketKnown ? priceLine(l, marketIL) : (l === 'he' ? `בישראל: ${priceLine('he', true)} מחוץ לישראל: ${priceLine('he', false)}` : `In Israel: ${priceLine('en', true)} Outside Israel: ${priceLine('en', false)}`));
+  const price = (l: Lang) => (marketKnown ? `${priceLine(l, marketIL)} ${smartPackPriceLine(l, marketIL)}`.trim() : (l === 'he' ? `בישראל: ${priceLine('he', true)} מחוץ לישראל: ${priceLine('he', false)}` : `In Israel: ${priceLine('en', true)} Outside Israel: ${priceLine('en', false)}`));
   const catalog = (l: Lang) => (marketKnown ? catalogLine(l, marketIL) : '');
   const has = (i: SubscriptionIntent) => intents.includes(i);
   const parts: string[] = [];

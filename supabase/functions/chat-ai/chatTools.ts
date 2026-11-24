@@ -37,7 +37,7 @@ export const CHAT_TOOL_DEFS: ToolDef[] = [
       type: 'object', additionalProperties: false, required: ['text', 'status', 'created_from', 'created_to', 'limit'],
       properties: {
         text: nullableString('Words to match in the client name, contact name, project name or quote number. null = any.'),
-        status: { type: 'string', enum: ['any', 'draft', 'awaiting', 'approved', 'expired'], description: 'draft = not sent yet; awaiting = sent or viewed, not signed; approved = approved or paid; expired = validity date passed and not approved.' },
+        status: { type: 'string', enum: ['any', 'draft', 'awaiting', 'approved', 'expired'], description: 'draft = not sent yet; awaiting = sent or viewed, not signed, validity not passed; approved = approved or paid; expired = validity date passed and not approved.' },
         created_from: nullableString('Earliest creation date, YYYY-MM-DD. null = no lower bound.'),
         created_to: nullableString('Latest creation date, YYYY-MM-DD (inclusive). null = no upper bound.'),
         limit: limitParam,
@@ -159,7 +159,8 @@ async function findQuotes(ctx: ToolContext, a: Record<string, unknown>) {
     const day = String(q.created_at || '').slice(0, 10);
     if (from && day < from) return false;
     if (to && day > to) return false;
-    if (status === 'expired' ? !isExpired(q, ctx.today) : (status !== 'any' && quoteGroup(q) !== status)) return false;
+    // Owner 2026-11-24 (L-17): "awaiting" leaves out an expired quote, like the list's "ממתינות" (QuotesTab overviewAwaiting)
+    if (status === 'expired' ? !isExpired(q, ctx.today) : (status !== 'any' && (quoteGroup(q) !== status || (status === 'awaiting' && isExpired(q, ctx.today))))) return false;
     return matchesText(a.text as string | null, clientName(q), q.clients?.contact_name, q.project_name, q.quote_number);
   });
   return {
@@ -204,7 +205,7 @@ async function quoteOverview(ctx: ToolContext, a: Record<string, unknown>) {
     // deno-lint-ignore no-explicit-any
     approved: group((q: any) => quoteGroup(q) === 'approved'),
     // deno-lint-ignore no-explicit-any
-    awaiting_signature: group((q: any) => quoteGroup(q) === 'awaiting'),
+    awaiting_signature: group((q: any) => quoteGroup(q) === 'awaiting' && !isExpired(q, ctx.today)),
     // deno-lint-ignore no-explicit-any
     drafts: group((q: any) => quoteGroup(q) === 'draft'),
     // deno-lint-ignore no-explicit-any

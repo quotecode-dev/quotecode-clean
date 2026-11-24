@@ -84,6 +84,9 @@ export const QUOTE_FROM_FILE_REQUEST: readonly RegExp[] = [
   /(קובץ|pdf|jpe?g|תמונה|צילום|מסמך)\S*.{0,20}(ולקבל|ולהכין|וליצור|ולהפוך|להפוך|ליצור|להכין|יכין|תכין|יהפוך)\s.{0,15}הצע/i,
   /הצע\S*(\s+מחיר)?\s+של\s+(בעל\s+מקצוע|עסק|ספק|קבלן|מתחרה|מישהו)\s+אחר/,
   /\bquotes?\s+from\s+(a\s+|an\s+|the\s+|my\s+|another\s+|this\s+)?(file|pdf|jpe?g|photo|image|picture|document|scan)\b/i,
+  // Owner 2026-11-24 (L-17, chat audit en-21): "build a quote from a supplier PDF" / "from a vendor's price list"
+  /\bquotes?\s+from\s+(a\s+|an\s+|the\s+|my\s+)?(supplier|vendor|competitor|another\s+business|subcontractor)('?s)?\s+(file|pdf|jpe?g|photo|image|document|quote|price\s*list)\b/i,
+  /הצע\S*(\s+מחיר)?\s+מ-?(ה)?(קובץ|pdf|מסמך|תמונה|צילום)\S*(\s+\S+){0,2}\s+של\s+(ה)?ספק/i,
   /\b(turn|convert|make)\b.{0,25}\b(file|pdf|jpe?g|photo|image|document)\b.{0,10}\b(into|to)\s+(a\s+|my\s+)?quote\b/i,
   /\b(upload|import|scan)\b.{0,30}\b(another|other|competitor'?s?|supplier'?s?|someone else'?s?)\s+(business'?s?\s+)?quotes?\b/i,
   /\b(upload|import)\b.{0,25}\b(file|pdf|jpe?g|photo|image|document)\b.{0,30}\b(make|create|build|get|generate|turn)\b.{0,20}\bquote\b/i,
@@ -94,8 +97,8 @@ export const QUOTE_FROM_FILE_REQUEST: readonly RegExp[] = [
 // quota (since 2026-11-06 the SMART PACK usage meter, migration 20261106100000, Terms section 7).
 export function quoteFromFileAnswer(isHebrew: boolean): string {
   return isHebrew
-    ? 'כן. ב„הצעה חדשה” בוחרים „הצעת מחיר מקובץ”, מעלים קובץ PDF או JPG אחד, וה-AI קורא ממנו את השורות, הכמויות והמחירים. בכל שורה ממלאים את „המחיר שלכם”, ורק המחירים שלכם נכנסים להצעה; הקובץ לא נשמר. חלק מחכם פלוס, ונספר במכסת השימוש החודשית של חכם פלוס (היתרה מוצגת באחוזים).'
-    : 'Yes. In "New quote" choose "Quote from a file", upload one PDF or JPG, and the AI reads its lines, quantities and prices. Fill in "Your price" on each line - only your prices enter the quote, and the file is not stored. Part of SMART PACK, counted in its monthly usage allowance (shown as a percentage left).';
+    ? 'כן. ב„הצעה חדשה” בוחרים „מעלים קובץ”, מעלים קובץ PDF או JPG אחד, וה-AI קורא ממנו את השורות, הכמויות והמחירים. בכל שורה ממלאים את „המחיר שלכם”, ורק המחירים שלכם נכנסים להצעה; הקובץ לא נשמר. חלק מחכם פלוס, ונספר במכסת השימוש החודשית של חכם פלוס (היתרה מוצגת באחוזים).'
+    : 'Yes. In "New quote" choose "Upload a file", upload one PDF or JPG, and the AI reads its lines, quantities and prices. Fill in "Your price" on each line - only your prices enter the quote, and the file is not stored. Part of SMART PACK, counted in its monthly usage allowance (shown as a percentage left).';
 }
 
 // Ordered [id, patterns[]] pairs. Order matters: the most specific ("is the AI itself doing this
@@ -390,12 +393,18 @@ const CLASSIFIERS: ReadonlyArray<readonly [string, readonly RegExp[]]> = [
   // Hebrew plural of "הצעה" is "הצעות" (the final ה is replaced, not suffixed) - matching on the
   // stem "הצע" + (ה|ות) is required, "הצעה(ות)?" never matches the real plural spelling.
   // Owner 2026-10-25 (typed L-17, QA report): pricing by square metre / measurements / square feet is the measured quote
+  // Owner 2026-11-24 (typed: "מאשר את שלב 4 בתוכנית הצ׳אט ... כולל שינוי ב-L-14 ו-L-17"): a catalog question that names a pricing unit
+  // ("איך מוסיפים לקטלוג פריט במחיר למ״ר?") is a catalog question - checked before the measured-quote unit patterns
+  ['catalog', [/קטלוג/, /\bcatalog(ue)?\b/i]],
   ['measured_quote', [/\b(measured|professional)\b.{0,20}\bquotes?\b/i, /הצע(ה|ות).{0,15}(מדוד(ה|ות)?|מקצועי(ת|ים|ות)?)/,
     /מ["״']ר|מטר\s+רבוע|מטרים\s+רבועים|מ["״']א|מטר\s+אורך|לפי\s+(ה)?מידות|לפי\s+מידה/, /\b(square\s+(feet|foot|meters?|metres?)|sq\.?\s?ft|per\s+m2|m²|linear\s+(meters?|metres?|feet))\b/i]],
   ['expenses', [/\b(manage|track|add)\s+.{0,10}expenses?\b/i, /(ניהול|לנהל) הוצאות/]],
   ['finance_views', [/\bfinance(s|ial)?\s+(view|summary|dashboard|report)\b/i, /דוח(ות)? כספי/]],
   ['catalog', [/\b(services?|items?)\s+catalog\b/i, /קטלוג שירותים/, /קטלוג/, /\bcatalog(ue)?\b/i]],
-  ['clients', [/\bmanage\s+.{0,10}clients?\b/i, /(ניהול|לנהל) לקוחות/]],
+  // Owner 2026-11-24 (L-17, chat audit he-25 / en-24): logging an inquiry / lead is the "פניות" / "Leads" tab inside Clients
+  ['clients', [/\bmanage\s+.{0,10}clients?\b/i, /(ניהול|לנהל) לקוחות/,
+    /(רושמים|לרשום|רישום|מתעדים|לתעד|שומרים|לשמור|מוסיפים|להוסיף).{0,20}פני(ה|יה|ות)|פני(ה|יה|ות)\s+(חדשה|של\s+(לקוח|מישהו))|\bלידים?\b|לשונית\s+פניות/,
+    /\b(log|record|track|add|save|enter)\b.{0,30}\b(inquir(y|ies)|leads?)\b|\bnew\s+(lead|inquiry)\b|\bleads?\s+tab\b/i]],
   ['quote_duplicate', [/\bduplicate\s+.{0,10}(a|the|my)?\s*quote\b/i, /לשכפל הצעה/]],
   ['quote_edit', [/\bedit\b.{0,15}\bquote\b/i, /לערוך הצעה/]],
   // Owner 2026-10-25 (typed L-17, QA report): templates ("יש תבניות?", "do you have templates") are part of creating a quote
@@ -429,6 +438,8 @@ const CLASSIFIERS: ReadonlyArray<readonly [string, readonly RegExp[]]> = [
 export function classifyCapabilityIntent(lastUserMessage: unknown): string | null {
   const text = String(lastUserMessage ?? '').trim();
   if (!text) return null;
+  // Owner 2026-11-24 (L-17): a quote FROM a file ("build a quote from a supplier PDF") is smart_quote, before the bare "pdf" download pattern
+  if (!isTroubleshootingQuestion(text) && QUOTE_FROM_FILE_REQUEST.some((re) => re.test(text))) return 'smart_quote';
   // Owner 2026-10-25 (typed L-17, QA report): troubleshooting is never answered "yes - the capability exists"
   if (isTroubleshootingQuestion(text)) return null;
   for (const [id, patterns] of CLASSIFIERS) {
@@ -489,6 +500,9 @@ const BROAD_CAPABILITY_QUESTION_PATTERNS: readonly RegExp[] = [
 
 // a question that asks HOW / WHERE something is done (it starts with the question word)
 export const HOW_QUESTION = /^\s*(how|where)\b|^\s*(איך|כיצד|איפה|היכן|באיזה\s+(מסך|מקום|תפריט))/i;
+// Owner 2026-11-24 (typed: "מאשר את שלב 4 בתוכנית הצ׳אט: תיקון עשר הבעיות מהדוח, כולל שינוי ב-L-14 ו-L-17 ..."): a "why ..." question
+// ("למה אי אפשר לערוך הצעה חתומה?") also gets the matching verified steps instead of a bare "yes - it exists"
+export const WHY_QUESTION = /^\s*(why|how\s+come)\b|^\s*(למה|מדוע|מה\s+הסיבה)/i;
 
 // Owner 2026-10-25 (typed L-17, QA report): a troubleshooting question - something the user tried did not work ("why can't I send on
 // WhatsApp", "the client says the email did not arrive, what do I do"). Never answered "yes - the capability exists".

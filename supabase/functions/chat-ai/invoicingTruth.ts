@@ -39,10 +39,10 @@ export function classifyInvoicingIntent(lastUserMessage: unknown): boolean {
 export function formatInvoicingTruthAnswer(isHebrew: boolean, payload?: ProductTruthFactPayload, subscriptionOpen = false): string {
   if (payload && payload.truthStatus !== 'INVOICING_NOT_ISSUED') throw new Error(`formatInvoicingTruthAnswer requires an INVOICING_NOT_ISSUED payload, got ${payload.truthStatus}`);
   if (isHebrew && subscriptionOpen) {
-    return 'כרגע TEKANGO לא מפיקה חשבוניות, חשבוניות מס או קבלות ללקוחות שלכם - היכולת הזו עוד לא פעילה במערכת. מה שכן קיים: הצעת מחיר שאפשר להוריד כ-PDF או להדפיס (זו הצעת מחיר, לא חשבונית), ושליחת ההצעה ללקוח במייל. המצב "שולמה" הוא סימון ידני שלך בהצעה - הוא לא גובה כסף ולא מפיק קבלה. חשבוניות וקבלות ללקוחות שלכם צריך להפיק כרגע מחוץ ל-TEKANGO. על המנוי ל-TEKANGO עצמו נשלחת אליכם חשבונית מס-קבלה במייל אחרי כל תשלום.';
+    return 'כרגע TEKANGO לא מפיקה חשבוניות, חשבוניות מס או קבלות ללקוחות שלכם - היכולת הזו עוד לא פעילה במערכת. מה שכן קיים: הצעת מחיר שאפשר להוריד כ-PDF או להדפיס (זו הצעת מחיר, לא חשבונית), ושליחת ההצעה ללקוח במייל. המצב "שולמה" הוא סימון ידני שלכם בהצעה - הוא לא גובה כסף ולא מפיק קבלה. חשבוניות וקבלות ללקוחות שלכם צריך להפיק כרגע מחוץ ל-TEKANGO. על המנוי ל-TEKANGO עצמו נשלחת אליכם חשבונית מס-קבלה במייל אחרי כל תשלום.';
   }
   if (isHebrew) {
-    return 'כרגע TEKANGO לא מפיקה חשבוניות, חשבוניות מס או קבלות - היכולת הזו עוד לא פעילה במערכת. מה שכן קיים: הצעת מחיר שאפשר להוריד כ-PDF או להדפיס (זו הצעת מחיר, לא חשבונית), ושליחת ההצעה ללקוח במייל. המצב "שולמה" הוא סימון ידני שלך בהצעה - הוא לא גובה כסף ולא מפיק קבלה. גם סליקה/תשלום אונליין עוד לא קיימים. חשבוניות וקבלות צריך להפיק כרגע מחוץ ל-TEKANGO.';
+    return 'כרגע TEKANGO לא מפיקה חשבוניות, חשבוניות מס או קבלות - היכולת הזו עוד לא פעילה במערכת. מה שכן קיים: הצעת מחיר שאפשר להוריד כ-PDF או להדפיס (זו הצעת מחיר, לא חשבונית), ושליחת ההצעה ללקוח במייל. המצב "שולמה" הוא סימון ידני שלכם בהצעה - הוא לא גובה כסף ולא מפיק קבלה. גם סליקה/תשלום אונליין עוד לא קיימים. חשבוניות וקבלות צריך להפיק כרגע מחוץ ל-TEKANGO.';
   }
   // Owner console 2026-11-01 (typed: "מאשר פתיחת הרכישה בחו"ל ... L-06, ... L-11, ... L-17 ..."): the English answer also names the subscription's own invoice-receipt where it can be bought
   if (subscriptionOpen) {

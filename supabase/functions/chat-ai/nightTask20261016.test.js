@@ -58,7 +58,7 @@ describe('R-16: a Lifetime account is told it is Lifetime', () => {
     expect(formatSubscriptionAnswer(intents, q, he, NO_ACCOUNT_PLAN)).toMatch(buy);
   });
   it('the account line', () => {
-    expect(accountPlanLine(lifetime, 'he')).toBe('החשבון שלך מוגדר כמנוי לכל החיים: כל היכולות פתוחות בו, ללא חיוב.');
+    expect(accountPlanLine(lifetime, 'he')).toBe('החשבון שלכם מוגדר כמנוי לכל החיים: כל היכולות פתוחות בו, ללא חיוב.' /* Owner 2026-11-24 (L-14/L-17): plural address */);
     expect(accountPlanLine(lifetime, 'en')).toBe('Your account is set up as a Lifetime subscription: every capability is open, with no charge.');
     expect(accountPlanLine(NO_ACCOUNT_PLAN, 'en')).not.toMatch(/Lifetime/);
   });
