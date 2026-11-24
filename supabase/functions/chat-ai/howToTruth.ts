@@ -12,6 +12,26 @@ export function howToText(e: HowToEntry, isHebrew: boolean, marketIL: boolean = 
   return marketIL && e.enLocal ? e.enLocal : e.en;
 }
 
+/** whole-word tokens for the how-to match (Owner 2026-11-24, L-14 / L-17): Hebrew with and without a one-letter prefix, English with a
+ *  light stem (plural "s"; words of 6+ letters by their first 5), and every form of "send" / "שליחה" as one token */
+const normWord = (w: string): string => {
+  if (/^[a-z0-9]/.test(w)) {
+    if (/^(send|sends|sent|sending)$/.test(w)) return 'send';
+    return w.length >= 6 ? w.slice(0, 5) : w.replace(/s$/, '');
+  }
+  if (/^[ולהש]?(שול?ח|שליח|שלוח|שלח)/.test(w)) return 'שלח';
+  return w;
+};
+export function tokensOf(text: unknown): Set<string> {
+  const out = new Set<string>();
+  for (const w of String(text ?? '').toLowerCase().split(/[^a-z0-9֐-׿]+/)) {
+    if (w.length < 3) continue;
+    out.add(normWord(w));
+    if (/^[הובלכמש][֐-׿]{3,}$/.test(w)) out.add(normWord(w.slice(1)));
+  }
+  return out;
+}
+
 /**
  * Owner 2026-10-25 (typed L-17, QA report): a "how do I ..." question answered by the fixed capability answer ("yes - it exists") also
  * gets the verified steps. Among the how-to entries of that capability, the one sharing the most words with the question wins (ties:
@@ -21,13 +41,15 @@ export function howToStepsForCapability(capabilityId: string, question: string, 
   if (!Array.isArray(howTo)) return '';
   const candidates = howTo.filter((e) => e.capabilityIds.includes(capabilityId));
   if (!candidates.length) return '';
-  // the question's words, also without a one-letter Hebrew prefix ("כתבנית" -> "תבנית")
-  const words = String(question ?? '').toLowerCase().split(/[^a-z0-9֐-׿]+/).filter((w) => w.length >= 3)
-    .flatMap((w) => (/^[הובלכמש][֐-׿]{3,}$/.test(w) ? [w, w.slice(1)] : [w]));
+  // Owner 2026-11-24 (typed: "מאשר את שלב 4 בתוכנית הצ׳אט ... כולל שינוי ב-L-14 ו-L-17"): the chat audit found the wrong steps picked
+  // ("how do I create a quote" -> the rounding discount, "איך שולחים בוואטסאפ" -> the default WhatsApp text) because words were matched as
+  // PARTS of other words ("how" inside "shows"). Now: whole words (a one-letter Hebrew prefix removed, a light English stem, every form of
+  // "send / שליחה" as one word), and a word in the entry's TITLE weighs three times a word in its steps.
+  const words = [...tokensOf(question)];
   const score = (e: HowToEntry) => {
     const t = howToText(e, isHebrew, marketIL);
-    const text = `${t.task} ${t.steps.join(' ')}`.toLowerCase();
-    return new Set(words.filter((w) => text.includes(w))).size;
+    const title = tokensOf(t.task); const body = tokensOf(t.steps.join(' '));
+    return words.reduce((n, w) => n + (title.has(w) ? 3 : 0) + (body.has(w) ? 1 : 0), 0);
   };
   const best = candidates
     .map((e, i) => ({ e, i, s: score(e), primary: e.capabilityIds[0] === capabilityId ? 1 : 0 }))

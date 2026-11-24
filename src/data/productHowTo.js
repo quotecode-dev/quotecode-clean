@@ -16,7 +16,7 @@ export const PRODUCT_HOW_TO = Object.freeze([
       steps: [
         "במסך \"לקוחות\" לוחצים \"ייצוא לאקסל\" (ליד החיפוש). יורד קובץ אקסל עם הלקוחות שמוצגים: שם, סוג, מייל, טלפון, ח״פ, כתובת, הערות ותאריך יצירה.",
         "במסך הקטלוג לוחצים \"ייצוא לאקסל\" (ליד \"הוספת פריט\"). יורד קובץ עם שם הפריט, המחיר, איך מחשבים ותיאור.",
-        "הצעות מייצאים ב\"ייצוא לאקסל (CSV)\" ברשימת ההצעות, והוצאות ב\"ייצוא CSV\" במסך \"פיננסים\".",
+        "הצעות מייצאים באייקון ההורדה ליד הכותרת \"הצעות מחיר\" (\"ייצוא לאקסל (CSV)\"), והוצאות ב\"ייצוא CSV\" במסך \"פיננסים\".",
       ],
     },
     en: {
@@ -24,7 +24,7 @@ export const PRODUCT_HOW_TO = Object.freeze([
       steps: [
         "In \"Clients\" click \"Export to Excel\" (beside the search). An Excel file with the clients shown downloads: name, type, email, phone, tax ID, address, notes and created date.",
         "In the catalog click \"Export to Excel\" (beside \"Add Item\"). The file has the item name, the price, how it is priced and the description.",
-        "Quotes are exported with \"Export CSV\" in the quote list, and expenses with \"Export CSV\" in \"Finances\".",
+        "Quotes are exported with the download icon beside the \"Quotes\" title (\"Export CSV\"), and expenses with \"Export CSV\" in \"Finances\".",
       ],
     },
     evidence: [
@@ -594,7 +594,7 @@ export const PRODUCT_HOW_TO = Object.freeze([
       steps: [
         "לפני ההצעה הראשונה צריך טלפון עסק (ובישראל גם ח.פ / עוסק מורשה) ב\"הגדרות העסק\".",
         "לוחצים \"הצעה חדשה\". בחלון \"איך תרצו להתחיל?\" בוחרים \"ממלאים בעצמכם\" (לשלוש הדרכים האחרות יש הסבר משלהן).",
-        "בשלב \"למי מכינים את ההצעה?\" מקלידים את שם הלקוח בשדה \"הקלידו את שם הלקוח\" - לקוח שמור מופיע ברשימה מתחת לשדה תוך כדי הקלדה, ובחירה בו ממלאת את הפרטים שלו. ב\"סוג הלקוח\" בוחרים \"פרטי\" (ברירת המחדל) או \"עסקי\"; ללקוח עסקי בישראל נפתח מתחת גם \"מספר עוסק מורשה / חברה\" (חובה). טלפון, דוא״ל וכתובת נמצאים ב\"פרטי קשר (לא חובה)\". לוחצים \"שמירת הלקוח והמשך\" - לקוח חדש נשמר מיד ברשימת הלקוחות. בישראל שורת המע״מ מופיעה תמיד: ללקוח פרטי הסכומים כוללים מע״מ, וללקוח עסקי הם ללא מע״מ.",
+        "בשלב \"למי מכינים את ההצעה?\" מקלידים את שם הלקוח בשדה \"הקלידו את שם הלקוח\" - לקוח שמור מופיע ברשימה מתחת לשדה תוך כדי הקלדה, ובחירה בו ממלאת את הפרטים שלו. ב\"סוג הלקוח\" בוחרים \"פרטי\" (ברירת המחדל) או \"עסקי\"; ללקוח עסקי בישראל נפתח מתחת גם \"מספר עוסק מורשה / חברה\" (חובה). טלפון, דוא״ל וכתובת נמצאים ב\"פרטי קשר (לא חובה)\". לוחצים \"שמירת הלקוח והמשך\" - לקוח חדש נשמר מיד ברשימת הלקוחות (כשבחרתם לקוח שמור, הכפתור הוא \"להמשך\"). בישראל שורת המע״מ מופיעה תמיד: ללקוח פרטי הסכומים כוללים מע״מ, וללקוח עסקי הם ללא מע״מ.",
         "במסך העבודה שורת ההקלדה נמצאת בתוך הטבלה, מתחת לשורות: בוחרים מוצר מהקטלוג או מקלידים שם (\"+ הוספת מוצר חדש\"), בוחרים \"חישוב\" - ליחידה, למ״ר, למטר, לשעה, ליום עבודה, לק״ג או מחיר גלובלי - כותבים כמות ומחיר ולוחצים \"הוספה\". מוצר חדש אפשר \"לשמור גם בקטלוג\". השורה נכנסת לטבלה, ושלוש הנקודות שלה פותחות עריכה, שכפול, הזזה למעלה או למטה והסרה. אין בחירת מבנה: כדי לחלק את ההצעה לקומות, דירות או חדרים לוחצים \"+ חלק: קומה, דירה, חדר\". מתחת לטבלה רואים תמיד את סכום הביניים, את המע״מ (בישראל) ואת הסה״כ.",
         "ב\"פרטים נוספים להצעה (לא חובה)\" יש: \"פרויקט, כתובת ותוקף\", \"הערות לכל ההצעה\", \"תנאים ואחריות\", \"הנחה\", \"קבצים ותמונות\" ו\"עיצוב והנפקת ההצעה\". כתובת הלקוח נמצאת בפרטי הלקוח, ב\"פרטי קשר (לא חובה)\".",
         "בפס שבתחתית רואים \"סה״כ לתשלום\"; לחיצה עליו פותחת את \"סיכום ההצעה\". שם גם \"כך הלקוח יראה\" ו\"שמירת ההצעה\". שמירה אינה שליחה: ההצעה נשמרת כטיוטה, ומופיע \"נשמרה. עדיין לא נשלחה.\" - משם אפשר לראות איך הלקוח יראה אותה, לחזור לעריכה או לעבור לרשימת ההצעות. המחשבון נמצא בכותרת העליונה, ליד הפעמון.",
@@ -605,7 +605,7 @@ export const PRODUCT_HOW_TO = Object.freeze([
       steps: [
         "Before the first quote a business phone is required in \"Business Settings\".",
         "Click \"New quote\". In the \"How would you like to start?\" window choose \"Fill it in yourselves\" (the other three ways have their own steps).",
-        "In the \"Who is this quote for?\" step type the client name in the \"Type the client name\" field - a saved client appears in the list under the field as you type, and choosing it fills in its details. In \"Client type\" choose \"Private\" (the default) or \"Business\"; a business client may get a \"Business / company number\". Phone, email and address are in \"Contact details (optional)\". Click \"Save the client and continue\" - a new client is saved to your client list right away.",
+        "In the \"Who is this quote for?\" step type the client name in the \"Type the client name\" field - a saved client appears in the list under the field as you type, and choosing it fills in its details. In \"Client type\" choose \"Private\" (the default) or \"Business\"; a business client may get a \"Business / company number\". Phone, email and address are in \"Contact details (optional)\". Click \"Save the client and continue\" - a new client is saved to your client list right away (when you chose a saved client, the button is \"Continue\").",
         "In the work screen the entry row is inside the table, below the rows: choose a catalog product or type a name (\"+ Add a new product\"), choose the \"Pricing\" - per unit, per sq ft, per ft, per hour, per work day, per kg or a lump sum - type the quantity and the price and click \"Add\". A new product can \"Also save to the catalog\". The row enters the table, and its three dots hold edit, duplicate, move up or down and remove. There is no structure choice: to divide the quote into floors, apartments or rooms click \"+ Section: floor, apartment, room\". Under the table the subtotal and the total are always shown.",
         "\"More quote details (optional)\" holds \"Project, address and validity\", \"Notes for the whole quote\", \"Terms and warranty\", \"Discount\", \"Files and images\" and \"Quote design and issuing\". The client address is in the client details, under \"Contact details (optional)\".",
         "The bar at the bottom shows the \"Total\"; a click on it opens the \"Quote summary\". It also has \"Client view\" and \"Save the quote\". Saving is not sending: the quote is saved as a draft and \"Saved. Not sent yet.\" appears - from there you can see how the client will see it, go back to editing or go to the quote list. The calculator is in the top header, next to the bell.",
@@ -1003,14 +1003,129 @@ export const PRODUCT_HOW_TO = Object.freeze([
     capabilityIds: ['dashboard_overview'],
     he: {
       task: 'התנתקות',
-      steps: ['פותחים את "הגדרות והתנתקות" ולוחצים "התנתקות".'],
+      // Owner 2026-11-24 (typed: "מאשר את שלב 4 בתוכנית הצ׳אט ... כולל שינוי ב-L-14 ו-L-17"; chat audit he-30): the phone path too
+      steps: [
+        'במחשב: לוחצים על גלגל השיניים ליד שם העסק בתחתית תפריט הצד ("הגדרות והתנתקות") ובוחרים "התנתקות".',
+        'בטלפון: לוחצים "עוד" בסרגל התחתון ובוחרים "התנתקות".',
+      ],
     },
     en: {
       task: 'Signing out',
-      steps: ['Open "Settings and sign out" and click "Sign out".'],
+      steps: [
+        'On a computer: click the gear beside the business name at the bottom of the side menu ("Settings and sign out") and choose "Sign out".',
+        'On a phone: tap "More" in the bottom bar and choose "Sign out".',
+      ],
     },
     evidence: [
       { file: 'src/components/SidebarAccountMenu.jsx', labels: ['הגדרות והתנתקות', 'Settings and sign out', 'התנתקות', 'Sign out'] },
+      { file: 'src/pages/Dashboard.jsx', labels: ['עוד', 'More', 'התנתקות', 'Sign out'] },
+    ],
+  },
+  // Owner 2026-11-24 (typed: "מאשר את שלב 4 בתוכנית הצ׳אט: תיקון עשר הבעיות מהדוח, כולל שינוי ב-L-14 ו-L-17 ..."): steps the chat audit found
+  // missing - the pricing method of a row, the leads tab, the list search and filters, and how the client signs
+  {
+    id: 'pricing_unit',
+    capabilityIds: ['measured_quote', 'quote_create'],
+    he: {
+      task: 'בחירת אופן החישוב של שורה (ליחידה, למ״ר, למטר, לשעה)',
+      steps: [
+        'בעורך ההצעה, בשורת ההוספה, בוחרים ב"חישוב" את אופן החישוב: "ליחידה", "למ״ר", "למטר", "לשעה", "ליום עבודה", "לק״ג" או "מחיר גלובלי".',
+        'ממלאים כמות (או מידות ב"מידות ופירוט נוסף") ומחיר, ולוחצים "הוספה".',
+      ],
+    },
+    en: {
+      task: 'Choosing how a row is priced (per unit, per sq ft, per ft, per hour)',
+      steps: [
+        'In the quote editor, in the entry row, choose the method under "Pricing": "Per unit", "Per sq ft", "Per ft", "Per m²", "Per m", "Per hour", "Per work day", "Per kg" or "Lump sum".',
+        'Fill in the quantity (or the sizes under "Sizes and details") and the price, then click "Add".',
+      ],
+    },
+    enLocal: {
+      task: 'Choosing how a row is priced (per unit, per m², per metre, per hour)',
+      steps: [
+        'In the quote editor, in the entry row, choose the method under "Pricing": "Per unit", "Per m²", "Per m", "Per hour", "Per work day", "Per kg" or "Lump sum".',
+        'Fill in the quantity (or the sizes under "Sizes and details") and the price, then click "Add".',
+      ],
+    },
+    heIntl: {
+      task: 'בחירת אופן החישוב של שורה (ליחידה, לרגל רבועה, לרגל, לשעה)',
+      steps: [
+        'בעורך ההצעה, בשורת ההוספה, בוחרים ב"חישוב" את אופן החישוב: "ליחידה", "לרגל רבועה", "לרגל", "למ״ר", "למטר", "לשעה", "ליום עבודה", "לק״ג" או "מחיר גלובלי".',
+        'ממלאים כמות (או מידות ב"מידות ופירוט נוסף") ומחיר, ולוחצים "הוספה".',
+      ],
+    },
+    evidence: [
+      { file: 'src/components/quoteTree/QuoteTreeEditor.jsx', labels: ['חישוב', 'ליחידה', 'למ״ר', 'למטר', 'לרגל רבועה', 'לרגל', 'לשעה', 'ליום עבודה', 'לק״ג', 'מחיר גלובלי', 'מידות ופירוט נוסף', 'הוספה', 'Pricing', 'Per unit', 'Per sq ft', 'Per ft', 'Per m²', 'Per m', 'Per hour', 'Per work day', 'Per kg', 'Lump sum', 'Sizes and details', 'Add'] },
+    ],
+  },
+  {
+    id: 'leads',
+    capabilityIds: ['clients'],
+    he: {
+      task: 'רישום פנייה של לקוח שהתקשר או כתב (פניות)',
+      steps: [
+        'בתפריט הצד לוחצים "לקוחות", ובחלק העליון עוברים ללשונית "פניות".',
+        'לוחצים "פנייה חדשה", ממלאים "שם", "טלפון" או "כתובת מייל", "מה צריך לבצע?" ו"מקור הפנייה", ולוחצים "שמירה".',
+        'אם ממלאים "המעקב הבא", המעקב נוסף גם למשימות. מצב הפנייה: "חדשה", "בטיפול", "נשלחה הצעה" או "לא רלוונטית".',
+      ],
+    },
+    en: {
+      task: 'Logging an inquiry from a customer who called or wrote (Leads)',
+      steps: [
+        'In the side menu click "Clients", then switch to the "Leads" tab at the top.',
+        'Click "New lead", fill in "Name", "Phone" or "Email address", "What work is needed?" and "Lead source", then click "Save".',
+        'If you fill in "Next follow-up", the follow-up is also added to Tasks. A lead\'s status is "New", "In progress", "Quote sent" or "Not relevant".',
+      ],
+    },
+    evidence: [
+      { file: 'src/components/ClientsTab.jsx', labels: ['פניות', 'Leads', 'לקוחות', 'Clients'] },
+      { file: 'src/components/leads/LeadsView.jsx', labels: ['פנייה חדשה', 'New lead', 'שם', 'Name', 'טלפון', 'Phone', 'כתובת מייל', 'Email address', 'מה צריך לבצע?', 'What work is needed?', 'מקור הפנייה', 'Lead source', 'המעקב הבא', 'Next follow-up', 'שמירה', 'Save', 'חדשה', 'בטיפול', 'נשלחה הצעה', 'לא רלוונטית', 'In progress', 'Quote sent', 'Not relevant'] },
+    ],
+  },
+  {
+    id: 'quote_list_search_filter',
+    capabilityIds: ['quote_history', 'quote_expiry'],
+    he: {
+      task: 'חיפוש וסינון ברשימת ההצעות (למשל רק הצעות שפג תוקפן)',
+      steps: [
+        'ב"הצעות מחיר" מקלידים בשדה "חיפוש לפי שם לקוח או מספר הצעה…".',
+        'לסינון לוחצים "סינון ומיון", בוחרים מצב (למשל "פג תוקף") ואת המיון, ולוחצים "הצגה".',
+      ],
+    },
+    en: {
+      task: 'Searching and filtering the quote list (for example only expired quotes)',
+      steps: [
+        'In "Quotes" type in the "Search client or quote #..." field.',
+        'To filter, click "Filters", choose a status (for example "Expired") and the sort, then click "Show".',
+      ],
+    },
+    evidence: [
+      { file: 'src/components/QuotesTab.jsx', labels: ['חיפוש לפי שם לקוח או מספר הצעה…', 'Search client or quote #...', 'סינון ומיון', 'Filters', 'הצגה', 'Show'] },
+      { file: 'src/utils/quoteStatusDisplay.js', labels: ['פג תוקף', 'Expired'] },
+    ],
+  },
+  {
+    id: 'client_signing_steps',
+    capabilityIds: ['public_quote_sign', 'public_quote_view'],
+    he: {
+      task: 'איך הלקוח חותם על ההצעה',
+      steps: [
+        'הלקוח פותח את הקישור שקיבל בוואטסאפ או במייל, ורואה את ההצעה.',
+        'ממלא "שם מלא לחתימה", לוחץ "לחצו כאן לחתימה", חותם באצבע או בעכבר ולוחץ "סיום הציור".',
+        'לוחץ "אישור וחתימה על הצעת המחיר". ההצעה מסומנת אצלכם כמאושרת, ואתם מקבלים הודעה במייל.',
+      ],
+    },
+    en: {
+      task: 'How the client signs the quote',
+      steps: [
+        'The client opens the link they got by WhatsApp or email and sees the quote.',
+        'They fill in "Signer\'s full name", click "Tap to sign", sign with a finger or the mouse and click "Done drawing".',
+        'They click "Approve & Sign This Quote". The quote is marked approved for you, and you get an email notice.',
+      ],
+    },
+    evidence: [
+      { file: 'src/pages/PublicQuote.jsx', labels: ['שם מלא לחתימה', 'לחצו כאן לחתימה', 'סיום הציור', 'אישור וחתימה על הצעת המחיר'] },
+      { file: 'src/pages/PublicQuoteEn.jsx', labels: ["Signer's full name", 'Tap to sign', 'Done drawing', 'Approve & Sign This Quote'] },
     ],
   },
   {
@@ -1246,7 +1361,7 @@ export const PRODUCT_HOW_TO = Object.freeze([
       steps: [
         "ברשימת \"הצעות מחיר\" לוחצים על השורה של ההצעה ואז \"עריכה\".",
         "ב\"פרטים נוספים להצעה (לא חובה)\" בוחרים \"מצב ההצעה\", ושם בוחרים \"נשלחה\", \"אושרה\" או \"שולמה\", ולוחצים \"שמירת ההצעה\". המצב רק מסמן את ההצעה; הוא לא גובה תשלום.",
-        "הצעה שאושרה או שהלקוח חתם עליה נעולה לעריכה (\"לא ניתן לערוך הצעה חתומה\"). כשהלקוח שילם, פותחים את ההצעה ברשימה, לוחצים \"סימון כשולמה\" ומאשרים. אחרי הסימון אי אפשר לחזור ל\"אושרה\", והצעה ששולמה נעולה לגמרי.",
+        "הצעה שאושרה או שהלקוח חתם עליה נעולה לעריכה (\"לא ניתן לערוך הצעה חתומה\"). כשהלקוח שילם, ברשימת ההצעות פותחים את תפריט ⋯ של השורה, לוחצים \"סימון כשולמה\" ומאשרים. אחרי הסימון אי אפשר לחזור ל\"אושרה\", והצעה ששולמה נעולה לגמרי.",
       ],
     },
     en: {
@@ -1254,7 +1369,7 @@ export const PRODUCT_HOW_TO = Object.freeze([
       steps: [
         "In the \"Quotes\" list click the quote's row, then \"Edit\".",
         "In \"More quote details (optional)\", choose \"Quote status\", then choose \"Sent\", \"Approved\" or \"Paid\" and click \"Save the quote\". The status only marks the quote; it does not collect payment.",
-        "A quote that is approved or signed by the client is locked for editing (\"Cannot edit a signed quote\"). When the client has paid, open the quote in the list, click \"Mark as paid\" and confirm. After marking it you cannot go back to \"Approved\", and a paid quote is fully locked.",
+        "A quote that is approved or signed by the client is locked for editing (\"Cannot edit a signed quote\"). When the client has paid, open the row's ⋯ menu in the quote list, click \"Mark as paid\" and confirm. After marking it you cannot go back to \"Approved\", and a paid quote is fully locked.",
       ],
     },
     evidence: [

@@ -345,7 +345,7 @@ describe('(4) the account market / currency route', () => {
     const intl = buildAccountMarketFactPayload({ market: 'International', plan: 'visual', isAdmin: false });
     const he = formatAccountMarketAnswer(true, local);
     const en = formatAccountMarketAnswer(false, intl);
-    expect(he).toMatch(/החשבון שלך/);
+    expect(he).toMatch(/החשבון שלכם/); // Owner 2026-11-24 (L-14/L-17): plural address
     expect(he).toMatch(/₪/);
     expect(he).not.toMatch(/USD|EUR|GBP|\$|€|£|דולר|יורו/);
     expect(en).toMatch(/Your account is verified as International/);
