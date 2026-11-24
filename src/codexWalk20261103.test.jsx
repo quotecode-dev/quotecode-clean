@@ -25,7 +25,7 @@ describe('F02: the calculators on a phone', () => {
     for (const s of [he, en]) expect(s).toContain("gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: '15px' }}");
     expect(he).toContain('money(cryptoUsd / rates.USD)}\\u00A0₪');
     expect(he).toContain('money(metalUsd / rates.USD)}\\u00A0₪');
-    expect(he).toMatch(/const money = \(n, digits = 2\) => formatToolNumber\(n, 'he-IL', digits\);/);
+    expect(he).toMatch(/const money = \(n, digits = 2\) => formatToolNumber\(n, 'he-IL', digits, 2\);/); // Owner 2026-11-24: always two digits after the point
   });
 });
 

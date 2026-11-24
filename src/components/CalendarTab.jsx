@@ -50,6 +50,7 @@ const CAL_CSS = `
   .pf-cal-hol { font-size: 0.7rem; font-weight: 700; color: #1F5A4F; line-height: 1.25; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .pf-cal-hol[data-rest="false"] { color: #4B5B66; font-weight: 600; }
   .pf-cal-ev { display: block; inline-size: 100%; text-align: start; border: none; border-inline-start: 3px solid; border-radius: 4px; padding: 2px 5px; font: inherit; font-size: 0.72rem; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+  .pf-cal-ev-text { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .pf-cal-ev[data-kind="task"] { background: #E3F1F2; border-color: #0F6672; color: #0B4F58; }
   .pf-cal-ev[data-kind="task"][data-status="overdue"] { border-color: #B42318; }
   .pf-cal-ev[data-kind="task"][data-status="completed"] { background: #EEF1F2; border-color: #9AA5AB; color: #5B6870; text-decoration: line-through; }
@@ -155,12 +156,18 @@ export default function CalendarTab({ client, userId, isHebrew, isLocalIsraeliBu
   const dateText = (iso) => formatShortDate(iso, market);
   const dayAria = (iso) => [(isHebrew ? HE_WEEKDAYS : EN_WEEKDAYS)[weekday(iso)], dateText(iso), L(DAY_CLASS_TEXT[classOf(iso)]), ...holidayNames(iso)].filter(Boolean).join(', ');
 
+  // Owner 2026-11-24 (L-30): a chip text that does not fit ends with three dots and shows whole on hover / tap (the shared EllipsisText,
+  // Owner rule 2026-11-19); the bubble text is exactly the chip's own text
+  const chipText = (e) => (e.kind === 'task' ? `${e.time ? `${e.time} ` : ''}${e.title}`
+    : e.kind === 'service' ? `${e.time ? `${e.time} ` : ''}${L(SERVICE_TEXT)} · ${e.number}` : `${L(STATUS_TEXT[e.status])} · ${e.number}`);
   const renderChip = (e) => (
     // PRODUCT_TRUTH_CAPABILITY: calendar
     <button key={e.id} type="button" className="pf-cal-ev" data-kind={e.kind} data-status={e.status} data-event-id={e.id} title={eventTitle(e)} onClick={() => openEvent(e)}>
-      {e.kind === 'task' ? (<>{e.time && <bdi className="pf-num" dir="ltr">{e.time}</bdi>}{e.time ? ' ' : ''}{e.title}</>)
-        : e.kind === 'service' ? (<>{e.time && <bdi className="pf-num" dir="ltr">{e.time}</bdi>}{e.time ? ' ' : ''}{L(SERVICE_TEXT)} · <bdi className="pf-num" dir="ltr">{e.number}</bdi></>)
-          : (<>{L(STATUS_TEXT[e.status])} · <bdi className="pf-num" dir="ltr">{e.number}</bdi></>)}
+      <EllipsisText plain className="pf-cal-ev-text" text={chipText(e)}>
+        {e.kind === 'task' ? (<>{e.time && <bdi className="pf-num" dir="ltr">{e.time}</bdi>}{e.time ? ' ' : ''}{e.title}</>)
+          : e.kind === 'service' ? (<>{e.time && <bdi className="pf-num" dir="ltr">{e.time}</bdi>}{e.time ? ' ' : ''}{L(SERVICE_TEXT)} · <bdi className="pf-num" dir="ltr">{e.number}</bdi></>)
+            : (<>{L(STATUS_TEXT[e.status])} · <bdi className="pf-num" dir="ltr">{e.number}</bdi></>)}
+      </EllipsisText>
     </button>
   );
 

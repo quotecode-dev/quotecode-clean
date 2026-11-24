@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Search, MoreHorizontal, Lock } from 'lucide-react';
 import { AdminMarketIcon } from './AdminIdentityIcons';
 import AdminScreenFrame from './AdminScreenFrame';
+import EllipsisText from './EllipsisText';
 import { AdminAccountStatus, AdminPlanSystemNotice } from './AdminSubscriptionState';
 import { adminTargetUserId, useAdminAccountSummaries, accountStatus, ACCOUNT_STATUS, ACCOUNT_STATUS_ORDER, tr } from '../domain/subscriptions/adminAccountSummary';
 import { useAdminAccountsPage } from '../domain/admin/adminAccountsClient';
@@ -184,7 +185,8 @@ export default function AdminUsersView({ accounts, orderedAccounts = accounts, s
         {a.role === 'admin' && <span className="av-badge av-admin">{t(isHebrew, C.adminBadge.he, C.adminBadge.en)}</span>}
         {a.is_test === true && <span className="av-badge av-warn" data-testid={`admin-row-test-${a.id}`}>{t(isHebrew, C.testBadge.he, C.testBadge.en)}</span>}
       </span>
-      <span className="av-mail" title={a.email}>{a.email}</span>
+      {/* Owner 2026-11-24 (L-21): a long e-mail ends with three dots and shows whole on hover / tap - the shared EllipsisText (Owner rule 2026-11-19) */}
+      <EllipsisText as="span" plain className="av-mail" text={a.email || ''} />
     </div>
   );
   const plan = (a, sub = null) => <AdminAccountStatus account={a} summary={summaryOf(a)} statusKey={rowStatus(a)} isHebrew={isHebrew} formatDate={(v) => accountDate(v, a, adminMarket)} size={26} sub={sub} />;

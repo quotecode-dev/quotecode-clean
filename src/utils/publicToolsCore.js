@@ -32,8 +32,10 @@ export function convertLength(value, from, to) {
   return (value * UNIT_FACTORS[from]) / UNIT_FACTORS[to];
 }
 // up to 6 significant decimals, trailing zeros dropped (1 m -> "100" cm, 1 in -> "0.0254" m)
-export function formatToolNumber(n, locale = 'en-US', maxFractionDigits = 6) {
-  return Number(n).toLocaleString(locale, { maximumFractionDigits: maxFractionDigits, useGrouping: true });
+// Owner 2026-11-24 ("ומה עם הסכום? צריך שלפחות הוא יהיה XX"): a money result always shows two digits after the point (€55,479.60, not
+// €55,479.6) - the money helpers pass minFractionDigits 2; the unit converter keeps its plain number
+export function formatToolNumber(n, locale = 'en-US', maxFractionDigits = 6, minFractionDigits = 0) {
+  return Number(n).toLocaleString(locale, { minimumFractionDigits: Math.min(minFractionDigits, maxFractionDigits), maximumFractionDigits: maxFractionDigits, useGrouping: true });
 }
 
 // ---------------------------------------------------------------------------------------------------------------- metals
