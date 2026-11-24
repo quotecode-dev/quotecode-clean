@@ -13,6 +13,10 @@
 // Purim (Adar 14 / Adar II 14 in a leap year), Yom HaShoah (Nisan 27; Friday -> Thursday, Sunday -> Monday), Yom HaZikaron (the day before
 // the moved Yom HaAtzmaut), Lag BaOmer (Iyar 18), Yom Yerushalayim (Iyar 28), Tisha B'Av (Av 9; Saturday -> Sunday), the eves of Rosh
 // Hashanah, Yom Kippur, Sukkot, Pesach and Shavuot, and Chol HaMoed (Tishri 16-21 with Hoshana Rabbah, Nisan 16-20).
+// Owner 2026-11-24 (typed: "מאשר הוספת ארבעת הצומות ליומן בישראל: תענית אסתר, י"ז בתמוז, צום גדליה ועשרה בטבת, כולל שינוי ב-L-30, שחרור
+// עד הלייב"): four fast days join the same `observances` list (name only, never a rest day): Tzom Gedaliah (Tishri 3; Saturday -> Sunday),
+// the Tenth of Tevet (Tevet 10; never moved), the Fast of Esther (Adar 13 / Adar II 13 in a leap year; Saturday -> Thursday Adar 11) and
+// the Seventeenth of Tammuz (Tammuz 17; Saturday -> Sunday). Tisha B'Av was already in the list.
 // The dataset is independently cross-checked by src/utils/israelHolidays.test.js against published reference dates.
 //   node scripts/generate-israel-holidays.mjs            (writes the JSON)
 //   node scripts/generate-israel-holidays.mjs --check    (exit 1 if the committed JSON differs from a fresh generation)
@@ -81,6 +85,11 @@ export function generate() {
       obs.push({ date: at(t, wd === 5 ? -1 : wd === 0 ? 1 : 0), key: 'yom_hashoah', he: 'יום השואה', en: 'Holocaust Remembrance Day' });
     }
     if (h.month === 'Av' && h.day === 9) obs.push({ date: at(t, d.getUTCDay() === 6 ? 1 : 0), key: 'tisha_bav', he: 'תשעה באב', en: "Tisha B'Av" });
+    // the four fasts (Owner 2026-11-24): a fast never falls on a Saturday - moved by the rules in the header
+    if (h.month === 'Tishri' && h.day === 3) obs.push({ date: at(t, d.getUTCDay() === 6 ? 1 : 0), key: 'tzom_gedaliah', he: 'צום גדליה', en: 'Fast of Gedaliah' });
+    if (h.month === 'Tevet' && h.day === 10) obs.push({ date: iso(d), key: 'asara_btevet', he: 'עשרה בטבת', en: 'Tenth of Tevet' });
+    if ((h.month === 'Adar' || h.month === 'Adar II') && h.day === 13) obs.push({ date: at(t, d.getUTCDay() === 6 ? -2 : 0), key: 'taanit_esther', he: 'תענית אסתר', en: 'Fast of Esther' });
+    if (h.month === 'Tamuz' && h.day === 17) obs.push({ date: at(t, d.getUTCDay() === 6 ? 1 : 0), key: 'shiva_asar_btamuz', he: 'י״ז בתמוז', en: 'Seventeenth of Tammuz' });
   }
   out.sort((a, b) => a.date.localeCompare(b.date) || a.key.localeCompare(b.key));
   // the Gregorian range applies to both lists (an observance moved across a year boundary stays inside the range)
