@@ -365,26 +365,6 @@ serve(async (req) => {
     }
   }
 
-  // Owner 2026-11-24 (typed: "מאשר סבב המשך לצ׳אט: ארבע הנסיגות והפריטים שנשארו מהסבב הקודם, כולל שינוי ב-L-14 ו-L-17"; live re-run en-22):
-  // "how do I change / add lines with AI to an existing quote" = the verified Smart edit steps (it reached the model and was then replaced by
-  // the price list) - a SMART PACK feature, said once
-  const SMART_EDIT_REQUEST = [
-    /\bsmart\s+edit\b/i,
-    /\b(ai|smart)\b.{0,30}\b(edit|change|add|update|modify)\b.{0,30}\b(existing|saved|my|a)\s+quote\b/i,
-    /\b(edit|change|add|update|modify)\b.{0,30}\b(lines?|rows?|items?|quote)\b.{0,30}\b(with|using)\s+(the\s+)?ai\b/i,
-    /עריכה\s+חכמה/,
-    /(משנים|לשנות|עורכים|לערוך|מוסיפים|להוסיף|מעדכנים|לעדכן).{0,30}(הצעה\s+קיימת|הצעה\s+שמורה|שורות|ההצעה).{0,20}(עם|בעזרת)\s*(ה-?)?(AI|בינה)/i,
-  ];
-  const smartEditHowTo = (HOW_QUESTION.test(lastUserMessage) || /^\s*(can|could)\b/i.test(lastUserMessage)) && SMART_EDIT_REQUEST.some((re) => re.test(lastUserMessage))
-    ? AI_FACTS.howTo?.find((e: { id: string }) => e.id === 'smart_edit_quote') : null;
-  if (smartEditHowTo) {
-    const t = howToText(smartEditHowTo, isHebrew, marketIL);
-    const body = `${t.task}:\n${t.steps.map((s: string, i: number) => `${i + 1}. ${s}`).join('\n')}`;
-    const smartEditAnswer = /חכם פלוס|SMART PACK/.test(body) ? body : `${body}\n\n${isHebrew ? 'זה חלק מחכם פלוס.' : 'This is part of SMART PACK.'}`;
-    await logChat(smartEditAnswer);
-    return deterministicResponse(smartEditAnswer, null, null);
-  }
-
   // Owner 2026-11-24 (typed: "מאשר את שלב 4 בתוכנית הצ׳אט ... כולל שינוי ב-L-14 ו-L-17"; chat audit en-27): "how do I change the currency"
   // is a how-to question - the verified business_currency steps (market-bound: an Israeli account works in ₪ only), before the market answer
   const currencyHowTo = HOW_QUESTION.test(lastUserMessage) && /\bcurrenc(y|ies)\b|מטבע/i.test(lastUserMessage) && !/\bmarket\b|שוק/i.test(lastUserMessage)
@@ -455,16 +435,8 @@ serve(async (req) => {
         const steps = !shortFile && (matched || capabilityId === 'data_export') && (HOW_QUESTION.test(lastUserMessage) || WHY_QUESTION.test(lastUserMessage)) && ['AVAILABLE', 'PLAN_NOT_DECIDED', 'PLAN_LOCKED', 'SMART_PACK'].includes(truthStatus)
           ? howToStepsForCapability(stepsCapabilityId, lastUserMessage, isHebrew, AI_FACTS.howTo, marketIL) : '';
         const smartPackLine = isHebrew ? 'זה חלק מחכם פלוס.' : 'This is part of SMART PACK.';
-        // Owner 2026-11-24 (typed: "מאשר סבב המשך לצ׳אט ... כולל שינוי ב-L-14 ו-L-17"): the SMART PACK line once - not when the steps already
-        // say it (attachments said it twice) - and also for the AI smart quote (it was missing)
-        const smartPackFeature = truthStatus === 'SMART_PACK' || capabilityId === 'smart_quote';
-        const withSmartPack = (text: string) => (smartPackFeature && !/חכם פלוס|SMART PACK/.test(text) ? `${text}\n\n${smartPackLine}` : text);
-        const stepsAnswer = !steps ? '' : truthStatus === 'PLAN_LOCKED' ? `${capabilityTruth.answer}\n\n${steps}` : withSmartPack(steps);
-        // a "how" question about an available capability with no verified steps: its description, without the "yes - X exists" opener
-        const describeOnly = !shortFile && !steps && matched && truthStatus === 'AVAILABLE' && capabilityTruth.factPayload.requiredRole === null
-          && (HOW_QUESTION.test(lastUserMessage) || WHY_QUESTION.test(lastUserMessage))
-          ? String((isHebrew ? matched.heDescription : matched.enDescription) || '') : '';
-        const capabilityAnswer = shortFile || stepsAnswer || describeOnly || capabilityTruth.answer;
+        const stepsAnswer = !steps ? '' : truthStatus === 'PLAN_LOCKED' ? `${capabilityTruth.answer}\n\n${steps}` : truthStatus === 'SMART_PACK' ? `${steps}\n\n${smartPackLine}` : steps;
+        const capabilityAnswer = shortFile || stepsAnswer || capabilityTruth.answer;
         // Owner 2026-10-24 (typed L-17): "can you build / write me a quote" (ai_mutation about a quote) offers the AI smart quote button;
         // 2026-10-25 (QA report): only a build / write request - "can you send / delete my quote" gets no button
         // Owner console 2026-11-03 (typed approval incl. L-17): a quote FROM a file offers its own dialog, not the AI smart quote
@@ -744,8 +716,7 @@ serve(async (req) => {
     answer,
     answerSource: subscriptionViolations.length ? 'deterministic' : 'model',
     factPayload: null,
-    // Owner 2026-11-24 (L-17): a rejected model answer's button never travels with the replacement text
-    navigation: navigationAction && !subscriptionViolations.length ? { action: navigationAction, focus: NAV_FOCUS[navigationAction] ?? null } : null,
+    navigation: navigationAction ? { action: navigationAction, focus: NAV_FOCUS[navigationAction] ?? null } : null,
     selectedQuoteContext: selectedQuoteRequested ? { requested: true, available: selectedQuoteAvailable } : null,
     ...helpEnvelope,
     error: null,

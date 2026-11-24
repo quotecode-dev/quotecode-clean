@@ -186,24 +186,21 @@ export const PRODUCT_HOW_TO = Object.freeze([
     id: "client_delete_blocked",
     capabilityIds: ["clients"],
     he: {
-      task: "מחיקת לקוח, ולמה לפעמים אי אפשר",
+      task: "למה אי אפשר למחוק לקוח",
       steps: [
-        // Owner 2026-11-24 (typed: "מאשר סבב המשך לצ׳אט ... כולל שינוי ב-L-14 ו-L-17"; live re-run en-23): the click path first
-        "בתפריט הצד לוחצים \"לקוחות\", פותחים את השורה של הלקוח ולוחצים \"מחיקה\".",
         "אי אפשר למחוק לקוח שיש לו הצעה כלשהי, גם טיוטה. מוחקים קודם את ההצעות שלו ואז את הלקוח.",
         "הצעה חתומה או מאושרת אי אפשר למחוק, ולכן לקוח עם הצעה כזו נשאר במערכת לצורכי תיעוד.",
       ],
     },
     en: {
-      task: "Deleting a client, and when it is blocked",
+      task: "Why a client cannot be deleted",
       steps: [
-        "In the side menu click \"Clients\", open the client's row and click \"Delete\".",
         "A client with any quote, drafts included, cannot be deleted. Delete their quotes first, then the client.",
         "A signed or approved quote cannot be deleted, so a client with such a quote stays in the system for the records.",
       ],
     },
     evidence: [
-      { file: "src/components/ClientsTab.jsx", labels: ["לא ניתן למחוק לקוח עם הצעות מחיר חתומות או מאושרות", "מחיקה", "Delete"] },
+      { file: "src/components/ClientsTab.jsx", labels: ["לא ניתן למחוק לקוח עם הצעות מחיר חתומות או מאושרות"] },
     ],
   },
   {
@@ -1026,22 +1023,6 @@ export const PRODUCT_HOW_TO = Object.freeze([
   },
   // Owner 2026-11-24 (typed: "מאשר את שלב 4 בתוכנית הצ׳אט: תיקון עשר הבעיות מהדוח, כולל שינוי ב-L-14 ו-L-17 ..."): steps the chat audit found
   // missing - the pricing method of a row, the leads tab, the list search and filters, and how the client signs
-  {
-    // Owner 2026-11-24 (typed: "מאשר סבב המשך לצ׳אט ... כולל שינוי ב-L-14 ו-L-17"; live re-run en-2): where the calculator is
-    id: 'calculator_location',
-    capabilityIds: ['editor_calculator'],
-    he: {
-      task: 'איפה המחשבון',
-      steps: ['המחשבון נמצא בסרגל העליון של המסך, ליד הפעמון, בכל מסך - גם בתוך עורך ההצעה. לוחצים על אייקון "מחשבון".'],
-    },
-    en: {
-      task: 'Where the calculator is',
-      steps: ['The calculator is in the top bar of the screen, next to the bell, on every screen - in the quote editor too. Click the "Calculator" icon.'],
-    },
-    evidence: [
-      { file: 'src/pages/Dashboard.jsx', labels: ['מחשבון', 'Calculator'] },
-    ],
-  },
   {
     id: 'pricing_unit',
     capabilityIds: ['measured_quote', 'quote_create'],

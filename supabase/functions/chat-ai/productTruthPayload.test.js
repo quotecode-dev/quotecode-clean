@@ -385,8 +385,7 @@ describe('(5) index.ts: every deterministic Product Truth route emits its struct
   });
   it('the payload is resolved against SERVER-VERIFIED account facts only (never caller-supplied), and free-form / model answers stay null', () => {
     expect(indexSource).toMatch(/const payloadAccount: PayloadAccountFacts = verifiedUserId && accountContext/);
-    // Owner 2026-11-24 (chat follow-up, L-17): a comment line may sit between the two
-    expect(indexSource).toMatch(/factPayload: null,\n(\s+\/\/[^\n]*\n)?\s+navigation: navigationAction/);
+    expect(indexSource).toMatch(/factPayload: null,\n\s+navigation: navigationAction/);
   });
   it('no route calls the prose-only formatters any more (prose always comes with its payload)', () => {
     expect(indexSource).not.toMatch(/formatCapabilityTruthAnswer\(|formatPaymentTruthAnswer\(|formatInvoicingTruthAnswer\(|formatBroadCapabilityClarification\(/);

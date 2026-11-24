@@ -49,7 +49,7 @@ describe('the audit questions reach the right verified steps', () => {
 
 describe('index.ts answers', () => {
   it('a how / why question with steps = the steps (no "yes - X exists" opener); plan-locked keeps its answer; SMART PACK one line', () => {
-    expect(index).toContain('const capabilityAnswer = shortFile || stepsAnswer || describeOnly || capabilityTruth.answer;');
+    expect(index).toContain('const capabilityAnswer = shortFile || stepsAnswer || capabilityTruth.answer;');
     expect(index).toContain("['AVAILABLE', 'PLAN_NOT_DECIDED', 'PLAN_LOCKED', 'SMART_PACK'].includes(truthStatus)");
     expect(index).toContain("const smartPackLine = isHebrew ? 'זה חלק מחכם פלוס.' : 'This is part of SMART PACK.';");
   });

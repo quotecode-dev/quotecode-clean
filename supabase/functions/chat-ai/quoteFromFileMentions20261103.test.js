@@ -76,7 +76,7 @@ describe('the short answer to a quote-from-file question', () => {
   it('index.ts answers a file question with it (available, no role) and skips the long description and the steps', () => {
     const src = readFileSync('supabase/functions/chat-ai/index.ts', 'utf8');
     expect(src).toContain("const shortFile = fileQuestion && capabilityTruth.factPayload.truthStatus === 'AVAILABLE' && capabilityTruth.factPayload.requiredRole === null");
-    expect(src).toContain('const capabilityAnswer = shortFile || stepsAnswer || describeOnly || capabilityTruth.answer;'); // Owner 2026-11-24 (L-17): steps-only for how / why
+    expect(src).toContain('const capabilityAnswer = shortFile || stepsAnswer || capabilityTruth.answer;'); // Owner 2026-11-24 (L-17): steps-only for how / why
     expect(src).toContain("const navId = fileQuestion ? 'open_file_quote'");
   });
   it('the smart quote capability payload for a file question is AVAILABLE without a role (the short answer is reachable)', () => {
