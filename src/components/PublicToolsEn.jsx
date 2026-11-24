@@ -20,7 +20,7 @@ import {
 // stated (editable) reference price, and the closing CTA opens account creation in English.
 const ERR = INPUT_ERRORS.en;
 const when = (ms) => formatShortDateTime(new Date(ms), 'International');
-const num = (n, digits = 2) => formatToolNumber(n, 'en-US', digits, 2); // money: always two digits after the point (Owner 2026-11-24)
+const num = (n, digits = 2) => formatToolNumber(n, 'en-US', digits);
 
 // Owner console 2026-11-24, typed: "מאשר ליישם במוצר את סקיצת הצבעים של הצ׳אט והכלים, ולשחרר עד הלייב" (sketch TEKANGO-sketch-chat-tools-2026-11-24-v2:
 // "מחשבון - ... כותרות לכחול וכיתוב בלבן גם את התוצאה" + the tab row "רקע כחול, כיתוב ואייקונים בלבן"): headings, links and icons in the

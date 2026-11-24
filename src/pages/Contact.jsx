@@ -8,15 +8,12 @@ import { publicSeoFor } from '../shared/publicSeoRoutes';
 import { SUPPORT_EMAIL_HE, SUPPORT_EMAIL_EN } from '../shared/brand';
 import { useLauncherStepAside } from '../hooks/useLauncherStepAside';
 import MailLink from '../components/MailLink';
-import TekangoBotIcon from '../components/TekangoBotIcon';
 
 // Task 36 (Codex landing review L6): the floating AI launcher steps aside while it would cover a heading, text or action of this page
 // (measured: it covered the support email link and the "Start chat" button). HE copy (Task 36, §ג): one form of address (plural, as the
 // landing), no English badge on the Hebrew page, no superlative.
 const CONTACT_PROTECTED = '.contact-main h1, .contact-main h2, .contact-main p, .contact-main a, .contact-main button, .contact-main [data-protect], footer';
 
-// Owner 2026-11-24 ("למה זה לא בצבעים החדשים שלנו?" -> "א"): the page in the new light colours, like the tools pages (toolsLightTheme.js
-// values, navy headings / links / button, the landing green #24694c for the badge and the response time) - colours and the logo variant only
 export default function Contact({ isHebrew }) {
   const navigate = useNavigate();
   const rootRef = useRef(null);
@@ -52,8 +49,7 @@ export default function Contact({ isHebrew }) {
     responseTimeValue: 'פניות לתמיכה נענות בימי העבודה.',
     responseTimeDesc: 'פניות שיישלחו בסוף השבוע ייענו ביום העבודה הבא.',
     aiTitle: 'צ׳אט עם עוזר ה-AI',
-    // Owner 2026-11-24: "ה-AI" never splits across two lines (a non-breaking hyphen U+2011)
-    aiDesc: 'קבלו תשובות מיידיות בכל שעה לשאלות על המערכת, המחירים והמסלולים, בעזרת עוזר ה‑AI שלנו.',
+    aiDesc: 'קבלו תשובות מיידיות בכל שעה לשאלות על המערכת, המחירים והמסלולים, בעזרת עוזר ה-AI שלנו.',
     aiButton: 'פתיחת הצ׳אט ✦',
     aiBadge: 'זמין בכל שעה',
     footerText: 'TEKANGO ישראל - מערכת להפקת הצעות מחיר ולניהול העסק.',
@@ -108,13 +104,12 @@ export default function Contact({ isHebrew }) {
   };
 
   return (
-    <div ref={rootRef} dir={isHebrew ? 'rtl' : 'ltr'} style={{ fontFamily: "'Rubik', system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans Hebrew', 'Noto Sans', sans-serif", background: '#f7f8f6', minHeight: '100vh', color: '#172129', display: 'flex', flexDirection: 'column' }}>
+    <div ref={rootRef} dir={isHebrew ? 'rtl' : 'ltr'} style={{ fontFamily: "'Rubik', system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans Hebrew', 'Noto Sans', sans-serif", background: '#090d16', minHeight: '100vh', color: '#f8fafc', display: 'flex', flexDirection: 'column' }}>
       
       <style>{`
         .contact-card {
-          background: #ffffff;
-          border: 1px solid #d6dee1;
-          box-shadow: 0 1px 2px rgba(23, 33, 41, 0.05);
+          background: #1f2937;
+          border: 1px solid rgba(255,255,255,0.08);
           border-radius: 16px;
           padding: 30px;
           transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
@@ -125,8 +120,8 @@ export default function Contact({ isHebrew }) {
         }
         .contact-card:hover {
           transform: translateY(-5px);
-          border-color: #315f6f;
-          box-shadow: 0 15px 30px -10px rgba(16, 36, 68, 0.18);
+          border-color: #6366f1;
+          box-shadow: 0 15px 30px -10px rgba(99, 102, 241, 0.2);
         }
         .contact-icon {
           width: 48px;
@@ -139,7 +134,7 @@ export default function Contact({ isHebrew }) {
         }
         .ai-btn {
           margin-top: auto;
-          background: #102444;
+          background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
           color: white;
           border: none;
           padding: 10px 20px;
@@ -159,18 +154,18 @@ export default function Contact({ isHebrew }) {
       `}</style>
 
       {/* Header */}
-      <header style={{ background: 'rgba(255, 255, 255, 0.94)', borderBottom: '1px solid #d6dee1', padding: '16px 20px', position: 'sticky', top: 0, zIndex: 10 }}>
+      <header style={{ background: 'rgba(9, 13, 22, 0.9)', borderBottom: '1px solid rgba(255,255,255,0.08)', padding: '16px 20px', position: 'sticky', top: 0, zIndex: 10 }}>
         <div style={{ maxWidth: '1050px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
           <div style={{ display: 'flex', alignItems: 'center' }}>
-            <ProFlowLogo size={32} darkText />
+            <ProFlowLogo size={32} />
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
             <AIChatWidget isHebrew={isHebrew} isDashboard={false} />
             <button 
               onClick={() => goBackOrHome(navigate, isHebrew)} 
-              style={{ background: '#ffffff', color: '#102444', border: '1px solid #aebbc0', padding: '6px 16px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 'bold', transition: 'all 0.2s' }}
-              onMouseEnter={(e) => { e.target.style.color = '#102444'; e.target.style.borderColor = '#102444'; }}
-              onMouseLeave={(e) => { e.target.style.color = '#102444'; e.target.style.borderColor = '#aebbc0'; }}
+              style={{ background: 'transparent', color: '#94a3b8', border: '1px solid rgba(255,255,255,0.2)', padding: '6px 16px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 'bold', transition: 'all 0.2s' }}
+              onMouseEnter={(e) => { e.target.style.color = '#ffffff'; e.target.style.borderColor = '#ffffff'; }}
+              onMouseLeave={(e) => { e.target.style.color = '#94a3b8'; e.target.style.borderColor = 'rgba(255,255,255,0.2)'; }}
             >
               {t.back}
             </button>
@@ -182,56 +177,53 @@ export default function Contact({ isHebrew }) {
       <main className="contact-main" style={{ flex: 1, padding: '60px 20px' }}>
         <div style={{ maxWidth: '1050px', margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: '50px' }}>
-            <h1 style={{ fontSize: '3rem', fontWeight: '900', color: '#102444', marginBottom: '16px', letterSpacing: '-0.5px' }}>{t.title}</h1>
-            <p style={{ color: '#4f5d64', fontSize: '1.1rem', maxWidth: '600px', margin: '0 auto', lineHeight: '1.6' }}>{t.subtitle}</p>
+            <h1 style={{ fontSize: '3rem', fontWeight: '900', color: '#ffffff', marginBottom: '16px', letterSpacing: '-0.5px' }}>{t.title}</h1>
+            <p style={{ color: '#94a3b8', fontSize: '1.1rem', maxWidth: '600px', margin: '0 auto', lineHeight: '1.6' }}>{t.subtitle}</p>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
             
             {/* Email Card */}
             <div className="contact-card">
-              <div className="contact-icon" style={{ background: '#e9edf3' }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#102444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+              <div className="contact-icon" style={{ background: 'rgba(59, 130, 246, 0.15)' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
               </div>
-              <h2 style={{ fontSize: '1.3rem', fontWeight: '800', color: '#102444', marginBottom: '10px' }}>{t.emailTitle}</h2>
-              <MailLink href={`mailto:${t.emailValue}`} isHebrew={isHebrew} style={{ color: '#102444', fontSize: '1.15rem', fontWeight: 'bold', textDecoration: 'none', marginBottom: '12px', display: 'inline-block' }}><bdi dir="ltr">{t.emailValue}</bdi></MailLink>
-              <p style={{ color: '#4f5d64', fontSize: '0.95rem', lineHeight: '1.5', margin: 0 }}>{t.emailDesc}</p>
+              <h2 style={{ fontSize: '1.3rem', fontWeight: '800', color: '#ffffff', marginBottom: '10px' }}>{t.emailTitle}</h2>
+              <MailLink href={`mailto:${t.emailValue}`} isHebrew={isHebrew} style={{ color: '#3b82f6', fontSize: '1.15rem', fontWeight: 'bold', textDecoration: 'none', marginBottom: '12px', display: 'inline-block' }}><bdi dir="ltr">{t.emailValue}</bdi></MailLink>
+              <p style={{ color: '#94a3b8', fontSize: '0.95rem', lineHeight: '1.5', margin: 0 }}>{t.emailDesc}</p>
             </div>
 
             {/* Task 39: business details + the cancellation-request path */}
             <div className="contact-card" data-testid="contact-business">
-              <h2 style={{ fontSize: '1.3rem', fontWeight: '800', color: '#102444', marginBottom: '10px' }}>{t.businessTitle}</h2>
-              {t.businessLines.map((line) => <p key={line} style={{ color: '#172129', fontSize: '0.95rem', lineHeight: '1.5', margin: '0 0 6px' }}>{line}</p>)}
-              {/* PRODUCT_TRUTH_DECORATIVE: tel link to the business phone (Israeli site only) */}{t.phone && <a href={t.phoneHref} data-testid="contact-phone" style={{ color: '#102444', fontWeight: 'bold', textDecoration: 'none', margin: '0 0 12px' }}><bdi dir="ltr">{t.phone}</bdi></a>}
-              <h3 style={{ fontSize: '1.05rem', fontWeight: '800', color: '#102444', margin: '12px 0 6px' }}>{t.cancelTitle}</h3>
-              <p style={{ color: '#4f5d64', fontSize: '0.95rem', lineHeight: '1.5', margin: '0 0 8px' }}>{t.cancelText}</p>
-              {/* PRODUCT_TRUTH_DECORATIVE: mailto link that opens a cancellation-request email to the service mailbox (handled by the team; no automatic cancellation) */}<MailLink href={`mailto:${t.emailValue}?subject=${encodeURIComponent(t.cancelSubject)}&body=${encodeURIComponent(t.cancelBody)}`} isHebrew={isHebrew} data-testid="contact-cancel-request" style={{ color: '#102444', fontWeight: 'bold', textDecoration: 'none', marginBottom: '6px' }}>{t.cancelLink}</MailLink>
-              {/* PRODUCT_TRUTH_DECORATIVE: public legal page link (the cancellation and refund terms) */}<a href={t.termsHref} onClick={(e) => { e.preventDefault(); navigate(t.termsHref); }} style={{ color: '#4f5d64', fontSize: '0.9rem' }}>{t.termsLink}</a>
+              <h2 style={{ fontSize: '1.3rem', fontWeight: '800', color: '#ffffff', marginBottom: '10px' }}>{t.businessTitle}</h2>
+              {t.businessLines.map((line) => <p key={line} style={{ color: '#cbd5e1', fontSize: '0.95rem', lineHeight: '1.5', margin: '0 0 6px' }}>{line}</p>)}
+              {/* PRODUCT_TRUTH_DECORATIVE: tel link to the business phone (Israeli site only) */}{t.phone && <a href={t.phoneHref} data-testid="contact-phone" style={{ color: '#3b82f6', fontWeight: 'bold', textDecoration: 'none', margin: '0 0 12px' }}><bdi dir="ltr">{t.phone}</bdi></a>}
+              <h3 style={{ fontSize: '1.05rem', fontWeight: '800', color: '#ffffff', margin: '12px 0 6px' }}>{t.cancelTitle}</h3>
+              <p style={{ color: '#94a3b8', fontSize: '0.95rem', lineHeight: '1.5', margin: '0 0 8px' }}>{t.cancelText}</p>
+              {/* PRODUCT_TRUTH_DECORATIVE: mailto link that opens a cancellation-request email to the service mailbox (handled by the team; no automatic cancellation) */}<MailLink href={`mailto:${t.emailValue}?subject=${encodeURIComponent(t.cancelSubject)}&body=${encodeURIComponent(t.cancelBody)}`} isHebrew={isHebrew} data-testid="contact-cancel-request" style={{ color: '#3b82f6', fontWeight: 'bold', textDecoration: 'none', marginBottom: '6px' }}>{t.cancelLink}</MailLink>
+              {/* PRODUCT_TRUTH_DECORATIVE: public legal page link (the cancellation and refund terms) */}<a href={t.termsHref} onClick={(e) => { e.preventDefault(); navigate(t.termsHref); }} style={{ color: '#94a3b8', fontSize: '0.9rem' }}>{t.termsLink}</a>
             </div>
 
             {/* Response Time Card */}
             <div className="contact-card">
-              <div className="contact-icon" style={{ background: '#e9edf3' }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#102444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+              <div className="contact-icon" style={{ background: 'rgba(16, 185, 129, 0.15)' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
               </div>
-              <h2 style={{ fontSize: '1.3rem', fontWeight: '800', color: '#102444', marginBottom: '10px' }}>{t.responseTimeTitle}</h2>
-              <div style={{ color: '#24694c', fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '12px' }}>{t.responseTimeValue}</div>
-              <p style={{ color: '#4f5d64', fontSize: '0.95rem', lineHeight: '1.5', margin: 0 }}>{t.responseTimeDesc}</p>
+              <h2 style={{ fontSize: '1.3rem', fontWeight: '800', color: '#ffffff', marginBottom: '10px' }}>{t.responseTimeTitle}</h2>
+              <div style={{ color: '#10b981', fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '12px' }}>{t.responseTimeValue}</div>
+              <p style={{ color: '#94a3b8', fontSize: '0.95rem', lineHeight: '1.5', margin: 0 }}>{t.responseTimeDesc}</p>
             </div>
 
             {/* AI Chat Card */}
             <div className="contact-card" style={{ position: 'relative', overflow: 'hidden' }}>
-              {/* Owner 2026-11-24 ("מאשר לתקן בשחרור הזה גם את שלושת ההבדלים הקיימים: התג בכרטיס הצ׳אט ..."): the badge sits at the card's END corner
-                  (top-right in English, top-left in Hebrew) with its inner bottom corner rounded - logical properties, mirrored by the page direction */}
-              <div data-testid="contact-ai-badge" style={{ position: 'absolute', top: 0, insetInlineEnd: 0, background: '#24694c', color: 'white', padding: '4px 12px', borderEndStartRadius: '16px', fontSize: '0.75rem', fontWeight: 'bold' }}>
+              <div style={{ position: 'absolute', top: 0, right: 0, background: '#10b981', color: 'white', padding: '4px 12px', borderBottomLeftRadius: isHebrew ? '0' : '16px', borderBottomRightRadius: isHebrew ? '16px' : '0', fontSize: '0.75rem', fontWeight: 'bold' }}>
                 {t.aiBadge}
               </div>
-              {/* Owner 2026-11-24 ("לסדר גם את הרובוט שיהיה כמו כולם"): the TEKANGO robot, white on the sidebar navy - like the chat launcher and the chat header */}
-              <div className="contact-icon" style={{ background: '#102444' }} data-testid="contact-ai-icon">
-                <TekangoBotIcon size={34} plain ink="#FFFFFF" face="#102444" />
+              <div className="contact-icon" style={{ background: 'rgba(139, 92, 246, 0.15)' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"></rect><circle cx="12" cy="5" r="2"></circle><path d="M12 7v4"></path><line x1="8" y1="16" x2="8" y2="16"></line><line x1="16" y1="16" x2="16" y2="16"></line></svg>
               </div>
-              <h2 style={{ fontSize: '1.3rem', fontWeight: '800', color: '#102444', marginBottom: '10px' }}>{t.aiTitle}</h2>
-              <p style={{ color: '#4f5d64', fontSize: '0.95rem', lineHeight: '1.5', margin: 0 }}>{t.aiDesc}</p>
+              <h2 style={{ fontSize: '1.3rem', fontWeight: '800', color: '#ffffff', marginBottom: '10px' }}>{t.aiTitle}</h2>
+              <p style={{ color: '#94a3b8', fontSize: '0.95rem', lineHeight: '1.5', margin: 0 }}>{t.aiDesc}</p>
               <button className="ai-btn" onClick={handleAiClick}>{t.aiButton}</button>
             </div>
 
@@ -240,7 +232,7 @@ export default function Contact({ isHebrew }) {
       </main>
 
       {/* Footer */}
-      <footer style={{ textAlign: 'center', padding: '24px', color: '#4f5d64', fontSize: '0.85rem', borderTop: '1px solid #d6dee1' }}>
+      <footer style={{ textAlign: 'center', padding: '24px', color: '#64748b', fontSize: '0.85rem', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
         &copy; {new Date().getFullYear()} {t.footerText}
       </footer>
     </div>

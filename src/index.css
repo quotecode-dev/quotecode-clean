@@ -954,10 +954,3 @@ html body .dash-app-shell .dash-upper-section, html body .dash-app-shell aside, 
 .pf-own-price { font-weight: 400; }
 /* one colour (Owner 22-23/11): fields inside the windows (AI, file, client...) get the same navy focus ring as the work screen */
 [role="dialog"] :where(input, textarea, select):focus-visible { outline: 2px solid #102444; outline-offset: 1px; }
-
-/* Owner 2026-11-24 (typed: "מאשר לתקן בשחרור הזה גם את שלושת ההבדלים הקיימים: התג בכרטיס הצ׳אט, המייל בפס הצד וה-AI בשורה אחת"): the
-   e-mail under the business name in the sidebar is laid out left-to-right in both languages, so a long address always shows its start and
-   ends with the three dots (Hebrew showed "…on-office@tekango.com"); in Hebrew it stays right-aligned under the business name. Kept here,
-   outside Dashboard.jsx (the approved simplify demo file). */
-.dash-app-shell .dash-sidebar-user-name { direction: ltr; }
-.dash-app-shell[dir="rtl"] .dash-sidebar-user-name { text-align: right; }

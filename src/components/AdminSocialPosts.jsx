@@ -31,11 +31,6 @@ async function callFn(body) {
 const STILL = /^https:\/\/[a-z0-9]+\.supabase\.co\/storage\/v1\/object\/public\/social-stills\//;
 const postImageOf = (p) => (STILL.test(String(p.still_url || '')) ? p.still_url : `/social/art/${p.art}.jpg`);
 
-// Owner 2026-11-24 (L-22): a hashtag inside the post text keeps its # on the right side in either direction (its own isolate); the text itself
-// (textContent) does not change
-const TAG_RUN = /(#[\p{L}\p{N}_]+)/u;
-const withTagBoxes = (text) => String(text ?? '').split(TAG_RUN).map((part, i) => (i % 2 === 1 ? <bdi key={i} dir="auto">{part}</bdi> : part));
-
 const fullText = (p) => [p.text, (p.hashtags || []).join(' '), p.link].filter(Boolean).join('\n\n');
 
 // stage 2 (Owner 2026-10-27, "מאשר את שלב 2 של סוכנת הרשתות"): only a Meta address the server returned is ever a link
@@ -130,9 +125,8 @@ function PostCard({ a, isHebrew, canPublish, busy, onAct, onCopy, auto, metrics 
         </div>
         {/* the post in ITS account's language and direction (the Owner's market rule) */}
         <div lang={lang} dir={lang === 'he' ? 'rtl' : 'ltr'} style={{ whiteSpace: 'pre-line', lineHeight: 1.6, fontSize: '0.92rem' }} data-testid={`social-post-text-${a.id}`}>
-          {withTagBoxes(p.text)}
-          {/* Owner 2026-11-24 (L-22): each hashtag in its own direction box - "#TEKANGO" in a Hebrew post read "TEKANGO#" */}
-          {p.hashtags?.length > 0 && <div style={{ marginTop: 6, color: '#315f6f' }} data-testid={`social-post-tags-${a.id}`}>{p.hashtags.map((tag, i) => <span key={`${tag}-${i}`}>{i > 0 ? ' ' : ''}<bdi dir="auto">{tag}</bdi></span>)}</div>}
+          {p.text}
+          {p.hashtags?.length > 0 && <div style={{ marginTop: 6, color: '#315f6f' }}>{p.hashtags.join(' ')}</div>}
           {p.link && <div style={{ marginTop: 4 }}><bdi dir="ltr" className="av-muted" style={{ fontSize: '0.82rem' }}>{p.link}</bdi></div>}
         </div>
         {p.network === 'tiktok' && (
