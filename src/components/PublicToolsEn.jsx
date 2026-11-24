@@ -22,13 +22,16 @@ const ERR = INPUT_ERRORS.en;
 const when = (ms) => formatShortDateTime(new Date(ms), 'International');
 const num = (n, digits = 2) => formatToolNumber(n, 'en-US', digits);
 
-function FeedLine({ feed, testId, label, asOf }) {
+// Owner console 2026-11-24, typed: "מאשר ליישם במוצר את סקיצת הצבעים של הצ׳אט והכלים, ולשחרר עד הלייב" (sketch TEKANGO-sketch-chat-tools-2026-11-24-v2:
+// "מחשבון - ... כותרות לכחול וכיתוב בלבן גם את התוצאה" + the tab row "רקע כחול, כיתוב ואייקונים בלבן"): headings, links and icons in the
+// sidebar navy (TOOLS.button), the tab row and every result box navy with white text.
+function FeedLine({ feed, testId, label, asOf, onDark = false }) {
   let text;
   if (feed.status === 'loading') text = `Loading ${label}…`;
   else if (feed.status === 'unavailable') text = `${label[0].toUpperCase()}${label.slice(1)} are not available right now. Please try again later.`;
   else if (feed.status === 'stale') text = `Could not refresh right now. Showing ${label} from ${when(asOf)} (${feed.data.source}); they may be out of date.`;
   else text = `Source: ${feed.data.source} · ${label} updated ${when(asOf)}`;
-  return <div data-testid={testId} role="status" style={{ fontSize: '0.8rem', color: feed.status === 'stale' || feed.status === 'unavailable' ? TOOLS.amber : TOOLS.textMuted || TOOLS.textSecondary, marginTop: '10px', textAlign: 'center' }}>{text}</div>;
+  return <div data-testid={testId} role="status" style={{ fontSize: '0.8rem', color: onDark ? '#FFFFFF' : (feed.status === 'stale' || feed.status === 'unavailable' ? TOOLS.amber : TOOLS.textMuted || TOOLS.textSecondary), fontWeight: onDark && (feed.status === 'stale' || feed.status === 'unavailable') ? 600 : undefined, marginTop: '10px', textAlign: 'center' }}>{text}</div>;
 }
 const InputError = ({ code, testId }) => (code ? <div data-testid={testId} role="alert" style={{ color: TOOLS.red, fontSize: '0.8rem', marginTop: '6px' }}>{ERR[code]}</div> : null);
 
@@ -131,15 +134,15 @@ function PublicToolsEn({ initialTab }) {
 
   const tabBtnStyle = (tabKey) => ({
     flex: 1, minWidth: '130px', padding: '16px 10px', border: 'none',
-    background: activeTab === tabKey ? TOOLS.buttonSoft : 'transparent',
-    color: activeTab === tabKey ? TOOLS.button : TOOLS.textSecondary, fontWeight: 'bold', cursor: 'pointer',
-    borderBottom: activeTab === tabKey ? `3px solid ${TOOLS.button}` : '3px solid transparent', fontSize: '0.9rem',
+    background: activeTab === tabKey ? 'rgba(255, 255, 255, 0.14)' : 'transparent',
+    color: '#FFFFFF', fontWeight: 'bold', cursor: 'pointer',
+    borderBottom: activeTab === tabKey ? '3px solid #FFFFFF' : '3px solid transparent', fontSize: '0.9rem',
     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
   });
 
   const selectStyle = { width: '100%', padding: '12px', border: `1px solid ${TOOLS.borderStrong}`, borderRadius: '7px', minHeight: '44px', fontSize: '1rem', outline: 'none', background: TOOLS.bgInput, color: TOOLS.textPrimary, boxSizing: 'border-box' };
   const labelStyle = { display: 'block', marginBottom: '8px', fontSize: '0.85rem', fontWeight: '600', color: TOOLS.textSecondary };
-  const resultBoxStyle = { background: TOOLS.alt, padding: '20px', borderRadius: '12px', textAlign: 'center', border: `1px solid ${TOOLS.border}`, minWidth: 0 };
+  const resultBoxStyle = { background: TOOLS.button, color: '#FFFFFF', padding: '20px', borderRadius: '12px', textAlign: 'center', border: `1px solid ${TOOLS.button}`, minWidth: 0 };
   const swapBtnStyle = { background: '#ffffff', border: `1px solid ${TOOLS.borderStrong}`, borderRadius: '7px', width: '46px', height: '46px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: TOOLS.button };
   const numberInput = (id, value, setValue) => (
     <input id={id} type="text" inputMode="decimal" autoComplete="off" value={value} onChange={(e) => setValue(e.target.value)} style={selectStyle} />
@@ -150,9 +153,9 @@ function PublicToolsEn({ initialTab }) {
       {/* Header */}
       <header style={{ background: TOOLS.bg, color: TOOLS.textPrimary, padding: '56px 20px 40px', textAlign: 'center', position: 'relative', borderBottom: `1px solid ${TOOLS.border}` }}>
         {/* PRODUCT_TRUTH_DECORATIVE: navigation link back to the landing page of the same language (Task 36, L3) */}
-        <a href="/en" data-testid="tools-home" onClick={(e) => { e.preventDefault(); navigate('/en'); }} style={{ position: 'absolute', top: '12px', insetInlineStart: '16px', color: TOOLS.accent, fontSize: '0.95rem', textDecoration: 'underline', display: 'inline-flex', alignItems: 'center', minHeight: '44px' }}>Back to home</a>
+        <a href="/en" data-testid="tools-home" onClick={(e) => { e.preventDefault(); navigate('/en'); }} style={{ position: 'absolute', top: '12px', insetInlineStart: '16px', color: TOOLS.button, fontSize: '0.95rem', textDecoration: 'underline', display: 'inline-flex', alignItems: 'center', minHeight: '44px' }}>Back to home</a>
         <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'center' }}><ProFlowLogo size={30} darkText /></div>
-        <h1 style={{ fontSize: '2.2rem', marginBottom: '10px', fontWeight: 700, color: TOOLS.textPrimary }}>{toolPage ? toolPage.h1 : 'Business Tools & Calculators Hub'}</h1>
+        <h1 style={{ fontSize: '2.2rem', marginBottom: '10px', fontWeight: 700, color: TOOLS.button }}>{toolPage ? toolPage.h1 : 'Business Tools & Calculators Hub'}</h1>
         <p style={{ fontSize: '1.05rem', color: TOOLS.textSecondary, maxWidth: '600px', margin: '0 auto', lineHeight: 1.6 }}>
           {toolPage ? toolPage.intro : 'Calculators for businesses, importers and freelancers: currency and crypto conversions from a named data source with its update time, length conversions, and indicative precious-metals estimates.'}
         </p>
@@ -165,7 +168,7 @@ function PublicToolsEn({ initialTab }) {
         <div style={{ background: TOOLS.bgCard, borderRadius: '12px', boxShadow: TOOLS.cardShadow, overflow: 'hidden', border: `1px solid ${TOOLS.border}` }}>
 
           {/* Tabs */}
-          <div style={{ display: 'flex', background: TOOLS.alt, borderBottom: `1px solid ${TOOLS.border}`, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', background: TOOLS.button, flexWrap: 'wrap' }}>
             {/* PRODUCT_TRUTH_DECORATIVE: switches the active public tools tab to the currency converter */}
             <button onClick={() => setActiveTab('currency')} style={tabBtnStyle('currency')}>
               <ArrowLeftRight size={18} strokeWidth={2.2} />
@@ -192,7 +195,7 @@ function PublicToolsEn({ initialTab }) {
           <div style={{ padding: '30px' }}>
             {activeTab === 'currency' && (
               <div>
-                <h2 style={{ fontSize: '1.3rem', marginBottom: '20px', color: TOOLS.textPrimary }}>Currency Converter</h2>
+                <h2 style={{ fontSize: '1.3rem', marginBottom: '20px', color: TOOLS.button, fontWeight: 700 }}>Currency Converter</h2>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: '15px', alignItems: 'flex-end', marginBottom: '20px' }}>
                   <div>
@@ -222,16 +225,16 @@ function PublicToolsEn({ initialTab }) {
                 </div>
 
                 <div style={resultBoxStyle}>
-                  <div style={{ fontSize: '0.9rem', color: TOOLS.textSecondary, marginBottom: '5px' }}>Estimated result</div>
-                  <div data-testid="tools-currency-result" style={{ fontSize: '2rem', fontWeight: 'bold', color: TOOLS.violetLight }}>{currencyResult}</div>
-                  <FeedLine feed={feeds.currency} testId="tools-feed-currency" label="exchange rates" asOf={feeds.currency.data?.asOf} />
+                  <div style={{ fontSize: '0.9rem', color: '#FFFFFF', marginBottom: '5px' }}>Estimated result</div>
+                  <div data-testid="tools-currency-result" style={{ fontSize: '2rem', fontWeight: 'bold', color: '#FFFFFF' }}>{currencyResult}</div>
+                  <FeedLine onDark feed={feeds.currency} testId="tools-feed-currency" label="exchange rates" asOf={feeds.currency.data?.asOf} />
                 </div>
               </div>
             )}
 
             {activeTab === 'units' && (
               <div>
-                <h2 style={{ fontSize: '1.3rem', marginBottom: '20px', color: TOOLS.textPrimary }}>Length Conversions</h2>
+                <h2 style={{ fontSize: '1.3rem', marginBottom: '20px', color: TOOLS.button, fontWeight: 700 }}>Length Conversions</h2>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: '15px', alignItems: 'flex-end', marginBottom: '20px' }}>
                   <div>
@@ -261,16 +264,16 @@ function PublicToolsEn({ initialTab }) {
                 </div>
 
                 <div style={resultBoxStyle}>
-                  <div style={{ fontSize: '0.9rem', color: TOOLS.textSecondary, marginBottom: '5px' }}>Result</div>
-                  <div data-testid="tools-units-result" style={{ fontSize: '1.8rem', fontWeight: 'bold', color: TOOLS.violetLight }}>{unitsResult}</div>
+                  <div style={{ fontSize: '0.9rem', color: '#FFFFFF', marginBottom: '5px' }}>Result</div>
+                  <div data-testid="tools-units-result" style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#FFFFFF' }}>{unitsResult}</div>
                 </div>
               </div>
             )}
 
             {activeTab === 'metals' && (
               <div>
-                <h2 style={{ fontSize: '1.3rem', marginBottom: '12px', color: TOOLS.textPrimary, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Coins size={20} color={TOOLS.amber} />
+                <h2 style={{ fontSize: '1.3rem', marginBottom: '12px', color: TOOLS.button, fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Coins size={20} color={TOOLS.button} />
                   Precious Metals Value Estimator
                 </h2>
                 <p data-testid="tools-metal-note" style={{ fontSize: '0.85rem', color: TOOLS.textSecondary, margin: '0 0 20px', lineHeight: 1.6 }}>
@@ -348,12 +351,12 @@ function PublicToolsEn({ initialTab }) {
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: '15px', marginTop: '12px' }}>
                   <div style={resultBoxStyle}>
-                    <div style={{ fontSize: '0.85rem', color: TOOLS.textSecondary, marginBottom: '5px' }}>Estimated value (USD)</div>
-                    <div data-testid="tools-metal-usd" style={{ fontSize: '1.5rem', fontWeight: 'bold', color: TOOLS.amber }}>{metalUsdText}</div>
+                    <div style={{ fontSize: '0.85rem', color: '#FFFFFF', marginBottom: '5px' }}>Estimated value (USD)</div>
+                    <div data-testid="tools-metal-usd" style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#FFFFFF' }}>{metalUsdText}</div>
                   </div>
                   <div style={resultBoxStyle}>
-                    <div style={{ fontSize: '0.85rem', color: TOOLS.textSecondary, marginBottom: '5px' }}>Estimated value (EUR)</div>
-                    <div data-testid="tools-metal-eur" style={{ fontSize: '1.5rem', fontWeight: 'bold', color: TOOLS.amber }}>{metalEurText}</div>
+                    <div style={{ fontSize: '0.85rem', color: '#FFFFFF', marginBottom: '5px' }}>Estimated value (EUR)</div>
+                    <div data-testid="tools-metal-eur" style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#FFFFFF' }}>{metalEurText}</div>
                   </div>
                 </div>
                 <FeedLine feed={feeds.currency} testId="tools-feed-metal-currency" label="exchange rates (for EUR)" asOf={feeds.currency.data?.asOf} />
@@ -362,8 +365,8 @@ function PublicToolsEn({ initialTab }) {
 
             {activeTab === 'crypto' && (
               <div>
-                <h2 style={{ fontSize: '1.3rem', marginBottom: '20px', color: TOOLS.textPrimary, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Bitcoin size={20} color={TOOLS.violetLighter} />
+                <h2 style={{ fontSize: '1.3rem', marginBottom: '20px', color: TOOLS.button, fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Bitcoin size={20} color={TOOLS.button} />
                   Crypto Value Calculator
                 </h2>
 
@@ -384,12 +387,12 @@ function PublicToolsEn({ initialTab }) {
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: '15px' }}>
                   <div style={resultBoxStyle}>
-                    <div style={{ fontSize: '0.85rem', color: TOOLS.textSecondary, marginBottom: '5px' }}>Estimated value (USD)</div>
-                    <div data-testid="tools-crypto-usd" style={{ fontSize: '1.5rem', fontWeight: 'bold', color: TOOLS.violetLighter }}>{cryptoUsdText}</div>
+                    <div style={{ fontSize: '0.85rem', color: '#FFFFFF', marginBottom: '5px' }}>Estimated value (USD)</div>
+                    <div data-testid="tools-crypto-usd" style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#FFFFFF' }}>{cryptoUsdText}</div>
                   </div>
                   <div style={resultBoxStyle}>
-                    <div style={{ fontSize: '0.85rem', color: TOOLS.textSecondary, marginBottom: '5px' }}>Estimated value (EUR)</div>
-                    <div data-testid="tools-crypto-eur" style={{ fontSize: '1.5rem', fontWeight: 'bold', color: TOOLS.violetLighter }}>{cryptoEurText}</div>
+                    <div style={{ fontSize: '0.85rem', color: '#FFFFFF', marginBottom: '5px' }}>Estimated value (EUR)</div>
+                    <div data-testid="tools-crypto-eur" style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#FFFFFF' }}>{cryptoEurText}</div>
                   </div>
                 </div>
                 {feeds.crypto.status !== 'loading' && feeds.crypto.status !== 'unavailable' && !coinPrice
@@ -405,7 +408,7 @@ function PublicToolsEn({ initialTab }) {
         <section style={{ marginTop: '40px', background: TOOLS.bgCard, padding: '30px', borderRadius: '12px', border: `1px solid ${TOOLS.border}` }}>
           {toolPage ? <ToolGuide lang="en" tool={initialTab} /> : (
           <>
-          <h3 style={{ fontSize: '1.2rem', marginBottom: '15px', color: TOOLS.textPrimary }}>Tools for Businesses Working Across Borders</h3>
+          <h3 style={{ fontSize: '1.2rem', marginBottom: '15px', color: TOOLS.button, fontWeight: 700 }}>Tools for Businesses Working Across Borders</h3>
           <p style={{ fontSize: '0.9rem', lineHeight: '1.6', color: TOOLS.textSecondary, marginBottom: '15px' }}>
             Businesses, freelancers and importers need quick calculations every day: currency conversions, unit conversions when working with overseas suppliers, and value estimates. TEKANGO's tools hub keeps these calculations in one place, with the data source and its update time.
           </p>
@@ -414,7 +417,7 @@ function PublicToolsEn({ initialTab }) {
           {/* Owner 2026-10-26 (SEO week 2): the tools page links to the public guides */}
           <p style={{ fontSize: '0.9rem', lineHeight: '1.6', color: TOOLS.textSecondary, margin: 0 }}>
             {/* PRODUCT_TRUTH_DECORATIVE: navigation link to the public guides index of the same language */}
-            <a href="/en/articles" data-testid="tools-guides" onClick={(e) => { e.preventDefault(); navigate('/en/articles'); }} style={{ color: TOOLS.accent, textDecoration: 'underline', display: 'inline-flex', alignItems: 'center', minHeight: '44px' }}>Guides for small businesses: quotes and pricing</a>
+            <a href="/en/articles" data-testid="tools-guides" onClick={(e) => { e.preventDefault(); navigate('/en/articles'); }} style={{ color: TOOLS.button, textDecoration: 'underline', display: 'inline-flex', alignItems: 'center', minHeight: '44px' }}>Guides for small businesses: quotes and pricing</a>
           </p>
         </section>
 
@@ -423,7 +426,7 @@ function PublicToolsEn({ initialTab }) {
           <div style={{ display: 'inline-block', background: '#ffffff', padding: '10px 22px', borderRadius: '12px', marginBottom: '15px', border: `1px solid ${TOOLS.border}` }}>
             <ProFlowLogo darkText />
           </div>
-          <h3 style={{ fontSize: '1.4rem', marginBottom: '10px', fontWeight: 700, color: TOOLS.textPrimary }}>Ready to run your business in one place?</h3>
+          <h3 style={{ fontSize: '1.4rem', marginBottom: '10px', fontWeight: 700, color: TOOLS.button }}>Ready to run your business in one place?</h3>
           <p style={{ fontSize: '0.95rem', color: '#3f4d54', marginBottom: '20px' }}>Create quotes, manage clients and collect your customers' digital signatures - all in TEKANGO.</p>
           {/* PRODUCT_TRUTH_DECORATIVE: marketing CTA opening the account-creation screen (the landing signup path) */}
           <button

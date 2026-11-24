@@ -4,7 +4,21 @@ import { X, Send, MessageSquarePlus, ChevronLeft, ChevronRight, FileText, LifeBu
 import { AccountSummaryContext } from './domain/subscriptions/AccountSummaryContext';
 import { decideSmartPack } from '../supabase/functions/_shared/subscriptionContract.ts';
 import { smartPackPurchasePath } from '../supabase/functions/_shared/smartPackGate.ts';
-import { NEON } from './theme/neonTheme';
+import { NEON as NEON_DARK } from './theme/neonTheme';
+
+// Owner console 2026-11-24, typed: "מאשר ליישם במוצר את סקיצת הצבעים של הצ׳אט והכלים, ולשחרר עד הלייב" (sketch
+// TEKANGO-sketch-chat-tools-2026-11-24-v2, "צאט בתוך המערכת - הצעה א" + "צאט בדף הנחיתה - הצעה א"): the chat window is light like the rest of
+// the system - white cards on a light body, dark text - and the sidebar navy replaces the purple-pink (header, send, the user's message,
+// icons). The dark NEON theme stays the base for every token not named here.
+const CHAT_NAVY = '#102444';
+const NEON = {
+  ...NEON_DARK,
+  bg: '#F4F6F9', bgCard: '#FFFFFF', bgCardAlt: '#F4F6F9', bgElevated: '#FFFFFF', bgInput: '#FFFFFF',
+  border: '#E3E7ED', borderStrong: '#CDD4DE',
+  textPrimary: '#172129', textSecondary: '#5B6577', textMuted: '#7D8695',
+  violet: CHAT_NAVY, violetLight: CHAT_NAVY, violetLighter: CHAT_NAVY, gradient: CHAT_NAVY,
+  glow: '0 10px 30px rgba(16, 36, 68, 0.32)', glowSoft: '0 6px 18px rgba(16, 36, 68, 0.22)',
+};
 import {
   buildPublicChatStorageKey,
   readStoredPublicTranscript,
@@ -682,7 +696,8 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
   // above the top-level group (computeGuidedGreeting, unchanged) already
   // serves as Mobile/Tablet's own "small contextual helper line above the
   // button group" - not repeated per-button.
-  const groupIconFor = (groupId) => GUIDED_GROUP_ICONS[groupId] || null;
+  // Owner 2026-11-24 ("צאט בדף הנחיתה ... כבר עדיף בלי"): the choice cards of the public (landing) chat carry no icons
+  const groupIconFor = (groupId) => (isDashboard ? GUIDED_GROUP_ICONS[groupId] || null : null);
 
   // Resets only the leaf-selection layer, keeping guidedGroup intact so a
   // multi-child group's own subtopic list re-appears (quotes has no
@@ -1201,7 +1216,7 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
               {/* authenticated app (dashboard, region choice): the ONE canonical AI Chat icon (§51.15); public pages (the landing): the same TEKANGO
                   AI tile (Owner console 2026-10-23 (L-02 / L-11, law 45): the TEKANGO AI tile (a glowing head with "AI"); "להחליף גם בדפי הנחיתה") - it replaces the bubble + sparkle accent of the landing polish */}
               {/* Owner console 2026-11-20/21 (L-02 / L-11, law 45): the robot with the headset on the blue-teal tile (TekangoBotIcon) */}
-              {isDashboard ? <AiChatIcon size={20} rtl={isHebrew} /> : <TekangoBotIcon size={24} />}
+              {isDashboard ? <AiChatIcon size={20} rtl={isHebrew} /> : <TekangoBotIcon size={24} plain ink="#FFFFFF" face="#102444" />}
               <span className="ai-btn-text" style={{ whiteSpace: 'nowrap' }}>{isHebrew ? 'צ׳אט AI' : 'AI Chat'}</span>
             </button>
           )}
@@ -1224,7 +1239,7 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
               maxHeight: 'calc(100vh - 120px)',
               background: NEON.bgElevated,
               borderRadius: '16px',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.6)',
+              boxShadow: '0 18px 50px rgba(16, 36, 68, 0.22)',
               display: 'flex',
               flexDirection: 'column',
               border: `1px solid ${NEON.border}`,
@@ -1243,12 +1258,13 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   {/* Owner console 2026-10-23 (L-02 / L-11, law 45): the TEKANGO AI tile (a glowing head with "AI") */}
                   {/* Owner console 2026-11-20/21 (L-02 / L-11, law 45): the robot with the headset on the blue-teal tile (TekangoBotIcon) */}
-                  <TekangoBotIcon size={30} />
+                  {/* Owner 2026-11-24 (L-02 / L-11): the robot right on the navy header, no second blue tile, larger (the robot 30px instead of 22.5px) */}
+                  <TekangoBotIcon size={40} plain ink="#FFFFFF" face="#102444" style={{ margin: '-5px -3px' }} />
                   <div>
                     <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>
                       {isHebrew
-                        ? <>שירות לקוחות <bdi dir="ltr" style={{ color: NEON.violetLighter, fontWeight: 700 }}>TEKANGO</bdi></>
-                        : <><bdi dir="ltr" style={{ color: NEON.violetLighter, fontWeight: 700 }}>TEKANGO</bdi> Support</>}
+                        ? <>שירות לקוחות <bdi dir="ltr" style={{ color: '#FFFFFF', fontWeight: 700 }}>TEKANGO</bdi></>
+                        : <><bdi dir="ltr" style={{ color: '#FFFFFF', fontWeight: 700 }}>TEKANGO</bdi> Support</>}
                     </div>
                     <div style={{ fontSize: '0.7rem', opacity: 0.9, display: 'flex', alignItems: 'center', gap: '4px' }}>
                       <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#4ade80', display: 'inline-block' }} />
