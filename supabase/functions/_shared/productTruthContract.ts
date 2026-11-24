@@ -22,6 +22,10 @@ export const PRODUCT_TRUTH_PAYLOAD_SCHEMA_VERSION = 1;
 /** 2026-11-13 (Owner answer "א"): the subscription capabilities that are part of SMART PACK - their truth is SMART_PACK */
 export const SMART_PACK_SUBSCRIPTION_CAPABILITIES: readonly string[] = Object.freeze(['quote_attachment.upload']);
 
+/** Owner console 2026-11-25 (typed: "מאשר להחליף בצ׳אט את המשפט 'עדיין לא הוחלט אילו מסלולים' ב'כלול בכל המסלולים, גם בחינם' לחמש היכולות, כולל שינוי ב-L-14 ו-L-17"): the subscription capabilities every plan includes, Free too - not plan-gated
+ *  (subscriptionContract.ts: the server grants them to every provisioned account); their truth is AVAILABLE, never "not decided" */
+export const ALL_PLANS_SUBSCRIPTION_CAPABILITIES: readonly string[] = Object.freeze(['quote.edit_duplicate', 'quote.whatsapp_delete', 'professional_quote.use', 'professional_quote.reuse']);
+
 export const TRUTH_STATUSES = [
   'AVAILABLE', // the capability exists and is usable by (or not gated against) this account
   'NOT_AVAILABLE', // roadmap / unavailable / deprecated / not released / test-only - not a customer capability today
