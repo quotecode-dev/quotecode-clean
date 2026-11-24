@@ -46,13 +46,6 @@
 .av .admin-screen-heading > p { margin: 0; color: var(--av-muted); font-size: 13px; }
 .av-headactions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .av-updated { font-size: 12px; color: var(--av-muted); }
-/* Owner 2026-11-24 (typed: "מאשר שינוי ב-L-21: שורת הזמן וכפתור הרענון בראש מסכי הניהול בשורה אחת וצמודים לקצה גם באנגלית, בתוך השחרור
-   הזה"): on a computer / landscape tablet the head actions (data time + refresh) keep one row at the end edge in both languages - a longer
-   English tagline wraps the heading instead of squeezing the actions into two rows away from the edge */
-@media (min-width: 1024px) {
-  .av-headactions { flex: none; flex-wrap: nowrap; }
-  .av .av-updated { white-space: nowrap; }
-}
 
 /* buttons */
 .av button.av-btn, .av a.av-btn {

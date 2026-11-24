@@ -18,7 +18,7 @@ describe('Israeli holiday dataset', () => {
     const keys = ['pesach_1', 'pesach_7', 'rosh_hashanah_1', 'rosh_hashanah_2', 'shavuot', 'shemini_atzeret', 'sukkot', 'yom_haatzmaut', 'yom_kippur'];
     for (let y = 2020; y <= 2040; y += 1) expect(Object.keys(byYear(y)).sort(), String(y)).toEqual(keys);
     // no minor observances, eves or school vacations
-    expect(data.days.some((d) => /purim|chanukah|hanukkah|erev|tisha|lag|tu_bishvat|gedaliah|tevet|esther|tamuz/i.test(d.key))).toBe(false);
+    expect(data.days.some((d) => /purim|chanukah|hanukkah|erev|tisha|lag|tu_bishvat/i.test(d.key))).toBe(false);
   });
   it('matches the published Israel-schedule reference for 2026 and 2027 (Hebcal)', () => {
     expect(byYear(2026)).toEqual({

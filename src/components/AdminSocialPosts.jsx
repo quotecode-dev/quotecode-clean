@@ -43,8 +43,6 @@ function publishFailureText(error, isHebrew) {
   if (code === '190') return isHebrew ? 'החיבור לדף פג. צריך לחבר את הדף מחדש, ואחר כך ללחוץ "פרסום עכשיו".' : 'The connection to the page expired. Reconnect the page, then press "Publish now".';
   if (['10', '200', '3'].includes(code)) return isHebrew ? 'לדף חסרה הרשאת פרסום. צריך לחבר אותו מחדש עם הרשאות הפרסום.' : 'The page is missing the publishing permission. Reconnect it with the publishing permissions.';
   if (['4', '17', '32', '613'].includes(code)) return isHebrew ? 'מטא הגבילו את הפרסום זמנית. נסו שוב מאוחר יותר.' : 'Meta limited publishing for now. Try again later.';
-  // Owner 2026-11-24 (L-22): 9007 = Meta had not finished processing the image - nothing was published, a retry is safe
-  if (code === '9007') return isHebrew ? 'מטא עוד לא סיימה לעבד את התמונה, ולכן הפוסט לא פורסם. אפשר ללחוץ "פרסום עכשיו" - זה בטוח ולא ייצור כפילות.' : 'Meta had not finished processing the image, so the post was not published. You can press "Publish now" - it is safe and will not create a duplicate.';
   return isHebrew ? 'הפרסום האוטומטי לא הצליח. אפשר לנסות שוב ב"פרסום עכשיו", או לפרסם את הפוסט ידנית ולסמן "פורסם".' : 'The automatic publication failed. You can try again with "Publish now", or publish the post by hand and mark it "Published".';
 }
 

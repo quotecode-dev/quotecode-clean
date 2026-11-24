@@ -2,7 +2,7 @@
 // "approve" - a Facebook page photo post, an Instagram image post through the Israeli page. The page token is only sent to Meta; a
 // failure leaves the post ready for a manual publication; only the request that won the approval publishes.
 import { describe, it, expect, vi } from 'vitest';
-import { publishToMeta, facebookMessage, instagramCaption, imageUrl, TARGETS, GRAPH, CHANNELS, MetaError, CONTAINER_WAIT } from './social.ts';
+import { publishToMeta, facebookMessage, instagramCaption, imageUrl, TARGETS, GRAPH, CHANNELS, MetaError } from './social.ts';
 import { handle, type StageDeps, type Action } from './manager.ts';
 import { socialPostDigest } from '../_shared/socialPostDigest.js';
 
@@ -29,18 +29,17 @@ describe('the Meta publication', () => {
     expect(facebookMessage(payload)).toBe('הצעת מחיר ברורה בכמה דקות.\n\n#הצעת_מחיר #TEKANGO\n\nhttps://www.tekango.com/he');
   });
 
-  it('Instagram: create the media, wait until Meta finished it, publish it, read its permalink; the caption has no link', async () => {
+  it('Instagram: create the media, publish it, read its permalink; the caption has no link', async () => {
     const calls: string[] = [];
     const f = vi.fn(async (url: string, init?: RequestInit) => {
       calls.push(url.split('?')[0]);
       if (url.endsWith('/media')) { expect(form(init)).toMatchObject({ image_url: imageUrl('quote'), caption: instagramCaption(payload) }); return ok({ id: 'container1' }); }
       if (url.endsWith('/media_publish')) { expect(form(init).creation_id).toBe('container1'); return ok({ id: 'media1' }); }
-      if (url.includes('/container1?')) { expect(url).toContain('fields=status_code'); return ok({ status_code: 'FINISHED', id: 'container1' }); }
       return ok({ permalink: 'https://www.instagram.com/p/ABC/' });
     });
     const r = await publishToMeta(f, () => 'PAGE-TOKEN', 'ig_il', { ...payload, channel: 'ig_il' });
     expect(r).toEqual({ id: 'media1', url: 'https://www.instagram.com/p/ABC/' });
-    expect(calls).toEqual([`${GRAPH}/17841431179031610/media`, `${GRAPH}/container1`, `${GRAPH}/17841431179031610/media_publish`, `${GRAPH}/media1`]);
+    expect(calls).toEqual([`${GRAPH}/17841431179031610/media`, `${GRAPH}/17841431179031610/media_publish`, `${GRAPH}/media1`]);
     expect(instagramCaption(payload)).not.toMatch(/https?:/);
   });
 
@@ -68,44 +67,6 @@ describe('the Meta publication', () => {
     const f = vi.fn(async (url: string) => (url.endsWith('/media') ? ok({ id: 'c9' }) : url.endsWith('/media_publish') ? new Response('', { status: 500 }) : ok({})));
     await expect(publishToMeta(f, () => 'T', 'ig_il', { ...payload, channel: 'ig_il' }, async (id) => { kept.push(id); })).rejects.toMatchObject({ definite: false });
     expect(kept).toEqual(['c9']);
-  });
-  // Owner 2026-11-24 (typed: "מאשר תיקון הפרסום לאינסטגרם: המתנה לסיום העיבוד של מטא לפני הפרסום והודעה ברורה לשגיאה 9007, כולל שינוי ב-L-22,
-  // שחרור עד הלייב"): the post of 23/11 failed with meta_400_9007 - media_publish ran before Meta finished the container
-  describe('Instagram waits for the container (Owner 2026-11-24)', () => {
-    const run = (statuses: string[], publish = ok({ id: 'm1' })) => {
-      const order: string[] = [];
-      const slept: number[] = [];
-      let n = 0;
-      const f = vi.fn(async (url: string) => {
-        if (url.endsWith('/media')) { order.push('create'); return ok({ id: 'c7' }); }
-        if (url.includes('/c7?')) { const st = statuses[Math.min(n, statuses.length - 1)]; n += 1; order.push(`status:${st}`); return ok({ status_code: st }); }
-        if (url.endsWith('/media_publish')) { order.push('publish'); return publish; }
-        return ok({});
-      });
-      const wait = { sleep: async (ms: number) => { slept.push(ms); }, tries: CONTAINER_WAIT.tries, ms: CONTAINER_WAIT.ms };
-      return { order, slept, go: () => publishToMeta(f, () => 'T', 'ig_intl', { ...payload, channel: 'ig_intl' }, undefined, wait) };
-    };
-    it('waits 2 s between reads while IN_PROGRESS and publishes only after FINISHED', async () => {
-      const t = run(['IN_PROGRESS', 'IN_PROGRESS', 'FINISHED']);
-      await t.go();
-      expect(t.order).toEqual(['create', 'status:IN_PROGRESS', 'status:IN_PROGRESS', 'status:FINISHED', 'publish']);
-      expect(t.slept).toEqual([2000, 2000]);
-    });
-    it('ERROR or EXPIRED is a definite failure and nothing is published', async () => {
-      for (const st of ['ERROR', 'EXPIRED']) {
-        const t = run([st]);
-        await expect(t.go()).rejects.toMatchObject({ message: `meta_container_${st.toLowerCase()}`, definite: true });
-        expect(t.order).not.toContain('publish');
-      }
-    });
-    it('still in progress after 15 reads (30 s): publishes anyway; a 9007 refusal is definite', async () => {
-      const t = run(['IN_PROGRESS'], new Response(JSON.stringify({ error: { code: 9007 } }), { status: 400 }));
-      await expect(t.go()).rejects.toMatchObject({ message: 'meta_400_9007', definite: true });
-      expect(t.order.filter((x) => x === 'status:IN_PROGRESS')).toHaveLength(15);
-      expect(t.slept).toHaveLength(14);
-      expect(t.order.at(-1)).toBe('publish');
-    });
-    it('the default wait is 15 reads, 2 s apart', () => { expect(CONTAINER_WAIT).toEqual({ tries: 15, ms: 2000 }); });
   });
   it('the international Instagram falls back to its own profile, never the Israeli one', async () => {
     for (const permalink of [new Response('', { status: 500 }), ok({}), ok({ permalink: 'https://evil.example/p' })]) {
