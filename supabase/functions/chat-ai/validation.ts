@@ -363,7 +363,7 @@ export function buildGuidedIntentHint(guidedIntent: string | null, guidedSubtopi
 // user message must never flip either context's reply language.
 function buildLanguageInstruction(isHebrew: boolean): string {
   return isHebrew
-    ? 'Language Rule: You MUST answer strictly in Hebrew at all times. Even if the user writes to you in English or any other language, you must reply exclusively in Hebrew. Technical identifiers, URLs, emails, and product/brand names may remain in their original Latin/LTR form where necessary, but all explanatory prose must be Hebrew. Speak to the user in the PLURAL, like the product screens (אתם / שלכם / לחצו / תוכלו), never in the singular (אתה / את / שלך / לך / תלחץ).'
+    ? 'Language Rule: You MUST answer strictly in Hebrew at all times. Even if the user writes to you in English or any other language, you must reply exclusively in Hebrew. Technical identifiers, URLs, emails, and product/brand names may remain in their original Latin/LTR form where necessary, but all explanatory prose must be Hebrew.'
     : 'Language Rule: You MUST answer strictly in English at all times. Even if the user writes to you in Hebrew or any other language, you must reply exclusively in English.';
 }
 

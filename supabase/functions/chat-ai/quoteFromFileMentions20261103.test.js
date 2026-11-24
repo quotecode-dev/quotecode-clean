@@ -60,13 +60,12 @@ describe('quote-from-file questions reach the smart quote capability (not the PD
 
 // Owner console 2026-11-03 (typed approval incl. L-17): "רק מוזר שההסבר הוא כזה ארוך" - a file question gets three sentences
 describe('the short answer to a quote-from-file question', () => {
-  // Owner 2026-11-24 (L-17, chat audit he-17): the start choice on screen is „מעלים קובץ” / "Upload a file" (newQuoteChoices.js)
   it('HE / EN: three sentences, the screen labels, the file not stored, the quota - and nothing about the AI smart quote', () => {
     const he = quoteFromFileAnswer(true);
     const en = quoteFromFileAnswer(false);
     // Owner 2026-11-06: the quota is the SMART PACK usage meter (a percentage), never a count of files
-    for (const label of ['„הצעה חדשה”', '„מעלים קובץ”', '„המחיר שלכם”', 'הקובץ לא נשמר', 'במכסת השימוש החודשית של חכם פלוס', 'באחוזים']) expect(he).toContain(label);
-    for (const label of ['"New quote"', '"Upload a file"', '"Your price"', 'the file is not stored', 'monthly usage allowance', 'SMART PACK']) expect(en).toContain(label);
+    for (const label of ['„הצעה חדשה”', '„הצעת מחיר מקובץ”', '„המחיר שלכם”', 'הקובץ לא נשמר', 'במכסת השימוש החודשית של חכם פלוס', 'באחוזים']) expect(he).toContain(label);
+    for (const label of ['"New quote"', '"Quote from a file"', '"Your price"', 'the file is not stored', 'monthly usage allowance', 'SMART PACK']) expect(en).toContain(label);
     expect(he + en).not.toMatch(/50|\b3 /);
     expect(he).not.toMatch(/ניסיון|להכתיב|מיקרופון/);
     expect(en).not.toMatch(/trial|dictate|microphone/i);
@@ -76,7 +75,7 @@ describe('the short answer to a quote-from-file question', () => {
   it('index.ts answers a file question with it (available, no role) and skips the long description and the steps', () => {
     const src = readFileSync('supabase/functions/chat-ai/index.ts', 'utf8');
     expect(src).toContain("const shortFile = fileQuestion && capabilityTruth.factPayload.truthStatus === 'AVAILABLE' && capabilityTruth.factPayload.requiredRole === null");
-    expect(src).toContain('const capabilityAnswer = shortFile || stepsAnswer || capabilityTruth.answer;'); // Owner 2026-11-24 (L-17): steps-only for how / why
+    expect(src).toContain('const capabilityAnswer = shortFile || (steps ?');
     expect(src).toContain("const navId = fileQuestion ? 'open_file_quote'");
   });
   it('the smart quote capability payload for a file question is AVAILABLE without a role (the short answer is reachable)', () => {

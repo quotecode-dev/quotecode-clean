@@ -76,8 +76,7 @@ describe('smart chat tools - read only, this account only', () => {
     const { db } = fakeDb({ quotes });
     const ask = async (a) => JSON.parse(await runChatTool('find_quotes', JSON.stringify({ text: null, status: 'any', created_from: null, created_to: null, limit: null, ...a }), ctxWith(db)));
     expect((await ask({ status: 'approved' })).quotes.map((q) => q.quote_number)).toEqual([101]);
-    // Owner 2026-11-24 (L-17, chat audit): 102 is sent but its validity passed - expired, NOT awaiting (like the list's "ממתינות")
-    expect((await ask({ status: 'awaiting' })).quotes.map((q) => q.quote_number)).toEqual([]);
+    expect((await ask({ status: 'awaiting' })).quotes.map((q) => q.quote_number)).toEqual([102]);
     expect((await ask({ status: 'draft' })).quotes.map((q) => q.quote_number)).toEqual([103]);
     expect((await ask({ status: 'expired' })).quotes.map((q) => q.quote_number)).toEqual([102]);
     const naama = await ask({ text: 'נעמה' });

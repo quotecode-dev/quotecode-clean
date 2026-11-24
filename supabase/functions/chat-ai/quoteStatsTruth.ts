@@ -6,9 +6,9 @@
 //  - drafts = every other quote;  amounts are totalled PER CURRENCY (IRON-MARKET-004) - never one mixed sum.
 // The plan-balance question ("how many quotes do I have LEFT") is NOT this route: it stays with the subscription truth.
 
-export type QuoteStatRow = { status?: string | null; total?: number | string | null; currency?: string | null; view_count?: number | null; valid_until?: string | null; tax_rate?: number | string | null };
+export type QuoteStatRow = { status?: string | null; total?: number | string | null; currency?: string | null; view_count?: number | null };
 type Group = { count: number; sums: Record<string, number> };
-export type QuoteStats = { all: Group; approved: Group; awaiting: Group; drafts: Group; expired: Group };
+export type QuoteStats = { all: Group; approved: Group; awaiting: Group; drafts: Group };
 
 const PLAN_WORDS_HE = /(נשאר|נותר|נותרו|נשארו|יתר[הת]|מסלול|חינם|חינמי|מנוי|מכס[הת]|הגבל|מוגבל|לשדרג|שדרוג|כמה עוד|אפשר עוד|מותר)/;
 const PLAN_WORDS_EN = /\b(left|remaining|remain|plan|free|quota|limit|allowance|subscription|upgrade|can i still|allowed)\b/i;
@@ -38,22 +38,8 @@ export function classifyQuoteStatsIntent(message: string): boolean {
 const emptyGroup = (): Group => ({ count: 0, sums: {} });
 const CURRENCIES = new Set(['ILS', 'USD', 'EUR', 'GBP', 'CAD', 'AUD']);
 
-// Owner 2026-11-24 (L-17, chat audit he-22): the list's validity rule (src/utils/quoteValidity.js isOpenQuoteExpired) - a quote whose
-// valid-until day is before today's date in its market (Israel: Asia/Jerusalem; international: Etc/GMT+12) is expired and NOT awaiting
-const marketDay = (local: boolean, now: Date) => {
-  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: local ? 'Asia/Jerusalem' : 'Etc/GMT+12', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(now);
-  const get = (t: string) => parts.find((p) => p.type === t)?.value;
-  return `${get('year')}-${get('month')}-${get('day')}`;
-};
-export function isStatRowExpired(q: QuoteStatRow, now: Date = new Date()): boolean {
-  const m = String(q?.valid_until ?? '').match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (!m) return false;
-  const local = Number(q?.tax_rate) > 0 || String(q?.currency || '').toUpperCase() === 'ILS';
-  return `${m[1]}-${m[2]}-${m[3]}` < marketDay(local, now);
-}
-
-export function computeQuoteStats(rows: QuoteStatRow[], accountCurrency: string, now: Date = new Date()): QuoteStats {
-  const stats: QuoteStats = { all: emptyGroup(), approved: emptyGroup(), awaiting: emptyGroup(), drafts: emptyGroup(), expired: emptyGroup() };
+export function computeQuoteStats(rows: QuoteStatRow[], accountCurrency: string): QuoteStats {
+  const stats: QuoteStats = { all: emptyGroup(), approved: emptyGroup(), awaiting: emptyGroup(), drafts: emptyGroup() };
   const add = (g: Group, cur: string, amount: number) => { g.count += 1; g.sums[cur] = (g.sums[cur] || 0) + amount; };
   for (const q of Array.isArray(rows) ? rows : []) {
     if (!q) continue;
@@ -64,7 +50,6 @@ export function computeQuoteStats(rows: QuoteStatRow[], accountCurrency: string,
     const amount = Number.isFinite(n) ? n : 0;
     add(stats.all, cur, amount);
     if (status === 'approved' || status === 'paid') add(stats.approved, cur, amount);
-    else if (isStatRowExpired(q, now)) add(stats.expired, cur, amount);
     else if (status === 'sent' || Number(q.view_count || 0) > 0) add(stats.awaiting, cur, amount);
     else add(stats.drafts, cur, amount);
   }
@@ -91,12 +76,11 @@ export function formatQuoteStatsAnswer(stats: QuoteStats, accountCurrency: strin
     : `• ${label}: ${g.count}${g.count ? `, totalling ${amounts(g, accountCurrency, false)}` : ''}`);
   if (isHebrew) {
     return [
-      'לפי ההצעות בחשבון שלכם:',
+      'לפי ההצעות בחשבון שלך:',
       line('סך הכול', stats.all),
       line('אושרו (כולל ששולמו)', stats.approved),
-      line('ממתינות לחתימה (נשלחו או נצפו, בתוקף)', stats.awaiting),
+      line('ממתינות לחתימה (נשלחו או נצפו)', stats.awaiting),
       line('טיוטות שעדיין לא נשלחו', stats.drafts),
-      ...(stats.expired.count ? [line('פג תוקפן (לא נספרות כממתינות)', stats.expired)] : []),
       'את אותם מספרים רואים בראש רשימת הצעות המחיר, ובמסך „סטטיסטיקה” אפשר לראות אותם גם לפי תקופה.',
     ].join('\n');
   }
@@ -104,9 +88,8 @@ export function formatQuoteStatsAnswer(stats: QuoteStats, accountCurrency: strin
     'Based on the quotes in your account:',
     line('In total', stats.all),
     line('Approved (incl. paid)', stats.approved),
-    line('Awaiting signature (sent or viewed, still valid)', stats.awaiting),
+    line('Awaiting signature (sent or viewed)', stats.awaiting),
     line('Drafts not sent yet', stats.drafts),
-    ...(stats.expired.count ? [line('Expired (not counted as awaiting)', stats.expired)] : []),
     'The same numbers are shown at the top of your quote list, and the “Statistics” screen shows them by period as well.',
   ].join('\n');
 }
