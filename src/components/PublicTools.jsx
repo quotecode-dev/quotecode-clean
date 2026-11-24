@@ -20,7 +20,7 @@ import {
 // an estimate from a stated (editable) reference price per gram; the closing CTA opens account creation in Hebrew.
 const ERR = INPUT_ERRORS.he;
 const when = (ms) => formatShortDateTime(new Date(ms), 'Local');
-const money = (n, digits = 2) => formatToolNumber(n, 'he-IL', digits);
+const money = (n, digits = 2) => formatToolNumber(n, 'he-IL', digits, 2); // money: always two digits after the point (Owner 2026-11-24)
 
 // Owner console 2026-11-24, typed: "מאשר ליישם במוצר את סקיצת הצבעים של הצ׳אט והכלים, ולשחרר עד הלייב" (sketch TEKANGO-sketch-chat-tools-2026-11-24-v2:
 // "מחשבון - ... כותרות לכחול וכיתוב בלבן גם את התוצאה" + the tab row "רקע כחול, כיתוב ואייקונים בלבן"): headings, links and icons in the
@@ -111,7 +111,7 @@ function PublicTools({ initialTab }) {
   const priceIn = parseToolNumber(usdPerGram);
   const metalError = !gramsIn.ok ? gramsIn.code : !priceIn.ok ? priceIn.code : null;
   const metalUsd = metalError ? null : metalValueUsd(gramsIn.value, metalType, purity, priceIn.value);
-  const metalUsdText = metalUsd == null ? '—' : `$${formatToolNumber(metalUsd, 'en-US', 2)}`;
+  const metalUsdText = metalUsd == null ? '—' : `$${formatToolNumber(metalUsd, 'en-US', 2, 2)}`;
   const metalIlsText = metalUsd == null ? '—' : rates ? `${money(metalUsd / rates.USD)}\u00A0₪` : 'לא זמין (אין שער דולר)';
 
   // Crypto
@@ -127,7 +127,7 @@ function PublicTools({ initialTab }) {
   const coinIn = parseToolNumber(cryptoAmount);
   const coinPrice = feeds.crypto.data?.prices?.[cryptoCoin] || null;
   const cryptoUsd = coinIn.ok && coinPrice ? coinIn.value * coinPrice.usd : null;
-  const cryptoUsdText = cryptoUsd == null ? '—' : `$${formatToolNumber(cryptoUsd, 'en-US', 2)}`;
+  const cryptoUsdText = cryptoUsd == null ? '—' : `$${formatToolNumber(cryptoUsd, 'en-US', 2, 2)}`;
   const cryptoIlsText = cryptoUsd == null ? '—' : rates ? `${money(cryptoUsd / rates.USD)}\u00A0₪` : 'לא זמין (אין שער דולר)';
 
   const tabBtnStyle = (tabKey) => ({
