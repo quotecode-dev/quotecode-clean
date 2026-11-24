@@ -41,14 +41,12 @@ describe('TEKANGO AI icons', () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
   it('Owner 2026-11-20/21 (L-02 / L-11, landing): the robot is the chat icon everywhere - header, notifications, every "Ask AI", the chat window, the landing', () => {
-    // Owner console 2026-11-24 (L-02 / L-11, typed): the robot without the blue tile in the chat window header (larger) and on the chat
-    // buttons - navy on the white app header button, white on the navy launcher and header; every other use keeps the tile
-    expect(readFileSync('src/pages/Dashboard.jsx', 'utf8')).toMatch(/className="dash-header-ai-btn"[\s\S]{0,700}<TekangoBotIcon size=\{22\} plain ink="#102444" face="#FFFFFF" \/>/);
+    expect(readFileSync('src/pages/Dashboard.jsx', 'utf8')).toMatch(/className="dash-header-ai-btn"[\s\S]{0,500}<TekangoBotIcon size=\{22\} \/>/);
     expect(readFileSync('src/components/NotificationCenter.jsx', 'utf8')).toMatch(/data-testid="notification-welcome-ai"[\s\S]{0,600}<TekangoBotIcon size=\{16\} \/>/);
     expect(readFileSync('src/components/AiChatIcon.jsx', 'utf8')).toMatch(/<TekangoBotIcon size=\{size \+ 2\} \/>/);
     const widget = readFileSync('src/AIChatWidget.jsx', 'utf8');
-    expect(widget).toContain('<TekangoBotIcon size={40} plain ink="#FFFFFF" face="#102444" style={{ margin: \'-5px -3px\' }} />');
-    expect(widget).toContain(': <TekangoBotIcon size={24} plain ink="#FFFFFF" face="#102444" />');
+    expect(widget).toContain('<TekangoBotIcon size={30} />');
+    expect(widget).toContain(': <TekangoBotIcon size={24} />');
     const showcase = readFileSync('src/components/landing/SmartPackShowcase.jsx', 'utf8');
     expect(showcase).toMatch(/<TekangoBotIcon size=\{48\} \/>/);
     expect(showcase).toMatch(/<TekangoBotIcon size=\{20\} \/>/);

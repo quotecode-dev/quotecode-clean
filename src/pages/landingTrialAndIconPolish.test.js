@@ -99,8 +99,7 @@ describe('landing page + AI chat icon modernization (Final Landing Polish task, 
     expect(widget).not.toMatch(/\bBot\b/);
     // Owner console 2026-10-23 (law 45, "להחליף גם בדפי הנחיתה"): the public launcher is the TEKANGO chat tile, not a generic bubble;
     // Owner console 2026-11-20/21 (L-02 / L-11): the robot with the headset (TekangoBotIcon)
-    // Owner console 2026-11-24 (L-02 / L-11, typed): the launcher robot without the blue tile, white on the navy launcher
-    expect(widget).toContain(': <TekangoBotIcon size={24} plain ink="#FFFFFF" face="#102444" />');
+    expect(widget).toContain(': <TekangoBotIcon size={24} />');
     expect(widget).not.toMatch(/MessageCircleMore|Sparkles/);
   });
 

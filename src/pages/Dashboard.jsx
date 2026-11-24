@@ -624,8 +624,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       aria-label={isHebrew ? 'פתיחת צ׳אט AI' : 'Open AI Chat'}
     >
       {/* Owner console 2026-11-20/21 (L-02 / L-11, law 45): the robot with the headset on the blue-teal tile (TekangoBotIcon) - replaces the 2026-10-23 AI head tile. */}
-      {/* Owner 2026-11-24 (L-02 / L-11): the robot without the blue tile on the white header button - navy */}
-      <TekangoBotIcon size={22} plain ink="#102444" face="#FFFFFF" />
+      <TekangoBotIcon size={22} />
       <span>{isHebrew ? 'צ׳אט AI' : 'AI Chat'}</span>
     </button>
   );
