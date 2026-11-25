@@ -401,7 +401,11 @@ const CLASSIFIERS: ReadonlyArray<readonly [string, readonly RegExp[]]> = [
   // ("איך מוסיפים לקטלוג פריט במחיר למ״ר?") is a catalog question - checked before the measured-quote unit patterns
   ['catalog', [/קטלוג/, /\bcatalog(ue)?\b/i]],
   ['measured_quote', [/\b(measured|professional)\b.{0,20}\bquotes?\b/i, /הצע(ה|ות).{0,15}(מדוד(ה|ות)?|מקצועי(ת|ים|ות)?)/,
-    /מ["״']ר|מטר\s+רבוע|מטרים\s+רבועים|מ["״']א|מטר\s+אורך|לפי\s+(ה)?מידות|לפי\s+מידה/, /\b(square\s+(feet|foot|meters?|metres?)|sq\.?\s?ft|per\s+m2|m²|linear\s+(meters?|metres?|feet))\b/i]],
+    /מ["״']ר|מטר\s+רבוע|מטרים\s+רבועים|מ["״']א|מטר\s+אורך|לפי\s+(ה)?מידות|לפי\s+מידה/, /\b(square\s+(feet|foot|meters?|metres?)|sq\.?\s?ft|per\s+m2|m²|linear\s+(meters?|metres?|feet))\b/i,
+    // Owner 2026-11-25 (typed: "מאשר תיקון 3ק בצ׳אט (שכפול וחלוקה לדירות), כולל שינוי ב-L-17"): dividing a quote into apartments / rooms / floors
+    // ("is there / can I" only - a "how" question keeps its own route and steps)
+    /^(?!.*(איך|כיצד))(?=.*(לחלק|מחלקים|חלוקת|לפצל|מפצלים)\s+(את\s+)?(ה)?הצע(ה|ות)?.{0,25}(דיר|חדר|קומ|חלק))/,
+    /^(?!.*\bhow\b)(?=.*\b(split|divide|break)\b.{0,15}\bquotes?\b.{0,25}\b(apartments?|rooms?|floors?|sections?)\b)/i]],
   ['expenses', [/\b(manage|track|add)\s+.{0,10}expenses?\b/i, /(ניהול|לנהל) הוצאות/]],
   ['finance_views', [/\bfinance(s|ial)?\s+(view|summary|dashboard|report)\b/i, /דוח(ות)? כספי/]],
   ['catalog', [/\b(services?|items?)\s+catalog\b/i, /קטלוג שירותים/, /קטלוג/, /\bcatalog(ue)?\b/i]],
@@ -411,7 +415,11 @@ const CLASSIFIERS: ReadonlyArray<readonly [string, readonly RegExp[]]> = [
     /\b(delete|remove)\b.{0,15}\b(a\s+|the\s+|my\s+)?clients?\b/i, /(למחוק|מוחקים|מחיקת|למחיקת)\s+(את\s+)?(ה)?לקוח/,
     /(רושמים|לרשום|רישום|מתעדים|לתעד|שומרים|לשמור|מוסיפים|להוסיף).{0,20}פני(ה|יה|ות)|פני(ה|יה|ות)\s+(חדשה|של\s+(לקוח|מישהו))|\bלידים?\b|לשונית\s+פניות/,
     /\b(log|record|track|add|save|enter)\b.{0,30}\b(inquir(y|ies)|leads?)\b|\bnew\s+(lead|inquiry)\b|\bleads?\s+tab\b/i]],
-  ['quote_duplicate', [/\bduplicate\s+.{0,10}(a|the|my)?\s*quote\b/i, /לשכפל הצעה/]],
+  ['quote_duplicate', [/\bduplicate\s+.{0,10}(a|the|my)?\s*quote\b/i, /לשכפל הצעה/,
+    // Owner 2026-11-25 (typed: "מאשר תיקון 3ק בצ׳אט (שכפול וחלוקה לדירות), כולל שינוי ב-L-17"): "האם יש שכפול הצעות?", "Is there quote duplication?"
+    // ("is there / can I" only - a "how" question keeps its own route and steps)
+    /^(?!.*(איך|כיצד))(?=.*(לשכפל|משכפלים|שכפול|לשכפול)\s+(את\s+)?(ה)?הצע)/,
+    /^(?!.*\bhow\b)(?=.*(\bduplicat(e|es|ing|ion)\b.{0,15}\bquotes?\b|\bquotes?\s+duplication\b))/i]],
   ['quote_edit', [/\bedit\b.{0,15}\bquote\b/i, /לערוך הצעה/]],
   // Owner 2026-10-25 (typed L-17, QA report): templates ("יש תבניות?", "do you have templates") are part of creating a quote
   // Owner 2026-11-24 (L-17, live re-run he-1): "איך מכינים הצעת מחיר" is creating a quote too
