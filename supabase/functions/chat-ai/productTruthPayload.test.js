@@ -21,7 +21,7 @@ import { formatPaymentTruthAnswer, resolvePaymentTruthResponse } from './payment
 import { formatInvoicingTruthAnswer, resolveInvoicingTruthResponse } from './invoicingTruth.ts';
 import { classifyAccountMarketIntent, formatAccountMarketAnswer } from './marketTruth.ts';
 import { FINAL_MATRIX_DEFINITIONS } from '../../../src/data/productTruthFinalMatrixAcceptance.js';
-import { PRODUCT_TRUTH_PAYLOAD_KEYS, TRUTH_STATUSES, validateProductTruthPayload } from '../_shared/productTruthContract.ts';
+import { ALL_PLANS_SUBSCRIPTION_CAPABILITIES, PRODUCT_TRUTH_PAYLOAD_KEYS, TRUTH_STATUSES, validateProductTruthPayload } from '../_shared/productTruthContract.ts';
 
 const FACTS = { capabilities: AI_FACTS.capabilities, nonCurrentCapabilities: AI_FACTS.nonCurrentCapabilities };
 const indexSource = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'index.ts'), 'utf-8');
@@ -53,7 +53,8 @@ describe('(1) registry -> payload: every capability x tier x role x market', () 
         } else if (c.subscriptionCapabilityId) {
           // OPEN-02 / OPEN-13: plan inclusion not decided - whatever the account plan, a capability-scoped claim with no plan;
           // 2026-11-13 (Owner answer "א"): a SMART PACK capability (attachments) is SMART_PACK, with the same shape
-          want = c.subscriptionCapabilityId === 'quote_attachment.upload' ? 'SMART_PACK' : 'PLAN_NOT_DECIDED';
+          // Owner 2026-11-25 (L-14 / L-17): the four not-plan-gated subscription capabilities are in every plan, Free too - AVAILABLE
+          want = c.subscriptionCapabilityId === 'quote_attachment.upload' ? 'SMART_PACK' : ALL_PLANS_SUBSCRIPTION_CAPABILITIES.includes(c.subscriptionCapabilityId) ? 'AVAILABLE' : 'PLAN_NOT_DECIDED';
           expect(c.planEligibility).toBe('not_decided');
           expect(p.minimumPlan).toBeNull();
           expect(p.requiredRole).toBeNull();
@@ -81,7 +82,8 @@ describe('(1) registry -> payload: every capability x tier x role x market', () 
       const r = resolveCapabilityTruthResponse('measured_quote', FACTS, false, bad, false, 'International');
       expect(r.factPayload.accountPlan).toBeNull();
       expect(r.factPayload.accountEntitlement).toBe('NOT_APPLICABLE');
-      expect(r.factPayload.truthStatus).toBe('PLAN_NOT_DECIDED');
+      // Owner 2026-11-25 (L-14 / L-17): measured_quote is in every plan - AVAILABLE, never an entitlement either way
+      expect(r.factPayload.truthStatus).toBe('AVAILABLE');
       expect(validateProductTruthPayload(r.factPayload)).toEqual([]);
     }
   });
@@ -176,13 +178,15 @@ describe('(2) payload -> prose: the prose is rendered FROM the payload', () => {
     }
   });
   it('the wording follows the payload status: PLAN_NOT_DECIDED says plan inclusion is undecided, ROLE_LOCKED the role, AVAILABLE neither a denial nor a restriction', () => {
+    // Owner 2026-11-25 (L-14 / L-17): the four not-plan-gated subscription capabilities are in every plan, Free too - AVAILABLE
     const undecided = resolveCapabilityTruthResponse('measured_quote', FACTS, false, 'free', false, 'International');
-    expect(undecided.factPayload.truthStatus).toBe('PLAN_NOT_DECIDED');
+    expect(undecided.factPayload.truthStatus).toBe('AVAILABLE');
     expect(undecided.answer).toMatch(/^Yes - Measured professional quote exists in TEKANGO\./);
-    expect(undecided.answer).toMatch(/still undecided/);
-    expect(undecided.answer).not.toMatch(/requires|does not include|\bPRO\b|\bBASIC\b/);
+    expect(undecided.answer).toMatch(/ Included in every plan, Free too\.$/);
+    expect(undecided.answer).not.toMatch(/requires|does not include|undecided|\bPRO\b|\bBASIC\b/);
     const undecidedHe = resolveCapabilityTruthResponse('measured_quote', FACTS, true, 'visual', false, 'Local');
-    expect(undecidedHe.answer).toMatch(/(?:טרם|עדיין לא) הוחלט/);
+    expect(undecidedHe.answer).toMatch(/ כלול בכל המסלולים, גם בחינם\.$/);
+    expect(undecidedHe.answer).not.toMatch(/(?:טרם|עדיין לא) הוחלט/);
     // 2026-11-13 (Owner answer "א"): SMART_PACK names SMART PACK in both languages
     const sp = resolveCapabilityTruthResponse('attachments', FACTS, false, 'free', false, 'International');
     expect(sp.factPayload.truthStatus).toBe('SMART_PACK');
@@ -248,7 +252,8 @@ describe('(3) the contract validator: a self-contradicting or product-wide-curre
   });
   it('rejects gate contradictions: PLAN_LOCKED without a plan / with a granted entitlement; ROLE_LOCKED likewise; AVAILABLE with a denied entitlement', () => {
     // PLAN_LOCKED is only reachable once a minimum plan is approved (none today) - exercised on a synthetic, well-formed payload
-    const undecided = resolveCapabilityTruthResponse('measured_quote', FACTS, false, 'free', false, 'International').factPayload;
+    // Owner 2026-11-25 (L-14 / L-17): no registry capability is PLAN_NOT_DECIDED any more - its shape rules run on a synthetic payload
+    const undecided = mutate(resolveCapabilityTruthResponse('measured_quote', FACTS, false, 'free', false, 'International').factPayload, { truthStatus: 'PLAN_NOT_DECIDED' });
     // 2026-11-13 (Owner answer "א"): the SMART_PACK payload has the PLAN_NOT_DECIDED shape rules
     const sp = resolveCapabilityTruthResponse('attachments', FACTS, false, 'free', false, 'International').factPayload;
     expect(validateProductTruthPayload(sp)).toEqual([]);

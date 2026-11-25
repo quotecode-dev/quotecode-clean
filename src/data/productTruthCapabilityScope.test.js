@@ -152,9 +152,10 @@ describe('FINDING 3 scope - the same scope model under the OTHER truth kinds', (
     expect(passes(t, 'File attachments are available in other products.', 'en')).toBe(false);
     expect(passes(t, 'Yes - File attachments exists in TEKANGO, but it requires the PRO plan or above. Your current plan does not include it. Other products offer it too.', 'en')).toBe(true);
   });
-  it('PLAN_NOT_DECIDED truth (current): availability elsewhere never substitutes for the in-TEKANGO existence + undecided plan inclusion', () => {
-    const t = truth('measured_quote', 'free');
-    expect(t.kind).toBe(TRUTH_KINDS.PLAN_NOT_DECIDED);
+  it('PLAN_NOT_DECIDED truth: availability elsewhere never substitutes for the in-TEKANGO existence + undecided plan inclusion', () => {
+    // Owner 2026-11-25 (L-14 / L-17): the not-plan-gated subscription capabilities are in every plan, Free too - AVAILABLE - the PLAN_NOT_DECIDED rule runs on a synthetic truth
+    expect(truth('measured_quote', 'free').kind).toBe(TRUTH_KINDS.AVAILABLE);
+    const t = { ...truth('measured_quote', 'free'), kind: TRUTH_KINDS.PLAN_NOT_DECIDED };
     expect(passes(t, 'Measured professional quotes are available elsewhere, but TEKANGO lacks them.', 'en')).toBe(false);
     expect(passes(t, 'Yes - Measured professional quote exists in TEKANGO. Plan inclusion for it is still undecided. Other products offer it too.', 'en')).toBe(true);
     // 2026-11-13 (Owner answer "א"): attachments are SMART PACK

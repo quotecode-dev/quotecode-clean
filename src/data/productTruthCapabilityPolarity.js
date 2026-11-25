@@ -28,7 +28,7 @@ export { LEGACY_RULESET_ID, CURRENT_RULESET_ID };
 // inclusion is not decided -> PLAN_NOT_DECIDED); 'legacy_v39' = the frozen pre-cutover plan gates, used ONLY to judge the
 // historical chat-ai v39 evidence captures against the rules in force when they were captured (productTruthLegacyPlanRules.js).
 import { AI_FACTS } from '../../supabase/functions/chat-ai/aiFacts.generated.ts';
-import { SMART_PACK_SUBSCRIPTION_CAPABILITIES } from '../../supabase/functions/_shared/productTruthContract.ts';
+import { SMART_PACK_SUBSCRIPTION_CAPABILITIES, ALL_PLANS_SUBSCRIPTION_CAPABILITIES } from '../../supabase/functions/_shared/productTruthContract.ts';
 import { clauseScopeAt, extractClaims, flipClaims, isRetractionSentence, resolveTekangoClaims } from './productTruthScopeClaims.js';
 
 export const TRUTH_KINDS = Object.freeze({
@@ -110,6 +110,8 @@ export function deriveExpectedCapabilityTruth({ expectedResult, serverPlan, serv
   const marketKey = MARKET_KEY[market];
   if (marketKey && Array.isArray(capability.markets) && !capability.markets.includes(marketKey)) return { ...base, kind: TRUTH_KINDS.MARKET_UNAVAILABLE, gate: null };
   if (capability.authorityType === 'subscription') {
+    // Owner console 2026-11-25 (typed: "מאשר להחליף בצ׳אט את המשפט 'עדיין לא הוחלט אילו מסלולים' ב'כלול בכל המסלולים, גם בחינם' לחמש היכולות, כולל שינוי ב-L-14 ו-L-17")
+    if (ALL_PLANS_SUBSCRIPTION_CAPABILITIES.includes(capability.subscriptionCapabilityId)) return { ...base, kind: TRUTH_KINDS.AVAILABLE, gate: 'subscription', minimumPlan: null, requiredRole: null };
     const kind = SMART_PACK_SUBSCRIPTION_CAPABILITIES.includes(capability.subscriptionCapabilityId) ? TRUTH_KINDS.SMART_PACK : TRUTH_KINDS.PLAN_NOT_DECIDED;
     return { ...base, kind, gate: 'subscription', minimumPlan: null, requiredRole: null };
   }

@@ -16,7 +16,7 @@
 import { getCapabilityById, PRODUCT_TRUTH_REGISTRY } from './productTruthRegistry.js';
 import { capabilityForRuleset, LEGACY_PLAN_IDS, LEGACY_RULESET_ID, CURRENT_RULESET_ID } from './productTruthLegacyPlanRules.js';
 import { PLAN_IDS as CANONICAL_PLAN_IDS } from '../../supabase/functions/_shared/subscriptionContract.ts';
-import { SMART_PACK_SUBSCRIPTION_CAPABILITIES } from '../../supabase/functions/_shared/productTruthContract.ts';
+import { SMART_PACK_SUBSCRIPTION_CAPABILITIES, ALL_PLANS_SUBSCRIPTION_CAPABILITIES } from '../../supabase/functions/_shared/productTruthContract.ts';
 import { AI_FACTS } from '../../supabase/functions/chat-ai/aiFacts.generated.ts';
 import {
   PRODUCT_TRUTH_PAYLOAD_KEYS, PRODUCT_TRUTH_PAYLOAD_KIND, PRODUCT_TRUTH_PAYLOAD_SCHEMA_VERSION, TRUTH_STATUSES, validateProductTruthPayload,
@@ -109,6 +109,8 @@ export function deriveExpectedFactPayload({ outcome, serverVerified, ruleset = C
     return ordered({ ...cbase, truthStatus: e === 'GRANTED' ? 'AVAILABLE' : 'ROLE_LOCKED', claimScope: 'ACCOUNT', requiredRole: cap.requiredRole, accountEntitlement: e });
   }
   if (cap.authorityType === 'subscription') {
+    // Owner console 2026-11-25 (typed: "מאשר להחליף בצ׳אט את המשפט 'עדיין לא הוחלט אילו מסלולים' ב'כלול בכל המסלולים, גם בחינם' לחמש היכולות, כולל שינוי ב-L-14 ו-L-17")
+    if (ALL_PLANS_SUBSCRIPTION_CAPABILITIES.includes(cap.subscriptionCapabilityId)) return ordered({ ...cbase, truthStatus: 'AVAILABLE', claimScope: 'CAPABILITY' });
     // OPEN-02 / OPEN-13: plan inclusion not decided - a capability-scoped claim, no plan, no entitlement; a SMART PACK capability says so (13/11)
     return ordered({ ...cbase, truthStatus: SMART_PACK_SUBSCRIPTION_CAPABILITIES.includes(cap.subscriptionCapabilityId) ? 'SMART_PACK' : 'PLAN_NOT_DECIDED', claimScope: 'CAPABILITY' });
   }
