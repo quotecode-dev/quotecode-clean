@@ -22,7 +22,7 @@ const MARKETING_PATHS = Object.freeze({
 });
 const UPDATED = '26/11/2026';
 // the step screens, each cropped at a text-free row (no line cut at the bottom edge - LIVE check 26/11): their heights at 390 px wide
-const SHOT_H = { he: [557, 578, 555], en: [560, 554, 560] };
+const SHOT_H = { he: [524, 578, 618], en: [562, 597, 566] }; // HE and EN end at the same row: after "Upload a file", after item 2's qty row, after the total
 
 const COMPARE = {
   he: {
