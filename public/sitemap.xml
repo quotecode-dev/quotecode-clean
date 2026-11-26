@@ -226,4 +226,68 @@
     <xhtml:link rel="alternate" hreflang="en" href="https://www.tekango.com/en/terms" />
     <xhtml:link rel="alternate" hreflang="he" href="https://www.tekango.com/he/terms" />
   </url>
+  <url>
+    <loc>https://www.tekango.com/he/tools/quote-template</loc>
+    <lastmod>2026-11-26</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.tekango.com/en/tools/quote-template" />
+    <xhtml:link rel="alternate" hreflang="he" href="https://www.tekango.com/he/tools/quote-template" />
+  </url>
+  <url>
+    <loc>https://www.tekango.com/en/tools/quote-template</loc>
+    <lastmod>2026-11-26</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.tekango.com/en/tools/quote-template" />
+    <xhtml:link rel="alternate" hreflang="he" href="https://www.tekango.com/he/tools/quote-template" />
+  </url>
+  <url>
+    <loc>https://www.tekango.com/he/tools/tax</loc>
+    <lastmod>2026-11-26</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.tekango.com/en/tools/tax" />
+    <xhtml:link rel="alternate" hreflang="he" href="https://www.tekango.com/he/tools/tax" />
+  </url>
+  <url>
+    <loc>https://www.tekango.com/en/tools/tax</loc>
+    <lastmod>2026-11-26</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.tekango.com/en/tools/tax" />
+    <xhtml:link rel="alternate" hreflang="he" href="https://www.tekango.com/he/tools/tax" />
+  </url>
+  <url>
+    <loc>https://www.tekango.com/he/compare/word-excel-whatsapp</loc>
+    <lastmod>2026-11-26</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.tekango.com/en/compare/word-excel-whatsapp" />
+    <xhtml:link rel="alternate" hreflang="he" href="https://www.tekango.com/he/compare/word-excel-whatsapp" />
+  </url>
+  <url>
+    <loc>https://www.tekango.com/en/compare/word-excel-whatsapp</loc>
+    <lastmod>2026-11-26</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.tekango.com/en/compare/word-excel-whatsapp" />
+    <xhtml:link rel="alternate" hreflang="he" href="https://www.tekango.com/he/compare/word-excel-whatsapp" />
+  </url>
+  <url>
+    <loc>https://www.tekango.com/he/features/smart-quote</loc>
+    <lastmod>2026-11-26</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.tekango.com/en/features/smart-quote" />
+    <xhtml:link rel="alternate" hreflang="he" href="https://www.tekango.com/he/features/smart-quote" />
+  </url>
+  <url>
+    <loc>https://www.tekango.com/en/features/smart-quote</loc>
+    <lastmod>2026-11-26</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.tekango.com/en/features/smart-quote" />
+    <xhtml:link rel="alternate" hreflang="he" href="https://www.tekango.com/he/features/smart-quote" />
+  </url>
 </urlset>

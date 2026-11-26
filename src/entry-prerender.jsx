@@ -14,6 +14,8 @@ import Contact from './pages/Contact';
 import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
 import { PublicArticle, PublicArticlesIndex } from './pages/PublicArticle';
+import { FreeQuoteTemplatePage, VatCalculatorPage } from './components/FreeTools';
+import { ComparePage, SmartQuoteFeaturePage } from './pages/MarketingPages';
 
 export { PUBLIC_SEO_ROUTES, articleSeoRoute } from './shared/publicSeoRoutes';
 // Owner 2026-10-27 (stage 2 of the agents room): the guides the Owner approved live in the database - the production build reads them here
@@ -30,6 +32,11 @@ const PAGES = {
   // r.extra / r.data (Owner 2026-10-27): the database guides of the index / one database guide, given by the build
   articles: { he: (r) => <PublicArticlesIndex lang="he" extra={r.extra} />, en: (r) => <PublicArticlesIndex lang="en" extra={r.extra} /> },
   article: { he: (r) => <PublicArticle lang="he" slug={r.slug} data={r.data} />, en: (r) => <PublicArticle lang="en" slug={r.slug} data={r.data} /> },
+  // Owner console 2026-11-26 (growth1126): the free tools, the comparison page and the smart-quote capability page
+  freeTemplate: { he: () => <FreeQuoteTemplatePage lang="he" />, en: () => <FreeQuoteTemplatePage lang="en" /> },
+  freeTax: { he: () => <VatCalculatorPage lang="he" />, en: () => <VatCalculatorPage lang="en" /> },
+  compare: { he: () => <ComparePage lang="he" />, en: () => <ComparePage lang="en" /> },
+  featureSmartQuote: { he: () => <SmartQuoteFeaturePage lang="he" />, en: () => <SmartQuoteFeaturePage lang="en" /> },
 };
 
 export function renderPublicPage(route) {

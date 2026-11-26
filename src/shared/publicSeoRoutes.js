@@ -205,6 +205,21 @@ export const PUBLIC_SEO_ROUTES = [
   },
 ];
 
+// Owner console 2026-11-26 (growth1126): "מאשר ליישם בשחרור אחד את שורת הביטחון, הכלים החינמיים, דף היכולת בלי חלק הסרטון עד שיצולם, קובץ ההסבר
+// למנועי AI ודף ההשוואה כמו בסקיצות, ולשחרר עד הלייב" - the free quote template, the VAT (Israel) / sales-tax (international) calculator,
+// the comparison page and the smart-quote capability page, each in Hebrew and English.
+const TAX_HREFLANG = pair('/tools/tax');
+PUBLIC_SEO_ROUTES.push(
+  { path: '/he/tools/quote-template', page: 'freeTemplate', lang: 'he', title: 'TEKANGO - תבנית הצעת מחיר חינמית להורדה', description: 'ממלאים פרטי עסק, לקוח ושורות עבודה, רואים את ההצעה ומורידים קובץ מסודר. בחינם, בלי הרשמה, ושום דבר לא נשמר.', hreflang: pair('/tools/quote-template') },
+  { path: '/en/tools/quote-template', page: 'freeTemplate', lang: 'en', title: 'TEKANGO - Free Quote Template to Download', description: 'Fill in your business, client and work lines, see the quote and download a neat PDF. Free, no sign-up, nothing is saved.', hreflang: pair('/tools/quote-template') },
+  { path: '/he/tools/tax', page: 'freeTax', lang: 'he', title: 'TEKANGO - מחשבון מע״מ: הוספה וחילוץ מע״מ 18%', description: 'מחשבון מע״מ חינמי: מוסיפים מע״מ 18% לסכום או מחלצים את המע״מ מסכום כולל, עם הפירוט המלא.', hreflang: TAX_HREFLANG },
+  { path: '/en/tools/tax', page: 'freeTax', lang: 'en', title: 'TEKANGO - Sales Tax Calculator: Add or Remove Tax', description: 'Free sales tax calculator: add tax to an amount or take it out of a total, at the rate for your state and city.', hreflang: TAX_HREFLANG },
+  { path: '/he/compare/word-excel-whatsapp', page: 'compare', lang: 'he', title: 'TEKANGO מול הצעת מחיר בוורד, באקסל או בוואטסאפ', description: 'השוואה פשוטה: מה מקבלים כשמכינים הצעות מחיר ב-TEKANGO לעומת וורד, אקסל או הודעה בוואטסאפ, ומתי הכלים הישנים מספיקים.', hreflang: pair('/compare/word-excel-whatsapp') },
+  { path: '/en/compare/word-excel-whatsapp', page: 'compare', lang: 'en', title: 'TEKANGO vs. a Quote in Word, Excel or WhatsApp', description: 'A simple comparison: what you get making quotes in TEKANGO versus Word, Excel or a WhatsApp message, and when the old tools are enough.', hreflang: pair('/compare/word-excel-whatsapp') },
+  { path: '/he/features/smart-quote', page: 'featureSmartQuote', lang: 'he', title: 'TEKANGO - הצעת מחיר חכמה מתיאור', description: 'מתארים את העבודה במילים או בקול, ו-TEKANGO בונה טיוטה של שורות וכמויות. המחיר תמיד שלכם. איך זה עובד בשלושה צעדים.', hreflang: pair('/features/smart-quote') },
+  { path: '/en/features/smart-quote', page: 'featureSmartQuote', lang: 'en', title: 'TEKANGO - Smart Quote from a Description', description: 'Describe the job in words or by voice and TEKANGO builds a draft with lines and quantities. The price is always yours. How it works in three steps.', hreflang: pair('/features/smart-quote') },
+);
+
 // Owner console 2026-10-26 (SEO week 2, the night task: "כן אם אתה יכול תיצור גם את זה במשימת הלילה"): the guides index and the four
 // articles, each in Hebrew and English (content + titles: src/shared/publicArticles.js); one Article JSON-LD block per article page.
 // One article page's SEO entry - the static guides above and (Owner 2026-10-27, stage 2 of the agents room) the guides the Owner approved

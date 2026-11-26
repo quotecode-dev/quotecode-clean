@@ -1,0 +1,7 @@
+/* Owner 2026-11-26 (growth1126): the free quote template's layout as in the sketch - form | preview side by side on a computer, one
+   column below 820px; business name and phone side by side only between 600 and 820px; the work lines: a wide description, fixed qty / price */
+.ft-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 26px; align-items: start; }
+.ft-bizrow { display: grid; grid-template-columns: minmax(0, 1fr); column-gap: 12px; }
+.ft-lines { display: grid; grid-template-columns: minmax(0, 1fr) 64px 92px; gap: 8px; align-items: end; }
+@media (max-width: 820px) { .ft-grid { grid-template-columns: minmax(0, 1fr); } }
+@media (min-width: 600px) and (max-width: 820px) { .ft-bizrow { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
