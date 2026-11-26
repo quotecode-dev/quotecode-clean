@@ -34,7 +34,10 @@ describe('the original phone picture stays exactly as it is', () => {
       expect(g.matrix3d).toMatch(/^matrix3d\(/);
       expect(g.clip.length).toBeGreaterThan(20);
       const size = fs.statSync(pub(g.film)).size;
-      expect(size).toBeLessThan(4.2 * 1024 * 1024);
+      // Owner 2026-11-26: the film re-recorded from the simplified version in HD (720 px wide, was 360); the Owner chose the 8.7 MB
+      // weight (1000 kb/s) over 11.4 / 13.1 MB. The limit keeps the film at that weight.
+      expect(size).toBeLessThan(9 * 1024 * 1024);
+      expect(size).toBeGreaterThan(6 * 1024 * 1024); // HD, not the old 360 px film
       expect(fs.existsSync(pub(g.island))).toBe(true);
     }
   });
