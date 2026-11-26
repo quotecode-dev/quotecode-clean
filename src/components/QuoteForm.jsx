@@ -5,7 +5,7 @@ import AddItemWizard from './AddItemWizard';
 import QuoteTreeEditor from './quoteTree/QuoteTreeEditor';
 import { structureOf } from './quoteTree/treeModel';
 import { HelpCircle } from './quoteTree/QuoteTreeEditor';
-import { Paperclip, X, AlertTriangle, ChevronDown, ArrowLeft, ArrowRight, Eye } from 'lucide-react';
+import { Paperclip, X, AlertTriangle, ChevronDown, ArrowLeft, ArrowRight, Eye, Calendar } from 'lucide-react';
 import EllipsisText from './EllipsisText';
 import CustomerTwinIcon from './CustomerTwinIcon';
 import { APP as NEON, FONT_HE } from '../theme/neonTheme';
@@ -241,6 +241,9 @@ export default function QuoteForm({
   const [detailsError, setDetailsError] = useState('');
   const [barBlock, setBarBlock] = useState(false);
   const detailsSnap = useRef(null);
+  // 2026-11-26 (Owner console, L-09: "החזרת כפתור לוח השנה לשדה בתוקף עד, זהה לכפתור של תאריך העבודה"): the native picker behind
+  // the validity field's calendar button - the same pattern as ServiceScheduleFields (the work date under it)
+  const validPickerRef = useRef(null);
   const detailsNow = () => ({ quoteSubject, projectName, validUntil, serviceSchedule, notes, terms, warranty, discount, quoteFiles, quoteStatus });
   const detailsChanged = () => { const a = detailsSnap.current || {}; const b = detailsNow(); return Object.keys(b).some((k) => (k === 'quoteFiles' ? (a[k] || []) !== (b[k] || []) : JSON.stringify(a[k] ?? null) !== JSON.stringify(b[k] ?? null))); };
   const openDetailsPage = (k) => {
@@ -981,7 +984,17 @@ export default function QuoteForm({
                 </div>
                 <div className="qt-field">
                   <div className="qt-page-label"><label htmlFor="sq-valid-until">{isHebrew ? 'בתוקף עד' : 'Valid until'}</label></div>
-                  <input id="sq-valid-until" className="qt-input" type="text" value={getDisplayDate(validUntil)} onChange={handleDisplayDateChange} placeholder={isHebrew ? (isUS ? 'חודש/יום/שנה' : 'יום/חודש/שנה') : dateFormatLabel} style={{ direction: 'ltr', textAlign: isHebrew ? 'right' : 'left' }} />
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <input id="sq-valid-until" className="qt-input" type="text" value={getDisplayDate(validUntil)} onChange={handleDisplayDateChange} placeholder={isHebrew ? (isUS ? 'חודש/יום/שנה' : 'יום/חודש/שנה') : dateFormatLabel} style={{ direction: 'ltr', textAlign: isHebrew ? 'right' : 'left', ...(isHebrew ? { paddingLeft: '36px' } : { paddingRight: '36px' }) }} />
+                    <input type="date" ref={validPickerRef} data-testid="sq-valid-until-picker" value={/^\d{4}-\d{2}-\d{2}$/.test(validUntil || '') ? validUntil : ''} onChange={(e) => setValidUntil(e.target.value)} tabIndex={-1} aria-hidden="true"
+                      style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', width: 0, height: 0 }} />
+                    {/* PRODUCT_TRUTH_DECORATIVE: opens the native date picker for the validity date; a generic form-field interaction helper */}
+                    <button type="button" data-testid="sq-valid-until-calendar" aria-label={isHebrew ? 'בחירת תאריך התוקף' : 'Pick a validity date'}
+                      onClick={() => { const el = validPickerRef.current; if (!el) return; if (typeof el.showPicker === 'function') el.showPicker(); else el.click(); }}
+                      style={{ position: 'absolute', insetInlineEnd: '6px', background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 32, minHeight: 32 }}>
+                      <Calendar size={16} strokeWidth={2} />
+                    </button>
+                  </div>
                   {validityExpired && <div data-testid="sq-validity-expired" role="status" style={{ marginTop: '4px', fontSize: '0.75rem', fontWeight: 600, color: '#9a3412' }}>{isHebrew ? 'תאריך התוקף עבר - הלקוח לא יוכל לחתום עד שתאריכו את התוקף.' : 'The validity date has passed - the customer cannot sign until you extend it.'}</div>}
                 </div>
                 {typeof setServiceSchedule === 'function' && <ServiceScheduleFields value={serviceSchedule} onChange={setServiceSchedule} state={serviceScheduleState} isHebrew={isHebrew} isUS={isUS} />}
