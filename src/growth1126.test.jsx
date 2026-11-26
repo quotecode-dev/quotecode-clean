@@ -77,7 +77,7 @@ describe('the VAT (Israel) / sales-tax (international) calculator', () => {
 describe('the comparison page and the smart-quote capability page', () => {
   it('no competitor names; the facts of the live plans; English without shekel / VAT / credit card', () => {
     mount(<ComparePage lang="he" />);
-    expect(document.body.textContent).toContain('₪30 לחודש כולל מע״מ');
+    expect(document.body.textContent).toContain('₪30.00 לחודש כולל מע״מ');
     cleanup(); mount(<ComparePage lang="en" />);
     expect(document.body.textContent).toContain('$18 a month');
     expect(document.body.textContent).not.toMatch(/₪|bVATb|credit card/i);
