@@ -356,8 +356,8 @@
     "markers": 7
   },
   "src/components/QuoteForm.jsx": {
-    "interactive": 30,
-    "markers": 32
+    "interactive": 29,
+    "markers": 31
   },
   "src/components/QuoteFromFileDialog.jsx": {
     "interactive": 4,
