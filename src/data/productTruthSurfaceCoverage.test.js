@@ -99,6 +99,10 @@ const DECORATIVE_ROUTES = new Set([
   '/he/articles', '/en/articles', '/he/articles/:slug', '/en/articles/:slug',
   // Codex review 2026-10-31 F01: the help-email unsubscribe page (consent withdrawal, like the legal pages) - not a Product Truth capability.
   '/unsubscribe', '/he/unsubscribe', '/en/unsubscribe',
+  // Owner console 2026-11-26 (growth1126): the free marketing tools (a quote template made and downloaded in the browser, nothing stored;
+  // the VAT / sales-tax calculator), the comparison page and the smart-quote capability page - public marketing surfaces of the landing,
+  // not account capabilities.
+  '/tools/quote-template', '/tools/tax', '/compare/word-excel-whatsapp', '/features/smart-quote',
 ]);
 
 describe('DEFECT-7 INDEPENDENT SURFACE COVERAGE (source-derived, not registry-derived)', () => {

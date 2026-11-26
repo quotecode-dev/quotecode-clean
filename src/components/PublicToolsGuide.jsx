@@ -1,14 +1,14 @@
 // Owner console 2026-10-27, typed: "מאשר תוכנית א לדפי המחשבונים" - the tools hub shows the four calculators as cards (no calculator of
 // its own, so it is no longer a copy of the currency page), and every calculator page carries its own guide. Texts:
 // src/shared/publicToolsGuides.js (Hebrew for Israel, English for the international market - each written on its own).
-import { ArrowLeftRight, Ruler, Gem, Bitcoin } from 'lucide-react';
+import { ArrowLeftRight, Ruler, Gem, Bitcoin, FileText, Percent } from 'lucide-react';
 import { TOOLS } from '../theme/toolsLightTheme';
 import { HUB_CARDS, HUB_COPY, TOOL_GUIDES } from '../shared/publicToolsGuides';
 
 // Owner console 2026-11-24, typed: "מאשר ליישם במוצר את סקיצת הצבעים של הצ׳אט והכלים, ולשחרר עד הלייב" (sketch TEKANGO-sketch-chat-tools-2026-11-24-v2:
 // "מחשבון - ... כותרות לכחול וכיתוב בלבן גם את התוצאה" + the tab row "רקע כחול, כיתוב ואייקונים בלבן"): headings, links and icons in the
 // sidebar navy (TOOLS.button), the tab row and every result box navy with white text.
-const ICONS = { currency: ArrowLeftRight, units: Ruler, metals: Gem, crypto: Bitcoin };
+const ICONS = { currency: ArrowLeftRight, units: Ruler, metals: Gem, crypto: Bitcoin, 'quote-template': FileText, tax: Percent }; // the last three: growth1126 (Owner 2026-11-26)
 const cardStyle = { background: TOOLS.bgCard, borderRadius: '12px', border: `1px solid ${TOOLS.border}`, boxShadow: TOOLS.cardShadow, padding: '22px 20px', display: 'flex', flexDirection: 'column', gap: '8px' };
 
 export function ToolHubCards({ lang, navigate }) {
@@ -29,7 +29,7 @@ export function ToolHubCards({ lang, navigate }) {
               {/* PRODUCT_TRUTH_DECORATIVE: link to one public calculator page of the same language */}
               <a href={href} data-testid={`tools-hub-open-${c.key}`} onClick={(e) => { e.preventDefault(); navigate(href); }}
                 style={{ color: TOOLS.button, fontWeight: 600, textDecoration: 'underline', display: 'inline-flex', alignItems: 'center', minHeight: '44px' }}>
-                {t.open}
+                {c.open || t.open}
               </a>
             </li>
           );

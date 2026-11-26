@@ -9,6 +9,8 @@ import LandingGlobal from '../pages/LandingGlobal';
 import { rootRecoveryIntent, rootSignupIntent } from '../shared/supabase';
 import PublicToolsEn from '../components/PublicToolsEn';
 import { PublicArticle, PublicArticlesIndex } from '../pages/PublicArticle';
+import { FreeQuoteTemplatePage, VatCalculatorPage } from '../components/FreeTools';
+import { ComparePage, SmartQuoteFeaturePage } from '../pages/MarketingPages';
 import Terms from '../pages/Terms';
 import Privacy from '../pages/Privacy';
 import Contact from '../pages/Contact';
@@ -109,6 +111,11 @@ export default function AppGlobal() {
         <Route path="/en/tools/units" element={<PublicToolsEn initialTab="units" />} />
         <Route path="/en/tools/metals" element={<PublicToolsEn initialTab="metals" />} />
         <Route path="/en/tools/crypto" element={<PublicToolsEn initialTab="crypto" />} />
+        {/* Owner console 2026-11-26 (growth1126, L-15 change typed by the Owner): the free tools (quote template, VAT / sales tax), the comparison page and the smart-quote capability page */}
+        <Route path="/en/tools/quote-template" element={<FreeQuoteTemplatePage lang="en" />} />
+        <Route path="/en/tools/tax" element={<VatCalculatorPage lang="en" />} />
+        <Route path="/en/compare/word-excel-whatsapp" element={<ComparePage lang="en" />} />
+        <Route path="/en/features/smart-quote" element={<SmartQuoteFeaturePage lang="en" />} />
         {/* Owner console 2026-10-26 (SEO week 2, the night task: "כן אם אתה יכול תיצור גם את זה במשימת הלילה"): the public guides - the index and one page per article */}
         <Route path="/en/articles" element={<PublicArticlesIndex lang="en" />} />
         <Route path="/en/articles/:slug" element={<PublicArticle lang="en" />} />

@@ -1,0 +1,12 @@
+/* Owner 2026-11-26 (growth1126): the comparison table turns into one card per row on a phone (sketch compare.html) */
+@media (max-width: 760px) {
+  .tl-compare-table { display: none !important; }
+  .tl-compare-cards { display: grid !important; }
+}
+/* the capability page as in the sketch: three step cards side by side, one column below 820px; the screens 390:560 (390:520 and at most
+   360px wide on a phone); the FAQ opens and closes, the first answer open */
+.fp-steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.fp-shot { width: 100%; height: auto; aspect-ratio: 390 / 560; object-fit: cover; object-position: top; display: block; margin-top: auto; }
+.fp-faq summary { cursor: pointer; list-style: none; display: flex; align-items: center; min-height: 52px; }
+.fp-faq summary::-webkit-details-marker { display: none; }
+@media (max-width: 820px) { .fp-steps { grid-template-columns: minmax(0, 1fr); } .fp-shot { aspect-ratio: 390 / 520; max-width: 360px; } }

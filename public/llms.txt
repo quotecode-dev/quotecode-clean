@@ -1,0 +1,38 @@
+# TEKANGO
+
+> TEKANGO is a web app for small businesses and tradespeople to create price quotes, send them to clients, get a digital signature, and manage clients, tasks and finances. It runs in the browser and installs to the home screen on iPhone and Android. Two markets: Israel (Hebrew, prices in ILS including 18% VAT) and international (English, prices in US dollars).
+
+## Product
+
+- [Hebrew site (Israel)](https://www.tekango.com/he): quotes in ILS with 18% VAT, Hebrew interface.
+- [English site (international)](https://www.tekango.com/en): quotes in US dollars, English interface.
+- Quotes: line items with quantities and prices, sections (floors, apartments, rooms), measured pricing (area and length), discounts, validity date, three document styles (Classic, Modern, Visual), PDF download and print.
+- Sending: a link by WhatsApp or e-mail. The business sees whether the client opened the quote and how many times. The client signs digitally from the phone.
+- Clients and leads, product catalog, tasks, calendar, finances and expenses, CSV export.
+
+## Plans and pricing
+
+- Free: 10 quotes or 7 days from sign-up, whichever comes first. SMART PACK is included during the 7 days. No payment details are needed to open an account.
+- All-inclusive: one package with all available core capabilities, billed monthly or annually. Israel: ILS 30.00 per month, VAT included. International: USD 18.00 per month.
+- SMART PACK (optional paid add-on): a smart chat that reads the account's own data, voice chat, an AI smart quote with voice dictation, a quote from a file (PDF or JPG), Improve quote, and files attached to quotes. Israel: ILS 10 per month, or ILS 102 a year with a yearly plan. International: USD 5 per month, or USD 51 a year with a yearly plan.
+- The paid package is bought inside the account, in the plans window, by card.
+- Cancellation: a subscription can be cancelled at any time by e-mail or from the plans window. The team handles the request and confirms it by e-mail. Cancelling does not delete the account. Full terms: [Terms (Hebrew)](https://www.tekango.com/he/terms), [Terms (English)](https://www.tekango.com/en/terms).
+
+## Free resources
+
+- [Free quote template (Hebrew)](https://www.tekango.com/he/tools/quote-template) and [Free quote template (English)](https://www.tekango.com/en/tools/quote-template): fill in a quote and download it as a PDF in the browser. No sign-up; nothing is saved.
+- [VAT calculator (Hebrew, 18%)](https://www.tekango.com/he/tools/tax) and [Sales tax calculator (English, your own rate)](https://www.tekango.com/en/tools/tax).
+- [Business tools (Hebrew)](https://www.tekango.com/he/tools) and [Business tools (English)](https://www.tekango.com/en/tools): also a currency converter, unit conversions, precious metals and crypto calculators. No sign-up.
+- [TEKANGO vs. a quote in Word, Excel or WhatsApp (Hebrew)](https://www.tekango.com/he/compare/word-excel-whatsapp) and [(English)](https://www.tekango.com/en/compare/word-excel-whatsapp).
+- [Smart quote from a description (Hebrew)](https://www.tekango.com/he/features/smart-quote) and [(English)](https://www.tekango.com/en/features/smart-quote): how the AI smart quote works.
+- [Guides (Hebrew)](https://www.tekango.com/he/articles) and [Guides (English)](https://www.tekango.com/en/articles): how to write and price a quote.
+
+## בעברית
+
+TEKANGO היא מערכת להפקת הצעות מחיר ולניהול העסק, לעסקים קטנים ולבעלי מקצוע בישראל: מחירים בשקלים כולל מע״מ 18%, שליחה בוואטסאפ או במייל, חתימה דיגיטלית של הלקוח, ניהול לקוחות ופניות, קטלוג, משימות, יומן והוצאות. 10 הצעות מחיר חינם או 7 ימים, המוקדם מביניהם, ואחר כך מסלול אחד שכולל הכול: 30 ₪ לחודש כולל מע״מ. חכם פלוס (צ׳אט חכם, צ׳אט קולי, הצעה חכמה עם AI, הצעה מקובץ, שיפור ההצעה וקבצים מצורפים) הוא תוספת לבחירה: 10 ₪ לחודש. אתר בעברית: https://www.tekango.com/he
+
+## Contact
+
+- Israel: support@tekango.com, [contact page](https://www.tekango.com/he/contact)
+- International: info@tekango.com, [contact page](https://www.tekango.com/en/contact)
+- [Privacy (Hebrew)](https://www.tekango.com/he/privacy), [Privacy (English)](https://www.tekango.com/en/privacy)

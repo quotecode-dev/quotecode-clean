@@ -119,6 +119,8 @@ export default function LandingLocal({ onForgotPassword }) {
       docLabel: 'הצעת מחיר לדוגמה בסגנון Classic',
       // OD-01 / IRON-LANDING-001: the line under the Free-10 button states the offer and its true state.
       trial: '10 הצעות מחיר חינם או 7 ימים מההרשמה, המוקדם מביניהם.',
+      // Owner console 2026-11-26 (growth1126, L-06 change typed; wording "א"): the trust line under the free terms
+      trust: ['בלי כרטיס אשראי', 'מתחילים בחינם', 'ביטול בבקשה'], // Owner: "נוסח קצר יותר" - one line on a phone too
       motion: {
         eyebrow: 'הצעות מחיר שעובדות בשבילכם',
         title: 'מהעבודה בשטח להצעה חתומה',
