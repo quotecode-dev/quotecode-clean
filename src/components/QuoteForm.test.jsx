@@ -654,3 +654,36 @@ describe('QuoteForm - the bottom bar, the summary and the quote details', () => 
     expect(screen.queryByTestId('sq-details-page')).toBeNull();
   });
 });
+
+// 2026-11-26 (Owner console, L-09: "החזרת כפתור לוח השנה לשדה בתוקף עד, זהה לכפתור של תאריך העבודה"): the validity field has the
+// same calendar button as the work date under it - same place (inline end), icon, size and colour; it opens the native picker and a
+// picked date is stored as the ISO date; typing digits works as before
+describe('the validity calendar button (Owner 2026-11-26, L-09)', () => {
+  function ValidForm({ isHebrew = false, initial = '' }) {
+    const [validUntil, setValidUntil] = useStateLive(initial);
+    return <QuoteForm {...baseProps({ isHebrew, isLocalIsraeliBusiness: isHebrew, sym: isHebrew ? '₪' : '$', validUntil, setValidUntil, setServiceSchedule: vi.fn(), serviceSchedule: { date: '', time: '' } })} />;
+  }
+  for (const isHebrew of [true, false]) {
+    it(`${isHebrew ? 'HE' : 'EN'}: the button sits like the work-date button and opens the picker; a picked date fills the field`, () => {
+      render(<ValidForm isHebrew={isHebrew} />);
+      openPage('project');
+      const btn = screen.getByTestId('sq-valid-until-calendar');
+      const workBtn = screen.getByLabelText(isHebrew ? 'בחירת תאריך העבודה' : 'Pick a work date');
+      expect(btn.getAttribute('aria-label')).toBe(isHebrew ? 'בחירת תאריך התוקף' : 'Pick a validity date');
+      for (const k of ['position', 'insetInlineEnd', 'color', 'minWidth', 'minHeight', 'background', 'padding']) expect(btn.style[k]).toBe(workBtn.style[k]);
+      expect(btn.querySelector('svg').outerHTML).toBe(workBtn.querySelector('svg').outerHTML);
+      const field = document.getElementById('sq-valid-until');
+      expect(field.style[isHebrew ? 'paddingLeft' : 'paddingRight']).toBe('36px');
+      const picker = screen.getByTestId('sq-valid-until-picker');
+      picker.showPicker = vi.fn();
+      fireEvent.click(btn);
+      expect(picker.showPicker).toHaveBeenCalledTimes(1);
+      fireEvent.change(picker, { target: { value: '2026-12-31' } });
+      // the market date order (IRON-DATE-001): Israel day/month, the international account month/day
+      expect(field.value).toBe(isHebrew ? '31/12/2026' : '12/31/2026');
+      fireEvent.change(field, { target: { value: isHebrew ? '02012027' : '01022027' } });
+      expect(field.value).toBe(isHebrew ? '02/01/2027' : '01/02/2027');
+      expect(picker.value).toBe('2027-01-02');
+    });
+  }
+});
