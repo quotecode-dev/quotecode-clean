@@ -8,18 +8,12 @@
 
 export const HUB_CARDS = Object.freeze({
   he: [
-    // Owner console 2026-11-26 (growth1126, sketch TEKANGO-sketch-free-tools-2026-11-26): the free quote template first, then the VAT calculator - cards only, each its own page (no tab, Owner choice "ב")
-    { key: 'quote-template', title: 'תבנית הצעת מחיר חינמית', text: 'ממלאים פרטי עסק, לקוח ושורות עבודה, ורואים את ההצעה מוכנה. מורידים את ההצעה כקובץ, בלי הרשמה.', open: 'לפתיחת התבנית' },
-    { key: 'tax', title: 'מחשבון מע״מ', text: 'הוספת מע״מ 18% לסכום, או חילוץ המע״מ מסכום שכבר כולל אותו.' },
     { key: 'currency', title: 'מחשבון המרת מטבעות', text: 'שקל, דולר, אירו ועוד חמישה מטבעות, לפי שער עדכני מהמקור ועם שעת העדכון.' },
     { key: 'units', title: 'המרת יחידות אורך', text: 'מטר, סנטימטר, קילומטר, פיט, אינץ\' ומייל - לפי יחסי ההמרה המדויקים.' },
     { key: 'metals', title: 'הערכת שווי למתכות יקרות', text: 'זהב, כסף, פלטינה, פלדיום ורודיום לפי משקל, טוהר ומחיר ייחוס שאפשר לשנות.' },
     { key: 'crypto', title: 'ממיר קריפטו', text: 'ביטקוין, אתריום, סולנה, ריפל וטרון בדולרים ובשקלים, עם שעת העדכון.' },
   ],
   en: [
-    // Owner console 2026-11-26 (growth1126): the free quote template first, then the sales-tax calculator (the user enters the rate) - cards only, each its own page
-    { key: 'quote-template', title: 'Free quote template', text: 'Fill in your business, client and work lines and see the quote ready. Download a neat PDF - no sign-up.', open: 'Open the template' },
-    { key: 'tax', title: 'Sales tax calculator', text: 'Add sales tax to an amount, or take it out of a total that already includes it. You enter your own rate.' },
     { key: 'currency', title: 'Currency Converter', text: 'US dollars, euros, pounds and five more currencies at an up-to-date rate from a named source, with the update time.' },
     { key: 'units', title: 'Length Converter', text: 'Feet, inches, miles, meters, centimeters and kilometers - using the exact conversion factors.' },
     { key: 'metals', title: 'Precious Metals Estimator', text: 'Gold, silver, platinum, palladium and rhodium by weight, purity and a reference price you can change.' },

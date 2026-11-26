@@ -88,10 +88,6 @@
 .tl-hero-text { font-size: 18px; color: var(--tl-muted); line-height: 1.65; max-width: 570px; margin: 0; }
 .tl-hero-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
 .tl-trial { margin: 14px 0 0; font-size: 15px; font-weight: 600; color: var(--tl-ok); }
-/* Owner console 2026-11-26 (growth1126, L-02 change typed): the trust line - dark grey, the check marks in the green of the line above, one line */
-.tl-trust { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-size: 14px; font-weight: 500; color: #475569; line-height: 1.5; }
-.tl-trust li { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
-.tl-trust svg { flex-shrink: 0; color: var(--tl-ok); }
 .tl-hero-proof { margin: 0; min-width: 0; }
 .tl-hero-paper { background: #dfe8e5; padding: 20px; border-radius: 22px; transform: rotate(-1deg); }
 .tl-hero-paper .tl-doc { transform: rotate(1deg); }
@@ -518,7 +514,6 @@
   .tl-hero h1 { font-size: 34px; margin: 8px 0 12px; }
   .tl-hero-actions { margin-top: 18px; }
   .tl-trial { margin-top: 10px; }
-  .tl-trust { font-size: 12.5px; gap: 4px 8px; }
   .tl-hero-text { font-size: 16.5px; }
   .tl-hero-actions { flex-direction: column; align-items: stretch; }
   .tl-hero-paper { padding: 8px; border-radius: 13px; transform: none; }

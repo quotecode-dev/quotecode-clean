@@ -4,8 +4,6 @@ import LandingLocal from '../pages/LandingLocal';
 import { rootRecoveryIntent, rootSignupIntent } from '../shared/supabase';
 import PublicTools from '../components/PublicTools';
 import { PublicArticle, PublicArticlesIndex } from '../pages/PublicArticle';
-import { FreeQuoteTemplatePage, VatCalculatorPage } from '../components/FreeTools';
-import { ComparePage, SmartQuoteFeaturePage } from '../pages/MarketingPages';
 import Terms from '../pages/Terms';
 import Privacy from '../pages/Privacy';
 import Contact from '../pages/Contact';
@@ -132,11 +130,6 @@ export default function AppLocal() {
         <Route path="/he/tools/units" element={<PublicTools initialTab="units" />} />
         <Route path="/he/tools/metals" element={<PublicTools initialTab="metals" />} />
         <Route path="/he/tools/crypto" element={<PublicTools initialTab="crypto" />} />
-        {/* Owner console 2026-11-26 (growth1126, L-15 change typed by the Owner): the free tools (quote template, VAT / sales tax), the comparison page and the smart-quote capability page */}
-        <Route path="/he/tools/quote-template" element={<FreeQuoteTemplatePage lang="he" />} />
-        <Route path="/he/tools/tax" element={<VatCalculatorPage lang="he" />} />
-        <Route path="/he/compare/word-excel-whatsapp" element={<ComparePage lang="he" />} />
-        <Route path="/he/features/smart-quote" element={<SmartQuoteFeaturePage lang="he" />} />
         {/* Owner console 2026-10-26 (SEO week 2, the night task: "כן אם אתה יכול תיצור גם את זה במשימת הלילה"): the public guides - the index and one page per article */}
         <Route path="/he/articles" element={<PublicArticlesIndex lang="he" />} />
         <Route path="/he/articles/:slug" element={<PublicArticle lang="he" />} />

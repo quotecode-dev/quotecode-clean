@@ -148,8 +148,6 @@ export default function LandingGlobal({ onForgotPassword }) {
       docLabel: 'Sample quotation in the Classic style',
       // OD-01 (Owner 2026-10-07): the trial line now states the Free-10 policy, marked as not yet activated.
       trial: '10 free quotes or 7 days from sign-up, whichever comes first',
-      // Owner console 2026-11-26 (growth1126, L-06 change typed: "No card needed" - the international page never says "credit card"; wording "א")
-      trust: ['No card needed', 'Free to start', 'Cancel on request'], // Owner: "a shorter wording" - one line on a phone too
       motion: {
         eyebrow: 'Quotes that work as hard as you do',
         title: 'From the jobsite to a signed quote',

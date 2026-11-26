@@ -31,8 +31,6 @@ const PROTECTED_FROM_LAUNCHER = '#plans .tl-plan, #plans .tl-plans-cta, '
   + '.tl-hero a, .tl-hero button, .tl-section a, .tl-section button, .tl-section summary, .tl-closing a, .tl-closing button, .tl-footer a, '
   // Owner 2026-11-11 (finding 36, typed L-02): the free terms under the hero's call to action are part of the offer - never covered
   + '.tl-hero .tl-trial, '
-  // Owner console 2026-11-26 (growth1126, L-02 change typed): the trust line under the free terms is part of the same offer - never covered
-  + '.tl-hero .tl-trust, '
   // Owner 2026-11-11 (finding 35, typed L-02): the first board's quote header (business details and the quote data row) is never covered
   + '.tl-hero .tl-letterhead-band';
 
@@ -137,12 +135,6 @@ export default function LandingPage({
                 <a className="tl-cta tl-free10-cta" href={copy.links.signup} onClick={go(navigate, copy.links.signup)} data-free10-cta><span className="tl-free10-label">{copy.free10.cta}</span>{copy.free10.status && <span className="tl-free10-status" data-free10-status>{copy.free10.status}</span>}<ArrowUpRight size={17} strokeWidth={2.2} aria-hidden="true" /></a>
               </div>
               <p className="tl-trial">{copy.hero.trial}</p>
-              {/* Owner console 2026-11-26 (growth1126, BillOS idea 3; L-02 + L-06 change typed; wording "א" - true to the Terms §6: a cancellation is a request handled by the team) */}
-              {copy.hero.trust && (
-                <ul className="tl-trust" data-testid="landing-trust-line">
-                  {copy.hero.trust.map((t) => <li key={t}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5" /></svg>{t}</li>)}
-                </ul>
-              )}
             </div>
           </div>
           <figure className="tl-hero-proof" aria-label={copy.hero.docLabel}>

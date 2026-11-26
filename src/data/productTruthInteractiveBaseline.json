@@ -259,10 +259,6 @@
     "interactive": 4,
     "markers": 4
   },
-  "src/components/FreeTools.jsx": {
-    "interactive": 6,
-    "markers": 6
-  },
   "src/components/HeaderPlanMedallion.jsx": {
     "interactive": 1,
     "markers": 1
@@ -810,10 +806,6 @@
   "src/pages/LandingLocal.jsx": {
     "interactive": 1,
     "markers": 3
-  },
-  "src/pages/MarketingPages.jsx": {
-    "interactive": 3,
-    "markers": 4
   },
   "src/pages/NotFound.jsx": {
     "interactive": 1,
