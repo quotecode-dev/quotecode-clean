@@ -141,7 +141,7 @@ export function FreeQuoteTemplatePage({ lang = 'he' }) {
 
   const th = { padding: '8px 4px', fontWeight: 700, fontSize: '0.8rem', color: TOOLS.textSecondary, borderBottom: `1px solid ${TOOLS.border}`, textAlign: 'start' };
   const td = { padding: '8px 4px', fontSize: '0.8rem', borderBottom: `1px solid ${TOOLS.border}`, verticalAlign: 'top' };
-  const num = { ...td, textAlign: he ? 'left' : 'right', whiteSpace: 'nowrap', direction: 'ltr', unicodeBidi: 'isolate' }; // the physical side of the column headers (HE left, EN right) - 'end' inside an LTR cell would be the right side in Hebrew too
+  const num = { ...td, textAlign: 'end', whiteSpace: 'nowrap', direction: 'ltr', unicodeBidi: 'isolate' };
 
   return (
     <ToolShell lang={lang} h1={t.h1} intro={t.intro} seoPath={FREE_TOOL_PATHS.template[lang]}>
@@ -192,14 +192,14 @@ export function FreeQuoteTemplatePage({ lang = 'he' }) {
                   <div style={{ fontWeight: 700, fontSize: '0.95rem', overflowWrap: 'anywhere', color: client ? '#0f172a' : '#9ca3af' }}>{client || t.phClient}</div>
                 </div>
                 <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
-                  <thead><tr><th style={{ ...th, width: '30%' }}>{t.desc}</th><th style={{ ...th, width: '14%', textAlign: 'end' }}>{t.qty}</th><th style={{ ...th, width: '28%', textAlign: 'end' }}>{t.price}</th><th style={{ ...th, width: '28%', textAlign: 'end' }}>{t.amount}</th></tr></thead>
+                  <thead><tr><th style={{ ...th, width: '32%' }}>{t.desc}</th><th style={{ ...th, width: '12%', textAlign: 'end' }}>{t.qty}</th><th style={{ ...th, width: '28%', textAlign: 'end' }}>{t.price}</th><th style={{ ...th, width: '28%', textAlign: 'end' }}>{t.amount}</th></tr></thead>
                   <tbody>
                     {shown.length ? shown.map((r, i) => (
                       <tr key={i}><td style={{ ...td, overflowWrap: 'anywhere' }}>{r.desc}</td><td style={num}>{formatToolNumber(r.qty, he ? 'he-IL' : 'en-US')}</td><td style={num}>{money(r.price, he)}</td><td style={num}>{money(r.amount, he)}</td></tr>
                     )) : <tr><td colSpan={4} style={{ ...td, color: '#9ca3af' }}>{t.phDesc}</td></tr>}
                   </tbody>
                 </table>
-                <div className="pq-section" style={{ marginTop: '10px', fontSize: '0.85rem', padding: '0 4px' }}>
+                <div className="pq-section" style={{ marginTop: '10px', fontSize: '0.85rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', color: '#475569' }}><span>{t.subtotal}</span><span style={{ direction: 'ltr', unicodeBidi: 'isolate' }}>{money(subtotal, he)}</span></div>
                   {he ? <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', color: '#475569' }}><span>{t.vat}</span><span style={{ direction: 'ltr', unicodeBidi: 'isolate' }}>{money(vat, he)}</span></div> : null}
                   <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0 0', marginTop: '4px', borderTop: `1px solid ${TOOLS.border}`, fontWeight: 800, fontSize: '1rem' }}><span>{t.total}</span><span style={{ direction: 'ltr', unicodeBidi: 'isolate' }} data-testid="free-template-total">{money(total, he)}</span></div>

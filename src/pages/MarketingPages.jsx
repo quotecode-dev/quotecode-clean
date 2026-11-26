@@ -21,8 +21,6 @@ const MARKETING_PATHS = Object.freeze({
   smartQuote: { he: '/he/features/smart-quote', en: '/en/features/smart-quote' },
 });
 const UPDATED = '26/11/2026';
-// the step screens, each cropped at a text-free row (no line cut at the bottom edge - LIVE check 26/11): their heights at 390 px wide
-const SHOT_H = { he: [524, 578, 618], en: [562, 597, 566] }; // HE and EN end at the same row: after "Upload a file", after item 2's qty row, after the total
 
 const COMPARE = {
   he: {
@@ -208,7 +206,7 @@ export function SmartQuoteFeaturePage({ lang = 'he' }) {
                   <span aria-hidden="true" style={{ flexShrink: 0, width: '30px', height: '30px', borderRadius: '50%', background: navy, color: '#ffffff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '15px', fontWeight: 800 }}>{i + 1}</span>{h}
                 </h3>
                 <p style={{ margin: 0, color: TOOLS.textSecondary }}>{p}</p>
-                <img src={`/assets/features/smart-quote-step${i + 1}-${lang}.png`} alt={alt} width={390} height={SHOT_H[lang][i]} loading="lazy" decoding="async" className="fp-shot" style={{ borderRadius: '10px', border: `1px solid ${TOOLS.border}` }} />
+                <img src={`/assets/features/smart-quote-step${i + 1}-${lang}.png`} alt={alt} width={390} height={844} loading="lazy" decoding="async" className="fp-shot" style={{ borderRadius: '10px', border: `1px solid ${TOOLS.border}` }} />
               </li>
             ))}
           </ol>
