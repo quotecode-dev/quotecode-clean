@@ -22,7 +22,7 @@ const MARKETING_PATHS = Object.freeze({
 });
 const UPDATED = '26/11/2026';
 // the step screens, each cropped at a text-free row (no line cut at the bottom edge - LIVE check 26/11): their heights at 390 px wide
-const SHOT_H = { he: [524, 544, 618], en: [562, 563, 566] }; // step 2 is 358 wide: cropped exactly to the AI window (from its top border), so no letter of the dimmed page behind it is cut at the edge // HE and EN end at the same row: after "Upload a file", after item 2's qty row, after the total
+const SHOT_H = { he: [524, 578, 618], en: [562, 597, 566] }; // HE and EN end at the same row: after "Upload a file", after item 2's qty row, after the total
 
 const COMPARE = {
   he: {
@@ -37,7 +37,7 @@ const COMPARE = {
       ['אישור הלקוח', 'חתימה דיגיטלית מהטלפון', 'הדפסה וסריקה, או "מאשר" בהודעה'],
       ['שינוי אחרי שליחה', 'הקישור מתעדכן עד שהלקוח חותם', 'שולחים קובץ חדש ומקווים שיפתח את הנכון'],
       ['מעקב', 'רשימה אחת עם מצב כל הצעה: טיוטה, נשלחה, נצפתה, אושרה', 'תיקיות, קבצים וגלילה בשיחות'],
-      ['עלות', <>10 הצעות חינם, ואז <bdi dir="ltr">₪30.00</bdi> לחודש כולל מע״מ</>, 'כלים שכבר יש לכם'],
+      ['עלות', <>10 הצעות חינם, ואז <bdi dir="ltr">₪30</bdi> לחודש כולל מע״מ</>, 'כלים שכבר יש לכם'],
     ],
     whenH: 'מה מתאים למי', oldOkH: 'וורד או אקסל מספיקים כש...', oldOk: ['שולחים הצעה אחת לכמה חודשים', 'לא צריך חתימה של הלקוח', 'לא חשוב לדעת אם הלקוח פתח'],
     tkH: 'TEKANGO שווה את זה כש...', tk: ['שולחים כמה הצעות בשבוע', 'רוצים חתימה של הלקוח בלי הדפסות', 'רוצים לראות מי פתח ומי מחכה לטלפון', 'עובדים מהטלפון, גם בשטח'],
@@ -80,7 +80,7 @@ const SMART = {
       ['אפשר לדבר במקום להקליד?', 'כן. לוחצים על המיקרופון ואומרים את העבודה.'],
       ['מה קורה אם הטיוטה לא מדויקת?', 'מסמנים רק את השורות שמתאימות, ואת השאר מוחקים או מתקנים בעורך. אפשר גם ללחוץ על "תיאור אחר" ולנסות שוב.'],
       ['האם הלקוח רואה את הטיוטה?', 'לא. ההצעה נשלחת ללקוח רק כשאתם שולחים אותה.'],
-      ['כמה זה עולה?', <>ההצעה החכמה היא חלק מ&quot;חכם פלוס&quot;, תוספת לבחירה: <bdi dir="ltr">₪10.00</bdi> לחודש, או <bdi dir="ltr">₪102.00</bdi> לשנה במנוי שנתי. בשבעת הימים החינמיים היא כלולה. בחלון רואים כמה אחוזים נשארו לכם מהשימוש החודשי.</>],
+      ['כמה זה עולה?', <>ההצעה החכמה היא חלק מ&quot;חכם פלוס&quot;, תוספת לבחירה: <bdi dir="ltr">₪10</bdi> לחודש, או <bdi dir="ltr">₪102</bdi> לשנה במנוי שנתי. בשבעת הימים החינמיים היא כלולה. בחלון רואים כמה אחוזים נשארו לכם מהשימוש החודשי.</>],
     ],
     endH: 'רוצים לנסות?', endP: 'פותחים חשבון בחינם ומכינים את ההצעה הראשונה.',
   },
@@ -208,7 +208,7 @@ export function SmartQuoteFeaturePage({ lang = 'he' }) {
                   <span aria-hidden="true" style={{ flexShrink: 0, width: '30px', height: '30px', borderRadius: '50%', background: navy, color: '#ffffff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '15px', fontWeight: 800 }}>{i + 1}</span>{h}
                 </h3>
                 <p style={{ margin: 0, color: TOOLS.textSecondary }}>{p}</p>
-                <img src={`/assets/features/smart-quote-step${i + 1}-${lang}.png`} alt={alt} width={i === 1 ? 358 : 390} height={SHOT_H[lang][i]} loading="lazy" decoding="async" className="fp-shot" style={{ borderRadius: '10px', border: `1px solid ${TOOLS.border}` }} />
+                <img src={`/assets/features/smart-quote-step${i + 1}-${lang}.png`} alt={alt} width={390} height={SHOT_H[lang][i]} loading="lazy" decoding="async" className="fp-shot" style={{ borderRadius: '10px', border: `1px solid ${TOOLS.border}` }} />
               </li>
             ))}
           </ol>
