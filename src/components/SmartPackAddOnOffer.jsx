@@ -72,9 +72,11 @@ export default function SmartPackAddOnOffer({ isHebrew, invoke, onLeave, market 
         display: 'flex', flexDirection: 'column', gap: '8px', boxSizing: 'border-box', textAlign: he ? 'right' : 'left' }}>
       {/* Owner console 2026-10-25 (typed: "מאשר שינוי ב-L-22: ... ותיבת ההוספה למנוי קיים בנוסח החדש עם חיוב יחסי"): the question with its
           recurring price, the pro-rata charge until the end of the current month / year of the plan, then with every renewal */}
-      <h3 style={{ margin: 0, color: '#1e293b', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-        <BrainCircuit size={18} color="#0F6672" aria-hidden="true" />
-        <span>{he ? <>להוסיף את חכם פלוס למנוי? ({num(`+${price(quote.recurringMinor)}`)} {per})</> : <>Add SMART PACK to your plan? ({num(`+${price(quote.recurringMinor)}`)} {per})</>}</span>
+      {/* Owner console 2026-11-27 (typed: "מאשר שינוי ב-L-22: האייקון והכותרת בתיבת הוספת חכם פלוס תמיד באותה שורה, בעברית ובאנגלית, בשחרור
+          הזה"): the icon and the title share one row that never wraps; a long title wraps inside itself next to the icon */}
+      <h3 style={{ margin: 0, color: '#1e293b', fontSize: '1rem', display: 'flex', alignItems: 'flex-start', gap: '8px', flexWrap: 'nowrap' }}>
+        <BrainCircuit size={18} color="#0F6672" aria-hidden="true" style={{ flex: '0 0 auto', marginTop: '2px' }} />
+        <span style={{ flex: '1 1 auto', minWidth: 0 }}>{he ? <>להוסיף את חכם פלוס למנוי? ({num(`+${price(quote.recurringMinor)}`)} {per})</> : <>Add SMART PACK to your plan? ({num(`+${price(quote.recurringMinor)}`)} {per})</>}</span>
       </h3>
       <p style={{ margin: 0, color: '#475569', fontSize: '0.82rem' }}>{SMART_PACK.summary[he ? 'he' : 'en']}</p>
       <p data-testid="plans-smart-pack-add-on-now" style={{ margin: 0, color: '#1e293b', fontSize: '0.88rem', fontWeight: 700 }}>

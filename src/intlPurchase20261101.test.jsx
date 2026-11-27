@@ -32,6 +32,11 @@ describe('the SMART PACK add-on abroad', () => {
     expect(screen.getByTestId('plans-smart-pack-add-on-now').textContent).toBe('Pro-rated charge now until the end of your current billing month: $4.19 (until 27/11/2026)');
     expect(screen.getByTestId('plans-smart-pack-add-on-pay').textContent).toBe('Yes, add SMART PACK - $4.19');
     expect(screen.getByTestId('plans-smart-pack-add-on').textContent).not.toMatch(/₪/);
+    // Owner console 2026-11-27 (L-22): the icon and the title always on one row, in Hebrew and English
+    const h3 = screen.getByTestId('plans-smart-pack-add-on').querySelector('h3');
+    expect(h3.style.flexWrap).toBe('nowrap');
+    expect(h3.querySelector('svg').style.flex).toBe('0 0 auto');
+    expect(h3.querySelector('span').style.minWidth).toBe('0px');
   });
   it('HE abroad: Hebrew words, $ only (never the shekel)', async () => {
     const invoke = vi.fn(async () => ({ data: { ok: true, currency: 'USD', amountMinor: 4250, recurringMinor: 5100, period: 'year', periodEnd: '2027-10-20T10:00:00.000Z' } }));
