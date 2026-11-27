@@ -28,16 +28,21 @@ describe('the SMART PACK add-on abroad', () => {
       : { ok: true, redirectUrl: 'https://payments.payplus.co.il/x' } }));
     render(<SmartPackAddOnOffer isHebrew={false} invoke={invoke} onLeave={onLeave} />);
     await waitFor(() => expect(screen.getByTestId('plans-smart-pack-add-on')).toBeInTheDocument());
-    expect(screen.getByTestId('plans-smart-pack-add-on').querySelector('h3').textContent).toBe('Add SMART PACK to your plan? (+$5.00 a month)');
+    expect(screen.getByTestId('plans-smart-pack-add-on').querySelector('h3').textContent).toBe('Add SMART PACK to your plan? (+$5 a month)');
     expect(screen.getByTestId('plans-smart-pack-add-on-now').textContent).toBe('Pro-rated charge now until the end of your current billing month: $4.19 (until 27/11/2026)');
     expect(screen.getByTestId('plans-smart-pack-add-on-pay').textContent).toBe('Yes, add SMART PACK - $4.19');
     expect(screen.getByTestId('plans-smart-pack-add-on').textContent).not.toMatch(/₪/);
+    // Owner console 2026-11-27 (L-22): the icon and the title always on one row, in Hebrew and English
+    const h3 = screen.getByTestId('plans-smart-pack-add-on').querySelector('h3');
+    expect(h3.style.flexWrap).toBe('nowrap');
+    expect(h3.querySelector('svg').style.flex).toBe('0 0 auto');
+    expect(h3.querySelector('span').style.minWidth).toBe('0px');
   });
   it('HE abroad: Hebrew words, $ only (never the shekel)', async () => {
     const invoke = vi.fn(async () => ({ data: { ok: true, currency: 'USD', amountMinor: 4250, recurringMinor: 5100, period: 'year', periodEnd: '2027-10-20T10:00:00.000Z' } }));
     render(<SmartPackAddOnOffer isHebrew invoke={invoke} onLeave={() => {}} />);
     await waitFor(() => expect(screen.getByTestId('plans-smart-pack-add-on')).toBeInTheDocument());
-    expect(screen.getByTestId('plans-smart-pack-add-on-then').textContent).toBe('מהחידוש הבא: $51.00 לשנה, יחד עם המנוי.');
+    expect(screen.getByTestId('plans-smart-pack-add-on-then').textContent).toBe('מהחידוש הבא: $51 לשנה, יחד עם המנוי.');
     expect(screen.getByTestId('plans-smart-pack-add-on').textContent).not.toMatch(/₪/);
   });
   it('an add-on that cannot be loaded abroad points to the international mailbox', async () => {

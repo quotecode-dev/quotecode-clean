@@ -33,23 +33,23 @@ describe('My subscription - account state from the server only', () => {
 
 describe('My subscription - the one package, one price at a time', () => {
   const card = (isHebrew, market) => render(<PackageOfferCards model={pricingModalModel({ isHebrew, market })} isHebrew={isHebrew} only={['all_inclusive']} testIdPrefix="settings-subscription" />).container;
-  it('IL: ₪30.00 monthly, ₪306.00 annual with "חיסכון של 15% — ₪54.00 בשנה" (LTR-isolated figures)', () => {
+  it('IL: ₪30 monthly, ₪306 annual with "חיסכון של 15% — ₪54 בשנה" (LTR-isolated figures)', () => {
     const c = card(true, 'IL');
     expect(c.querySelectorAll('section')).toHaveLength(1);
-    expect(c.querySelector('[data-price]').textContent).toBe('₪30.00');
+    expect(c.querySelector('[data-price]').textContent).toBe('₪30');
     expect(c.querySelector('[data-period-note]')).toBeNull();
     fireEvent.click(c.querySelector('input[data-period=year]'));
-    expect(c.querySelector('[data-price]').textContent).toBe('₪306.00');
+    expect(c.querySelector('[data-price]').textContent).toBe('₪306');
     const note = c.querySelector('[data-period-note]');
-    expect(note.textContent).toBe('חיסכון של 15% — ₪54.00 בשנה');
-    expect([...note.querySelectorAll('bdi[dir=ltr]')].map((b) => b.textContent)).toEqual(['15%', '₪54.00']);
+    expect(note.textContent).toBe('חיסכון של 15% — ₪54 בשנה');
+    expect([...note.querySelectorAll('bdi[dir=ltr]')].map((b) => b.textContent)).toEqual(['15%', '₪54']);
   });
-  it('INTERNATIONAL: $18.00 / $184.00 USD with "Save approximately 15% — $32.00 per year"', () => {
+  it('INTERNATIONAL: $18 / $184 USD with "Save approximately 15% — $32 per year"', () => {
     const c = card(false, 'INTERNATIONAL');
-    expect(c.querySelector('[data-price]').textContent).toBe('$18.00');
+    expect(c.querySelector('[data-price]').textContent).toBe('$18');
     fireEvent.click(c.querySelector('input[data-period=year]'));
-    expect(c.querySelector('[data-price]').textContent).toBe('$184.00');
-    expect(c.querySelector('[data-period-note]').textContent).toBe('Save approximately 15% — $32.00 per year');
+    expect(c.querySelector('[data-price]').textContent).toBe('$184');
+    expect(c.querySelector('[data-period-note]').textContent).toBe('Save approximately 15% — $32 per year');
   });
   it('the purchase availability is stated plainly and no separate plans button remains in Settings', () => {
     expect(pricingModalModel({ isHebrew: true, market: 'IL' }).availability).toMatch(/^רכישת מנוי עדיין לא זמינה/);

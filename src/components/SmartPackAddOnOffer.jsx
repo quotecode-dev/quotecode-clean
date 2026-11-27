@@ -5,7 +5,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { BrainCircuit } from 'lucide-react';
 import { SMART_PACK } from '../domain/subscriptions/addOnCatalog';
-import { formatMoneyForCurrency } from '../utils/money';
+import { formatMoneyForCurrency, formatPlanPrice } from '../utils/money';
 import { formatShortDate } from '../utils/shortDate';
 import { loadSmartPackAddOnQuote, mailboxForCurrency, smartPackAddOnErrorMessage, startSmartPackAddOn } from '../domain/subscriptions/packageCheckout';
 import MailLink from './MailLink';
@@ -14,6 +14,8 @@ import { PAYMENT_FRAME_CLOSED } from '../shared/paymentFrameReturn';
 // IRON-ILS-001: a whole shekel with .00 (the server charges whole shekels); IRON-DATE-001: the market's short date (Israel DD/MM/YYYY).
 // Owner console 2026-11-01 (typed: "מאשר פתיחת הרכישה בחו"ל ... L-22"): abroad the server quotes USD - $ in cents, MM/DD/YYYY
 const moneyIn = (currency) => (minor) => `${currency === 'USD' ? '$' : '₪'}${formatMoneyForCurrency(minor / 100, currency)}`;
+// IRON-ILS-001 Owner amendment 2026-11-27: the add-on PRICE (its recurring amount) is a whole number; the pro-rated charge keeps ".00"
+const priceIn = (currency) => (minor) => `${currency === 'USD' ? '$' : '₪'}${formatPlanPrice(minor / 100)}`;
 const dateIn = (currency) => (iso) => formatShortDate(iso, currency === 'USD' ? 'International' : 'Local');
 const num = (text) => <bdi dir="ltr" style={{ fontVariantNumeric: 'tabular-nums' }}>{text}</bdi>;
 
@@ -54,6 +56,7 @@ export default function SmartPackAddOnOffer({ isHebrew, invoke, onLeave, market 
   }
   const he = isHebrew;
   const money = moneyIn(quote.currency);
+  const price = priceIn(quote.currency);
   const israelDate = dateIn(quote.currency);
   const year = quote.period === 'year';
   const per = year ? (he ? 'לשנה' : 'a year') : (he ? 'לחודש' : 'a month');
@@ -69,9 +72,11 @@ export default function SmartPackAddOnOffer({ isHebrew, invoke, onLeave, market 
         display: 'flex', flexDirection: 'column', gap: '8px', boxSizing: 'border-box', textAlign: he ? 'right' : 'left' }}>
       {/* Owner console 2026-10-25 (typed: "מאשר שינוי ב-L-22: ... ותיבת ההוספה למנוי קיים בנוסח החדש עם חיוב יחסי"): the question with its
           recurring price, the pro-rata charge until the end of the current month / year of the plan, then with every renewal */}
-      <h3 style={{ margin: 0, color: '#1e293b', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-        <BrainCircuit size={18} color="#0F6672" aria-hidden="true" />
-        <span>{he ? <>להוסיף את חכם פלוס למנוי? ({num(`+${money(quote.recurringMinor)}`)} {per})</> : <>Add SMART PACK to your plan? ({num(`+${money(quote.recurringMinor)}`)} {per})</>}</span>
+      {/* Owner console 2026-11-27 (typed: "מאשר שינוי ב-L-22: האייקון והכותרת בתיבת הוספת חכם פלוס תמיד באותה שורה, בעברית ובאנגלית, בשחרור
+          הזה"): the icon and the title share one row that never wraps; a long title wraps inside itself next to the icon */}
+      <h3 style={{ margin: 0, color: '#1e293b', fontSize: '1rem', display: 'flex', alignItems: 'flex-start', gap: '8px', flexWrap: 'nowrap' }}>
+        <BrainCircuit size={18} color="#0F6672" aria-hidden="true" style={{ flex: '0 0 auto', marginTop: '2px' }} />
+        <span style={{ flex: '1 1 auto', minWidth: 0 }}>{he ? <>להוסיף את חכם פלוס למנוי? ({num(`+${price(quote.recurringMinor)}`)} {per})</> : <>Add SMART PACK to your plan? ({num(`+${price(quote.recurringMinor)}`)} {per})</>}</span>
       </h3>
       <p style={{ margin: 0, color: '#475569', fontSize: '0.82rem' }}>{SMART_PACK.summary[he ? 'he' : 'en']}</p>
       <p data-testid="plans-smart-pack-add-on-now" style={{ margin: 0, color: '#1e293b', fontSize: '0.88rem', fontWeight: 700 }}>
@@ -79,7 +84,7 @@ export default function SmartPackAddOnOffer({ isHebrew, invoke, onLeave, market 
           : <>Pro-rated charge now until the end of your current billing {year ? 'year' : 'month'}: {num(money(quote.amountMinor))} (until {num(israelDate(quote.periodEnd))})</>}
       </p>
       <p data-testid="plans-smart-pack-add-on-then" style={{ margin: 0, color: '#334155', fontSize: '0.82rem' }}>
-        {he ? <>מהחידוש הבא: {num(money(quote.recurringMinor))} {per}, יחד עם המנוי.</> : <>From the next renewal: {num(money(quote.recurringMinor))} {per}, with your plan.</>}
+        {he ? <>מהחידוש הבא: {num(price(quote.recurringMinor))} {per}, יחד עם המנוי.</> : <>From the next renewal: {num(price(quote.recurringMinor))} {per}, with your plan.</>}
       </p>
       {/* PRODUCT_TRUTH_DECORATIVE: opens the PayPlus one-time page of the SERVER add-on row (the server's pro-rata amount); SMART PACK opens only after a verified payment */}
       <button type="button" data-testid="plans-smart-pack-add-on-pay" disabled={pay.busy} onClick={onPay}

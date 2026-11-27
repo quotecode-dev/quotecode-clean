@@ -20,28 +20,28 @@ const shown = (root) => [...root.querySelectorAll('[data-billing-period]')].map(
 const note = (root) => [...root.querySelectorAll('[data-period-note]')].map((n) => n.textContent.trim());
 
 describe('in-app package offer (pricingModalModel + PackageOfferCards)', () => {
-  it('IL: Free-10 + the package, ₪30.00 / ₪306.00 incl. VAT, saving ₪54.00 = 15% only on Annual; one price at a time', () => {
+  it('IL: Free-10 + the package, ₪30 / ₪306 incl. VAT, saving ₪54 = 15% only on Annual; one price at a time', () => {
     const m = pricingModalModel({ isHebrew: true, market: 'IL' });
     expect(m.plans.map((p) => p.id)).toEqual(['free', 'all_inclusive']);
     expect(m.priceNote).toBe('המחירים כוללים מע״מ.');
     const { container } = render(<PackageOfferCards model={m} isHebrew />);
     const card = screen.getByTestId('plans-modal-card-all_inclusive');
-    expect(shown(card)).toEqual(['₪30.00/ חודש']);
+    expect(shown(card)).toEqual(['₪30/ חודש']);
     expect(note(card)).toEqual([]);
     fireEvent.click(within(card).getByLabelText('שנתי'));
-    expect(shown(card)).toEqual(['₪306.00/ שנה']);
-    expect(note(card)).toEqual(['חיסכון של 15% — ₪54.00 בשנה']);
+    expect(shown(card)).toEqual(['₪306/ שנה']);
+    expect(note(card)).toEqual(['חיסכון של 15% — ₪54 בשנה']);
     expect(container.textContent).not.toMatch(/\$|USD|29\.00|49\.00|69\.00/);
   });
-  it('INTERNATIONAL: $18.00 / $184.00 USD, saving $32.00 "approximately 15%", charged in USD; no ₪', () => {
+  it('INTERNATIONAL: $18 / $184 USD, saving $32 "approximately 15%", charged in USD; no ₪', () => {
     const m = pricingModalModel({ isHebrew: false, market: 'INTERNATIONAL' });
     expect(m.priceNote).toBe('Prices are in US dollars. Charged in USD.');
     const { container } = render(<PackageOfferCards model={m} isHebrew={false} />);
     const card = screen.getByTestId('plans-modal-card-all_inclusive');
-    expect(shown(card)).toEqual(['$18.00USD / month']);
+    expect(shown(card)).toEqual(['$18USD / month']);
     fireEvent.click(within(card).getByLabelText('Annual'));
-    expect(shown(card)).toEqual(['$184.00USD / year']);
-    expect(note(card)).toEqual(['Save approximately 15% — $32.00 per year']);
+    expect(shown(card)).toEqual(['$184USD / year']);
+    expect(note(card)).toEqual(['Save approximately 15% — $32 per year']);
     expect(container.textContent).not.toMatch(/₪|ILS|183\.60|32\.40/);
   });
   it('PricingModal renders the package offer, keeps the AI header and states purchase is not available', () => {

@@ -77,7 +77,7 @@ describe('the VAT (Israel) / sales-tax (international) calculator', () => {
 describe('the comparison page and the smart-quote capability page', () => {
   it('no competitor names; the facts of the live plans; English without shekel / VAT / credit card', () => {
     mount(<ComparePage lang="he" />);
-    expect(document.body.textContent).toContain('₪30.00 לחודש כולל מע״מ');
+    expect(document.body.textContent).toContain('₪30 לחודש כולל מע״מ');
     cleanup(); mount(<ComparePage lang="en" />);
     expect(document.body.textContent).toContain('$18 a month');
     expect(document.body.textContent).not.toMatch(/₪|bVATb|credit card/i);
@@ -116,7 +116,7 @@ describe('routing, SEO, sitemap, hub and /llms.txt', () => {
   });
   it('/llms.txt is a static file naming the live facts and the new pages', () => {
     const t = fs.readFileSync(path.join(here, '..', 'public/llms.txt'), 'utf8');
-    for (const s of ['ILS 30.00 per month, VAT included', 'USD 18.00 per month', 'ILS 10 per month', 'USD 5 per month', '10 quotes or 7 days']) expect(t).toContain(s);
+    for (const s of ['ILS 30 per month, VAT included', 'USD 18 per month', 'ILS 10 per month', 'USD 5 per month', '10 quotes or 7 days']) expect(t).toContain(s);
     for (const p of NEW_PATHS) expect(t).toContain(`https://www.tekango.com/he${p}`);
   });
 });

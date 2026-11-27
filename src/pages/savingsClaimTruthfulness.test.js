@@ -48,17 +48,17 @@ describe('annual savings claims stay truthful (no hardcoded uniform percentage)'
     expect(PACKAGE_PRICES.map((p) => [p.market, p.currency, p.billingPeriod, p.amountMinor])).toEqual([
       ['IL', 'ILS', 'month', 3000], ['IL', 'ILS', 'year', 30600], ['INTERNATIONAL', 'USD', 'month', 1800], ['INTERNATIONAL', 'USD', 'year', 18400],
     ]);
-    // Israel follows the §249 formula; the International annual price is the Owner-set $184.00 (IRON-LANDING-001 amended 2026-10-11)
+    // Israel follows the §249 formula; the International annual price is the Owner-set $184 (IRON-LANDING-001 amended 2026-10-11)
     expect(packagePrice('IL', 'year').amountMinor).toBe(annualFromMonthly(packagePrice('IL', 'month').amountMinor));
     expect(packagePrice('INTERNATIONAL', 'year').amountMinor).toBe(18400);
-    // Task 26 (Owner 2026-10-11): the annual saving vs 12 monthly payments - ₪54.00 / $32.00 - comes from the same rows
+    // Task 26 (Owner 2026-10-11): the annual saving vs 12 monthly payments - ₪54 / $32 - comes from the same rows
     const { annualSavingMinor } = await import('../domain/subscriptions/packageCatalog');
     expect([annualSavingMinor('IL'), annualSavingMinor('INTERNATIONAL')]).toEqual([5400, 3200]);
     const { ilsAnnualSaving, usdAnnualSaving } = await import('../components/landing/landingPackageFacts');
-    expect([ilsAnnualSaving(), usdAnnualSaving()]).toEqual(['₪54.00', '$32.00']);
+    expect([ilsAnnualSaving(), usdAnnualSaving()]).toEqual(['₪54', '$32']);
     const { annualSavingPercent } = await import('../domain/subscriptions/packageCatalog');
     expect(annualSavingPercent('IL')).toBe(15); // exactly 15%
-    expect(annualSavingPercent('INTERNATIONAL')).toBeCloseTo(14.8148, 3); // $32.00 / $216.00
+    expect(annualSavingPercent('INTERNATIONAL')).toBeCloseTo(14.8148, 3); // $32 / $216
     const { ilsAnnualSavingRate, usdAnnualSavingRate } = await import('../components/landing/landingPackageFacts');
     expect([ilsAnnualSavingRate(), usdAnnualSavingRate()]).toEqual([{ text: '15%', exact: true }, { text: '15%', exact: false }]);
     expect(() => packagePrice('IL', 'week')).toThrow();

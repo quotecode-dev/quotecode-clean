@@ -6,7 +6,7 @@
 // (checkout is not activated), so nothing here starts a payment or changes a plan.
 import { FREE_QUOTES_TOTAL, ilsPackageAmount, usdPackageAmount, ilsAnnualSaving, usdAnnualSaving, ilsAnnualSavingRate, usdAnnualSavingRate } from '../../components/landing/landingPackageFacts';
 import { RATE_SOURCE_NAME, ESTIMATE_CURRENCIES } from './localPriceEstimate';
-import { formatMoney, formatWholeMoney } from '../../utils/money';
+import { formatPlanPrice } from '../../utils/money';
 import { PLAN_NAMES } from '../../../supabase/functions/_shared/subscriptionContract.ts';
 import { ilsSmartPack, ilsWithSmartPack, usdSmartPack, usdWithSmartPack, SMART_PACK_PRICE_MINOR } from '../../components/landing/smartPackFacts';
 import { SMART_PACK } from './addOnCatalog';
@@ -27,7 +27,7 @@ export function pricingModalModel({ isHebrew, market, accountCurrency = null, es
     : `Save ${rate.exact ? '' : 'approximately '}${rate.text} — ${saving} per year`; // Task 30: the Owner's in-app wording (em dash)
   const free = {
     id: 'free', name: PLAN_NAMES[lang].free,
-    prices: [{ period: 'free', amount: il ? `₪${formatWholeMoney(0)}` : `$${formatMoney(0)}`, per: null }],
+    prices: [{ period: 'free', amount: il ? `₪${formatPlanPrice(0)}` : `$${formatPlanPrice(0)}`, per: null }],
     lines: isHebrew
       ? [`${FREE_QUOTES_TOTAL} הצעות מחיר בסך הכול`, 'או 7 ימים מההרשמה, המוקדם מביניהם', 'בשבעת הימים כלול גם חכם פלוס', 'הצעה נספרת בשמירה הראשונה עם לקוח ופריט; גרסה חדשה או לקוח אחר נספרים שוב', 'שמירה חוזרת, או שליחה חוזרת של אותה גרסה לאותו לקוח, לא נספרת שוב', 'טיוטה ריקה ותצוגה מקדימה לא נספרות']
       : [`${FREE_QUOTES_TOTAL} quotes in total`, 'Or 7 days from sign-up, whichever comes first', 'SMART PACK included during the 7 days', 'Counted once first stored with a client and an item; a new version or another client counts again', 'Saving again, or re-sending the same version to the same client, is not counted again', 'An empty draft and previews are not counted'],
@@ -74,7 +74,7 @@ export function pricingModalModel({ isHebrew, market, accountCurrency = null, es
     : (isHebrew ? `הערכה ב-${wantCur} אינה זמינה כרגע, ולכן המחירים מוצגים בדולר ארה״ב.` : `A ${wantCur} estimate is not available right now, so prices are shown in US dollars.`);
   // Owner console 2026-10-21 (typed: "מאשר שינוי ב-L-22: אומדן המטבע המקומי בחלון המסלולים כולל את חכם פלוס"): with the SMART PACK box
   // ticked the estimate is of the total that would be charged (package + add-on), with the same rate and rounding as the saving estimate
-  const estWith = (period) => `${mo.estimateText.slice(1, 2)}${formatMoney(majorUnits(Math.round((packagePrice('INTERNATIONAL', period).amountMinor
+  const estWith = (period) => `${mo.estimateText.slice(1, 2)}${formatPlanPrice(majorUnits(Math.round((packagePrice('INTERNATIONAL', period).amountMinor
     + SMART_PACK_PRICE_MINOR.INTERNATIONAL[period]) * est.rate)))}`;
   const estimateNoteWithAddOn = !wantCur || !est ? null : (isHebrew
     ? `הערכה ב-${wantCur} בלבד, כולל חכם פלוס: כ-${estWith('month')} לחודש או כ-${estWith('year')} לשנה, לפי שער ${RATE_SOURCE_NAME} מ-${est.rateAsOf.slice(0, 10)}. החיוב בדולר ארה״ב.`

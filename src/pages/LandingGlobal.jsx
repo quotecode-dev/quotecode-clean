@@ -4,7 +4,7 @@ import { Gift, PackageCheck, Mail, BriefcaseBusiness, BookOpen, PenTool, Ruler, 
 import { FONT_EN } from '../theme/neonTheme';
 import { setSeoMeta } from '../utils/seoMeta';
 import { publicSeo } from '../shared/publicSeoRoutes';
-import { formatMoney } from '../utils/money';
+import { formatPlanPrice } from '../utils/money';
 import { FREE_QUOTES_TOTAL, usdPackageAmount, usdAnnualSaving, usdAnnualSavingRate, estimateAnnualSaving } from '../components/landing/landingPackageFacts';
 import { loadLocalEstimate, CURRENCY_SYMBOL, RATE_SOURCE_NAME } from '../domain/subscriptions/localPriceEstimate';
 import BrandName from '../components/BrandName';
@@ -51,7 +51,7 @@ export default function LandingGlobal({ onForgotPassword }) {
   const sym = est ? CURRENCY_SYMBOL[est.displayCurrency] : '$';
   // Owner console 2026-10-26 (typed L-14 / L-22, item ג: "המטבע בדף הנחיתה לפי ההמלצה"): with a local estimate EVERY price on the page
   // (package, SMART PACK box, SMART PACK section) is in the same currency, each with the USD amount that is charged
-  const estOf = (usdMinor) => `≈${sym}${formatMoney(majorUnits(Math.round(usdMinor * est.rate)))}`;
+  const estOf = (usdMinor) => `≈${sym}${formatPlanPrice(majorUnits(Math.round(usdMinor * est.rate)))}`;
   const spMinor = SMART_PACK_PRICE_MINOR.INTERNATIONAL;
   const withMinor = (period) => packagePrice('INTERNATIONAL', period).amountMinor + spMinor[period];
 
@@ -63,7 +63,7 @@ export default function LandingGlobal({ onForgotPassword }) {
   const plans = [
     {
       id: 'free', icon: Gift, name: 'Free', tagline: 'Free for 10 quotes or 7 days, whichever comes first.',
-      prices: [{ period: 'free', amount: `${sym}${formatMoney(0)}`, per: null }],
+      prices: [{ period: 'free', amount: `${sym}${formatPlanPrice(0)}`, per: null }],
       capacity: [`${FREE_QUOTES_TOTAL} quotes in total`, 'Or 7 days from sign-up, whichever comes first', 'SMART PACK included during the 7 days'],
       features: [
         'Counts once first stored with a client and an item; a new version or another client counts again',

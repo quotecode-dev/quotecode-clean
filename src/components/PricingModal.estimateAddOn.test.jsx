@@ -15,12 +15,12 @@ afterEach(cleanup);
 const rate = () => ({ currency: 'GBP', usdToCurrency: 0.757, asOf: new Date(Date.now() - 3600 * 1000).toISOString(), source: 'ExchangeRate-API' });
 
 describe('the local-currency estimate with SMART PACK', () => {
-  it('model: $23 / $235 with the add-on -> about £17.41 / £177.90 (EN and HE); without it the note is unchanged', () => {
+  it('model: $23 / $235 with the add-on -> about £17 / £178 (EN and HE); without it the note is unchanged', () => {
     const en = pricingModalModel({ isHebrew: false, market: 'INTERNATIONAL', accountCurrency: 'GBP', estimateRate: rate() });
-    expect(en.estimateNote).toMatch(/^Estimate in GBP only: about £13\.63 per month or £139\.29 per year/);
-    expect(en.estimateNoteWithAddOn).toMatch(/^Estimate in GBP only, with SMART PACK: about £17\.41 per month or £177\.90 per year at the ExchangeRate-API rate of \d{4}-\d{2}-\d{2}\. Charged in USD\.$/);
+    expect(en.estimateNote).toMatch(/^Estimate in GBP only: about £14 per month or £139 per year/);
+    expect(en.estimateNoteWithAddOn).toMatch(/^Estimate in GBP only, with SMART PACK: about £17 per month or £178 per year at the ExchangeRate-API rate of \d{4}-\d{2}-\d{2}\. Charged in USD\.$/);
     const he = pricingModalModel({ isHebrew: true, market: 'INTERNATIONAL', accountCurrency: 'GBP', estimateRate: rate() });
-    expect(he.estimateNoteWithAddOn).toMatch(/^הערכה ב-GBP בלבד, כולל חכם פלוס: כ-£17\.41 לחודש או כ-£177\.90 לשנה, לפי שער ExchangeRate-API מ-\d{4}-\d{2}-\d{2}\. החיוב בדולר ארה״ב\.$/);
+    expect(he.estimateNoteWithAddOn).toMatch(/^הערכה ב-GBP בלבד, כולל חכם פלוס: כ-£17 לחודש או כ-£178 לשנה, לפי שער ExchangeRate-API מ-\d{4}-\d{2}-\d{2}\. החיוב בדולר ארה״ב\.$/);
   });
   it('model: no rate, a USD account or Israel -> no add-on estimate', () => {
     expect(pricingModalModel({ isHebrew: false, market: 'INTERNATIONAL', accountCurrency: 'GBP', estimateRate: null }).estimateNoteWithAddOn).toBeNull();
@@ -33,7 +33,7 @@ describe('the local-currency estimate with SMART PACK', () => {
     const props = { onClose: () => {}, isHebrew: false, isLocalIsraeliBusiness: false, currency: 'GBP' };
     const { container } = render(<PricingModal isOpen {...props} />);
     const line = () => screen.getByTestId('plans-modal-estimate').textContent;
-    await waitFor(() => expect(line()).toMatch(/^Estimate in GBP only: about £13\.63 per month/));
+    await waitFor(() => expect(line()).toMatch(/^Estimate in GBP only: about £14 per month/));
     expect(container.querySelector('input[data-addon-toggle]')).toBeNull();
     expect(fireEvent).toBeTypeOf('function');
   });
