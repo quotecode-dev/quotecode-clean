@@ -75,6 +75,19 @@ export const formatWholeMoney = (value, locale = 'en-US') => {
   }
 };
 
+// IRON-ILS-001, Owner amendment 2026-11-27 (typed: "שינוי בחוק IRON-ILS-001: מחירי המנוי והנלווים (כולל חכם פלוס) מוצגים כמספר שלם בלי
+// ספרות אחרי הנקודה, בעברית ובאנגלית; סכומי הצעות המחיר ושאר הסכומים במערכת נשארים עם .00"): the subscription and add-on PRICES (landing,
+// plans window, comparison / capability pages) are whole numbers with no decimals (₪30, $18). Quote amounts and every other amount keep
+// formatMoneyForCurrency / formatWholeMoney with ".00".
+export const formatPlanPrice = (value, locale = 'en-US') => {
+  const rounded = roundHalfUpWhole(value);
+  try {
+    return rounded.toLocaleString(locale, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  } catch {
+    return String(rounded);
+  }
+};
+
 // IRON-ILS-001: the ONE canonical presentation path for every displayed money amount.
 // ILS (Local/HE market) -> whole-shekel half-up with ".00"; every other currency keeps
 // the approved International full-precision rule. Keyed on a CURRENCY code (the

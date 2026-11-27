@@ -42,7 +42,7 @@ import LandingLocal from './LandingLocal';
 import LandingGlobal from './LandingGlobal';
 import { packagePrice, annualSavingMinor, annualSavingPercent } from '../domain/subscriptions/packageCatalog';
 import { FREE_QUOTES_TOTAL, majorUnits } from '../domain/subscriptions/priceCatalog';
-import { formatMoney, formatWholeMoney } from '../utils/money';
+import { formatPlanPrice } from '../utils/money';
 
 afterEach(() => cleanup());
 
@@ -103,20 +103,20 @@ const NOTICE = { he: 'פותחים חשבון בחינם, ואת המנוי בת
 const PRICE_NOTE = { he: 'המחירים כוללים מע״מ', en: 'Prices are in US dollars. Charged in USD.' };
 const PER = { he: { month: '/ חודש', year: '/ שנה' }, en: { month: 'USD / month', year: 'USD / year' } };
 const SAVING = {
-  he: `חיסכון של ${Number.isInteger(annualSavingPercent('IL')) ? '' : 'כ-'}${Math.round(annualSavingPercent('IL'))}% - ₪${formatWholeMoney(majorUnits(annualSavingMinor('IL')))} בשנה`,
-  en: `Save ${Number.isInteger(annualSavingPercent('INTERNATIONAL')) ? '' : 'approximately '}${Math.round(annualSavingPercent('INTERNATIONAL'))}% - $${formatMoney(majorUnits(annualSavingMinor('INTERNATIONAL')))} per year`,
+  he: `חיסכון של ${Number.isInteger(annualSavingPercent('IL')) ? '' : 'כ-'}${Math.round(annualSavingPercent('IL'))}% - ₪${formatPlanPrice(majorUnits(annualSavingMinor('IL')))} בשנה`,
+  en: `Save ${Number.isInteger(annualSavingPercent('INTERNATIONAL')) ? '' : 'approximately '}${Math.round(annualSavingPercent('INTERNATIONAL'))}% - $${formatPlanPrice(majorUnits(annualSavingMinor('INTERNATIONAL')))} per year`,
 };
 const PROMO = /מבצע|לזמן מוגבל|רק עכשיו|רק היום|עד סוף|limited[- ]time|promo|offer ends|today only|for a limited|hurry/i;
 const CHOICE = { he: { legend: 'תקופת חיוב', month: 'חודשי', year: 'שנתי' }, en: { legend: 'Billing period', month: 'Monthly', year: 'Annual' } };
 // IRON-LANDING-001 AMENDED 2026-10-20: the approved SMART PACK add-on prices (typed by the Owner in the console), written out here on
 // purpose - the check compares the page with the law's own figures, not with the catalog the page reads
-const ADDON = { he: { name: 'חכם פלוס', month: '₪10.00', year: '₪102.00' }, en: { name: 'SMART PACK', month: '$5.00', year: '$51.00' } };
+const ADDON = { he: { name: 'חכם פלוס', month: '₪10', year: '₪102' }, en: { name: 'SMART PACK', month: '$5', year: '$51' } }; // IRON-ILS-001 amended 2026-11-27: plan prices whole
 const FREE10 = { he: { label: '10 הצעות חינם', status: '' }, en: { label: '10 free quotes', status: '' } };
 const SIGNUP = { he: '/dashboard?signup=true&lang=he', en: '/dashboard?signup=true&lang=en' };
 const TRIAL_14 = /14\s*(יום|ימי)|14[\s-]day/i;
 const money = (locale, period) => (locale === 'he'
-  ? `₪${formatWholeMoney(majorUnits(packagePrice('IL', period).amountMinor))}`
-  : `$${formatMoney(majorUnits(packagePrice('INTERNATIONAL', period).amountMinor))}`);
+  ? `₪${formatPlanPrice(majorUnits(packagePrice('IL', period).amountMinor))}`
+  : `$${formatPlanPrice(majorUnits(packagePrice('INTERNATIONAL', period).amountMinor))}`);
 
 // pure check: returns the list of truth problems for one locale's extracted landing
 export function planTruthProblems(page, locale, chosen = 'month') {
@@ -135,7 +135,7 @@ export function planTruthProblems(page, locale, chosen = 'month') {
     if (locale === 'en' && /₪|\bILS\b|\bNIS\b|[֐-׿]/.test(c.text)) p.push(`${c.id}: ILS / ₪ / NIS / Hebrew on the EN card`);
     if (locale === 'en' && /€|£|\bEUR\b|\bGBP\b/.test(c.text)) p.push(`${c.id}: a converted non-USD price on the EN card (no verified rate source)`);
     if (c.id === 'free') {
-      const zero = locale === 'he' ? `₪${formatWholeMoney(0)}` : `$${formatMoney(0)}`;
+      const zero = locale === 'he' ? `₪${formatPlanPrice(0)}` : `$${formatPlanPrice(0)}`;
       if (c.prices.length !== 1 || c.prices[0].amount !== zero) p.push(`free: prices ${JSON.stringify(c.prices)} != one "${zero}"`);
       if (c.prices.some((r) => r.per)) p.push('free: a period next to the price (10 in total, not per month)');
       if (!c.capacity.some((t) => t.startsWith(`${FREE_QUOTES_TOTAL} `) && /בסך הכול|in total/.test(t))) p.push('free: 10 quotes in total not visible');
@@ -203,7 +203,7 @@ describe('plan-card truth (IRON-LANDING-001 as amended 2026-10-11, PROFLOW_PROJE
   it('the package catalog holds exactly the §249 prices', () => {
     expect(['month', 'year'].map((b) => packagePrice('IL', b).amountMinor)).toEqual([3000, 30600]);
     expect(['month', 'year'].map((b) => packagePrice('INTERNATIONAL', b).amountMinor)).toEqual([1800, 18400]); // Owner 2026-10-11: $184.00
-    expect(SAVING).toEqual({ he: 'חיסכון של 15% - ₪54.00 בשנה', en: 'Save approximately 15% - $32.00 per year' }); // the Owner's wording
+    expect(SAVING).toEqual({ he: 'חיסכון של 15% - ₪54 בשנה', en: 'Save approximately 15% - $32 per year' }); // the Owner's wording
     expect(packagePrice('IL', 'month').taxMode).toBe('included');
     expect(packagePrice('INTERNATIONAL', 'year').currency).toBe('USD');
     expect(FREE_QUOTES_TOTAL).toBe(10);
@@ -224,22 +224,22 @@ describe('plan-card truth (IRON-LANDING-001 as amended 2026-10-11, PROFLOW_PROJE
       ['HE: "ללא מגבלות" tagline injected', 'he', HE, (m) => { card(m, 'all_inclusive').tagline = 'מסלול אחד ללא מגבלות.'; }],
       ['EN: an ILS price on the package', 'en', EN, (m) => { row(m, 'month').amount = 'ILS 30.00'; card(m, 'all_inclusive').text += ' ILS 30.00'; }],
       ['EN: ILS anywhere on the page', 'en', EN, (m) => { m.text += ' ILS 5.00'; }],
-      ['EN: price without ".00"', 'en', EN, (m) => { row(m, 'month').amount = '$18'; }],
+      ['EN: price with ".00" (IRON-ILS-001 amended 2026-11-27: plan prices are whole numbers)', 'en', EN, (m) => { row(m, 'month').amount = '$18.00'; }],
       ['EN: annual price changed (annual chosen)', 'en', EN_Y, (m) => { row(m, 'year').amount = '$185.00'; }, 'year'],
       ['EN: a converted EUR price', 'en', EN, (m) => { card(m, 'all_inclusive').text += ' €16.50'; }],
       ['EN: "Charged in USD" removed', 'en', EN, (m) => { m.priceNote = 'Prices are in your currency.'; }],
       ['HE: the monthly price changed to the retired ₪29.00', 'he', HE, (m) => { row(m, 'month').amount = '₪29.00'; }],
       ['HE: the annual price changed (annual chosen)', 'he', HE_Y, (m) => { row(m, 'year').amount = '₪360.00'; }, 'year'],
       ['HE: the annual option removed from the choice', 'he', HE, (m) => { card(m, 'all_inclusive').choice = card(m, 'all_inclusive').choice.slice(0, 1); }],
-      ['EN: annual chosen but the monthly price still shown', 'en', EN_Y, (m) => { card(m, 'all_inclusive').prices = [{ period: 'month', amount: '$18.00', per: 'USD / month' }]; }, 'year'],
+      ['EN: annual chosen but the monthly price still shown', 'en', EN_Y, (m) => { card(m, 'all_inclusive').prices = [{ period: 'month', amount: '$18', per: 'USD / month' }]; }, 'year'],
       ['HE: the year period label changed to a month (annual chosen)', 'he', HE_Y, (m) => { row(m, 'year').per = '/ חודש'; }, 'year'],
-      ['EN: both prices shown at once', 'en', EN, (m) => { card(m, 'all_inclusive').prices.push({ period: 'year', amount: '$184.00', per: 'USD / year' }); }],
+      ['EN: both prices shown at once', 'en', EN, (m) => { card(m, 'all_inclusive').prices.push({ period: 'year', amount: '$184', per: 'USD / year' }); }],
       ['HE: no period chosen', 'he', HE, (m) => { pick(m, 'none'); }],
       ['HE: the saving shown while monthly is chosen', 'he', HE, (m) => { card(m, 'all_inclusive').note = clone(card(HE_Y, 'all_inclusive').note); }],
       ['HE: the saving missing on annual', 'he', HE_Y, (m) => { card(m, 'all_inclusive').note = ''; }, 'year'],
-      ['HE: the saving not rounded to ".00" (IRON-ILS-001)', 'he', HE_Y, (m) => { card(m, 'all_inclusive').note = card(m, 'all_inclusive').note.replace('₪54.00', '₪54'); }, 'year'],
-      ['HE: a wrong saving amount', 'he', HE_Y, (m) => { card(m, 'all_inclusive').note = card(m, 'all_inclusive').note.replace('₪54.00', '₪60.00'); }, 'year'],
-      ['EN: the retired $32.40 saving', 'en', EN_Y, (m) => { card(m, 'all_inclusive').note = card(m, 'all_inclusive').note.replace('$32.00', '$32.40'); }, 'year'],
+      ['HE: the saving shown with ".00" (IRON-ILS-001 amended 2026-11-27: plan prices are whole numbers)', 'he', HE_Y, (m) => { card(m, 'all_inclusive').note = card(m, 'all_inclusive').note.replace('₪54', '₪54.00'); }, 'year'],
+      ['HE: a wrong saving amount', 'he', HE_Y, (m) => { card(m, 'all_inclusive').note = card(m, 'all_inclusive').note.replace('₪54', '₪60'); }, 'year'],
+      ['EN: the retired $32.40 saving', 'en', EN_Y, (m) => { card(m, 'all_inclusive').note = card(m, 'all_inclusive').note.replace('$32', '$32.40'); }, 'year'],
       ['EN: the retired $183.60 annual price', 'en', EN_Y, (m) => { row(m, 'year').amount = '$183.60'; }, 'year'],
       ['EN: "approximately" dropped (claims an exact 15%)', 'en', EN_Y, (m) => { card(m, 'all_inclusive').note = card(m, 'all_inclusive').note.replace('approximately ', ''); }, 'year'],
       ['EN: a wrong saving rate', 'en', EN_Y, (m) => { card(m, 'all_inclusive').note = card(m, 'all_inclusive').note.replace('15%', '20%'); }, 'year'],
@@ -251,8 +251,8 @@ describe('plan-card truth (IRON-LANDING-001 as amended 2026-10-11, PROFLOW_PROJE
       ['HE: the choice is a checkbox, not a radio', 'he', HE, (m) => { card(m, 'all_inclusive').choice[1].type = 'checkbox'; }],
       ['EN: an extra input (e.g. a quantity / payment field) on a card', 'en', EN, (m) => { card(m, 'all_inclusive').otherInputs = 1; }],
       ['HE: the SMART PACK add-on pre-ticked (IRON-LANDING-001 amended 2026-10-20)', 'he', HE, (m) => { card(m, 'all_inclusive').addOn[0].checked = true; }],
-      ['EN: the SMART PACK add-on at another price', 'en', EN, (m) => { card(m, 'all_inclusive').addOn[0].label = card(m, 'all_inclusive').addOn[0].label.replace('$5.00', '$6.00'); }],
-      ['HE: the annual add-on price shown while annual is chosen is wrong', 'he', HE_Y, (m) => { card(m, 'all_inclusive').addOn[0].label = card(m, 'all_inclusive').addOn[0].label.replace('₪102.00', '₪120.00'); }, 'year'],
+      ['EN: the SMART PACK add-on at another price', 'en', EN, (m) => { card(m, 'all_inclusive').addOn[0].label = card(m, 'all_inclusive').addOn[0].label.replace('$5', '$6'); }],
+      ['HE: the annual add-on price shown while annual is chosen is wrong', 'he', HE_Y, (m) => { card(m, 'all_inclusive').addOn[0].label = card(m, 'all_inclusive').addOn[0].label.replace('₪102', '₪120'); }, 'year'],
       ['EN: the SMART PACK add-on box missing', 'en', EN, (m) => { card(m, 'all_inclusive').addOn = []; }],
       ['HE: a second add-on box', 'he', HE, (m) => { card(m, 'all_inclusive').addOn.push(clone(card(m, 'all_inclusive').addOn[0])); }],
       ['HE: an add-on box on the Free card', 'he', HE, (m) => { card(m, 'free').addOn = clone(card(m, 'all_inclusive').addOn); }],

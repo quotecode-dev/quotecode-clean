@@ -20,23 +20,23 @@ const S = (over = {}) => ({ ...parseAccountSummary(base(over)), billingPeriod: '
 const open = (isHebrew, summary, extra = {}) => render(<PricingModal isOpen onClose={() => {}} isHebrew={isHebrew} isLocalIsraeliBusiness={summary.market === 'IL'} accountSummary={summary} currency="ILS" {...extra} />);
 
 describe('א - the total with SMART PACK on the subscriber card (HE + EN)', () => {
-  it.each([[true, 'כולל חכם פלוס: ₪40.00 לחודש'], [false, 'Including SMART PACK: ₪40.00 / month']])('renewing line (isHebrew %s)', (isHebrew, text) => {
+  it.each([[true, 'כולל חכם פלוס: ₪40 לחודש'], [false, 'Including SMART PACK: ₪40 / month']])('renewing line (isHebrew %s)', (isHebrew, text) => {
     open(isHebrew, S({ smartPack: { active: true, source: 'add_on', until: null } }));
     expect(screen.getByTestId('plans-smart-pack-total').textContent).toBe(text);
     expect(screen.getByTestId('plans-smart-pack-total')).toHaveAttribute('dir', isHebrew ? 'rtl' : 'ltr');
-    expect(screen.getByTestId('plans-modal-card-all_inclusive').querySelector('[data-price]').textContent).toBe('₪30.00'); // the package price stays
+    expect(screen.getByTestId('plans-modal-card-all_inclusive').querySelector('[data-price]').textContent).toBe('₪30'); // the package price stays
   });
-  it.each([[true, 'כולל חכם פלוס: ₪408.00 לשנה'], [false, 'Including SMART PACK: ₪408.00 / year']])('annual subscriber (isHebrew %s)', (isHebrew, text) => {
+  it.each([[true, 'כולל חכם פלוס: ₪408 לשנה'], [false, 'Including SMART PACK: ₪408 / year']])('annual subscriber (isHebrew %s)', (isHebrew, text) => {
     const s = S({ smartPack: { active: true, source: 'add_on', until: null } });
     open(isHebrew, { ...s, billingPeriod: 'year' });
     expect(screen.getByTestId('plans-smart-pack-total').textContent).toBe(text);
   });
   // Owner console 2026-10-26 (typed: "מאשר להציג את שורת המחיר הכולל עם חכם פלוס גם בלשונית השנתי")
-  it.each([[true, 'כולל חכם פלוס: ₪408.00 לשנה'], [false, 'Including SMART PACK: ₪408.00 / year']])('a monthly subscriber on the annual tab sees the annual total too (isHebrew %s)', (isHebrew, text) => {
+  it.each([[true, 'כולל חכם פלוס: ₪408 לשנה'], [false, 'Including SMART PACK: ₪408 / year']])('a monthly subscriber on the annual tab sees the annual total too (isHebrew %s)', (isHebrew, text) => {
     open(isHebrew, S({ smartPack: { active: true, source: 'add_on', until: null } }));
     fireEvent.click(document.querySelector('input[data-period="year"]'));
     expect(screen.getByTestId('plans-smart-pack-total').textContent).toBe(text);
-    expect(screen.getByTestId('plans-modal-card-all_inclusive').querySelector('[data-price]').textContent).toBe('₪306.00');
+    expect(screen.getByTestId('plans-modal-card-all_inclusive').querySelector('[data-price]').textContent).toBe('₪306');
   });
   it.each([true, false])('never a total while SMART PACK is not on the standing order (it ends on a date) or not active (isHebrew %s)', (isHebrew) => {
     open(isHebrew, S({ smartPack: { active: true, source: 'add_on', until: '2026-11-25T10:00:00.000Z' } }));

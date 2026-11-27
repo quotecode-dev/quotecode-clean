@@ -67,19 +67,19 @@ describe('the package price as a labelled estimate (billing stays USD)', () => {
   const rate = (over = {}) => ({ currency: 'GBP', usdToCurrency: 0.757, asOf: new Date(NOW - 2 * 3600 * 1000).toISOString(), source: 'ExchangeRate-API', ...over });
   it('a fresh rate converts the amount (never only the symbol) and keeps the billed USD amount', () => {
     const m = usdPackageAmount('month', rate(), { now: NOW });
-    expect(m.text).toBe('$18.00');
-    expect(m.estimateText).toBe('≈£13.63');
+    expect(m.text).toBe('$18');
+    expect(m.estimateText).toBe('≈£14');
     expect(m.display).toMatchObject({ billingCurrency: 'USD', billingAmountMinor: 1800, displayCurrency: 'GBP', displayAmountMinor: 1363, estimate: true });
     const y = usdPackageAmount('year', rate({ currency: 'EUR', usdToCurrency: 0.895 }), { now: NOW });
-    expect(y.estimateText).toBe('≈€164.68');
-    expect(estimateAnnualSaving(y.display)).toBe('≈€28.64');
+    expect(y.estimateText).toBe('≈€165');
+    expect(estimateAnnualSaving(y.display)).toBe('≈€29');
   });
   it('stale (older than the 26 h validity) / future / sourceless rate -> USD only, no estimate', () => {
     expect(usdPackageAmount('month', rate({ asOf: new Date(NOW - RATE_VALIDITY_MS - 60000).toISOString() }), { now: NOW }).estimateText).toBeNull();
     expect(usdPackageAmount('month', rate({ asOf: new Date(NOW + 3600 * 1000).toISOString() }), { now: NOW }).estimateText).toBeNull();
     expect(usdPackageAmount('month', rate({ source: '' }), { now: NOW }).estimateText).toBeNull();
     expect(usdPackageAmount('month', rate({ currency: 'ILS' }), { now: NOW }).estimateText).toBeNull();
-    expect(usdPackageAmount('month', null, { now: NOW })).toMatchObject({ text: '$18.00', estimateText: null });
+    expect(usdPackageAmount('month', null, { now: NOW })).toMatchObject({ text: '$18', estimateText: null });
     expect(estimateAnnualSaving(usdPackageAmount('year', null).display)).toBeNull();
   });
 });

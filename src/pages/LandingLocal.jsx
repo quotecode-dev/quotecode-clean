@@ -4,7 +4,7 @@ import { Gift, PackageCheck, Mail, BriefcaseBusiness, BookOpen, PenTool, Ruler, 
 import { FONT_HE } from '../theme/neonTheme';
 import { setSeoMeta } from '../utils/seoMeta';
 import { publicSeo } from '../shared/publicSeoRoutes';
-import { formatWholeMoney } from '../utils/money';
+import { formatPlanPrice } from '../utils/money';
 import { FREE_QUOTES_TOTAL, ilsPackageAmount, ilsAnnualSaving, ilsAnnualSavingRate } from '../components/landing/landingPackageFacts';
 import BrandName from '../components/BrandName';
 import LandingPage from '../components/landing/LandingPage';
@@ -43,7 +43,7 @@ export default function LandingLocal({ onForgotPassword }) {
   const plans = [
     {
       id: 'free', icon: Gift, name: 'חינם', tagline: 'חינם עד 10 הצעות או 7 ימים, המוקדם מביניהם.',
-      prices: [{ period: 'free', amount: `₪${formatWholeMoney(0)}`, per: null }],
+      prices: [{ period: 'free', amount: `₪${formatPlanPrice(0)}`, per: null }],
       capacity: [`${FREE_QUOTES_TOTAL} הצעות מחיר בסך הכול`, 'או 7 ימים מההרשמה, המוקדם מביניהם', 'בשבעת הימים כלול גם חכם פלוס'],
       features: [
         'הצעה נספרת בשמירה הראשונה עם לקוח ופריט; גרסה חדשה או לקוח אחר נספרים שוב',

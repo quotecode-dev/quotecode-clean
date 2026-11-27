@@ -13,7 +13,7 @@
 ## Plans and pricing
 
 - Free: 10 quotes or 7 days from sign-up, whichever comes first. SMART PACK is included during the 7 days. No payment details are needed to open an account.
-- All-inclusive: one package with all available core capabilities, billed monthly or annually. Israel: ILS 30.00 per month, VAT included. International: USD 18.00 per month.
+- All-inclusive: one package with all available core capabilities, billed monthly or annually. Israel: ILS 30 per month, VAT included. International: USD 18 per month.
 - SMART PACK (optional paid add-on): a smart chat that reads the account's own data, voice chat, an AI smart quote with voice dictation, a quote from a file (PDF or JPG), Improve quote, and files attached to quotes. Israel: ILS 10 per month, or ILS 102 a year with a yearly plan. International: USD 5 per month, or USD 51 a year with a yearly plan.
 - The paid package is bought inside the account, in the plans window, by card.
 - Cancellation: a subscription can be cancelled at any time by e-mail or from the plans window. The team handles the request and confirms it by e-mail. Cancelling does not delete the account. Full terms: [Terms (Hebrew)](https://www.tekango.com/he/terms), [Terms (English)](https://www.tekango.com/en/terms).

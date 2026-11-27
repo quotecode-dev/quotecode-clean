@@ -156,7 +156,7 @@ describe('refined landing pages (server render, as the prerender does)', () => {
   it('market separation: HE has ₪ and no $ / USD; EN has $ / USD and no Hebrew / ILS / ₪ / NIS', () => {
     expect(text(he)).toMatch(/₪/);
     expect(text(he)).not.toMatch(/\$|USD/);
-    expect(text(en)).toMatch(/\$18\.00/);
+    expect(text(en)).toMatch(/\$18(?![\d.,])/); // IRON-ILS-001 amended 2026-11-27: the plan price is a whole number
     expect(en).not.toMatch(HEBREW);
     expect(text(en)).not.toMatch(/₪|\bILS\b|\bNIS\b/);
     const enCards = en.match(/<article\b[^>]*\bdata-plan-card="[^"]*"[^>]*>[\s\S]*?<\/article>/g);
@@ -168,19 +168,25 @@ describe('refined landing pages (server render, as the prerender does)', () => {
   // breakdown; EN USD with two decimals and the USD charge disclosure; the retired three-plan amounts are gone from the landing.
   // Task 26: one price at a time - the server render (= the prerendered page) shows the initial monthly choice; the annual price
   // appears only after choosing it (landingPlanTruthSymmetry proves both periods in the browser render).
-  it('plan amounts: HE ₪30.00 / month incl. VAT (no rate / breakdown); EN $18.00 / month, charged in USD; the annual price only on choice', () => {
+  // Owner console 2026-11-27 (typed: the IRON-ILS-001 amendment + "מאשר שינוי ב-L-06 וב-L-22 להצגת מחירי המנוי והנלווים בלי ספרות אחרי הנקודה, כולל
+  // עדכון בדיקות השמירה"): the plan prices are whole numbers (₪30, $18); the sample quote amounts keep ".00".
+  it('plan amounts: HE ₪30 / month incl. VAT (no rate / breakdown); EN $18 / month, charged in USD; the annual price only on choice', () => {
+    // a whole plan price exactly (₪5 is not a match inside ₪5,076.00 of the sample quote)
+    const whole = (t, v) => new RegExp(v.replace(/[$.]/g, (c) => `\\${c}`) + '(?![\\d.,])').test(t);
     const t = text(he).replace(/\s+/g, ' ');
-    for (const v of ['₪0.00', '₪30.00 / חודש', 'תקופת חיוב', 'חודשי', 'שנתי', 'המחירים כוללים מע״מ']) expect(t).toContain(v);
-    expect(t).not.toContain('₪306.00');
-    expect(t).not.toContain('₪54.00'); // the annual saving appears only when Annual is chosen
+    for (const v of ['₪0', '₪30 / חודש', 'תקופת חיוב', 'חודשי', 'שנתי', 'המחירים כוללים מע״מ']) expect(t).toContain(v);
+    expect(whole(t, '₪306')).toBe(false); expect(t).not.toContain('₪306.00');
+    expect(whole(t, '₪54')).toBe(false); // the annual saving appears only when Annual is chosen
     for (const v of ['₪29.00', '₪49.00', '₪69.00', '₪5.00']) expect(t).not.toContain(v);
+    for (const v of ['₪29', '₪49', '₪69', '₪5']) expect(whole(t, v)).toBe(false);
     const te = text(en).replace(/\s+/g, ' ');
-    for (const v of ['$0.00', '$18.00 USD / month', 'Billing period', 'Monthly', 'Annual', 'Charged in USD']) expect(te).toContain(v);
+    for (const v of ['$0', '$18 USD / month', 'Billing period', 'Monthly', 'Annual', 'Charged in USD']) expect(te).toContain(v);
     expect(te).not.toContain('$183.60');
     expect(te).not.toContain('$32.40');
-    expect(te).not.toContain('$184.00'); // the annual price (Owner $184.00) appears only when Annual is chosen
-    expect(te).not.toContain('$32.00');
+    expect(whole(te, '$184')).toBe(false); // the annual price (Owner $184) appears only when Annual is chosen
+    expect(whole(te, '$32')).toBe(false);
     for (const v of ['$28.00', '$38.00', '$3.00', '$6.00']) expect(te).not.toContain(v);
+    for (const v of ['$28', '$38', '$3', '$6']) expect(whole(te, v)).toBe(false);
     expect(text(he)).not.toMatch(/\d ₪|\d\.\d{2}(?!\d) ₪/); // no "49 ₪" / "41.53 ₪" leftovers (raw spacing, as before)
     const heCards = (he.match(/<article\b[^>]*\bdata-plan-card="[^"]*"[^>]*>[\s\S]*?<\/article>/g) || []).map(text).join(' ');
     expect(heCards).not.toMatch(/מע"?״?מ|\d+%/);

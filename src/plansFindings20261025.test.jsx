@@ -185,7 +185,7 @@ describe('review follow-ups (HE + EN)', () => {
   });
   it('abroad (2026-11-01): the notice promises the plans window with the USD price (EN), plural address in HE', () => {
     expect(noticeCopy('en', 'smart_pack', intl()).explanation).toMatch(/ You can add it in the plans window\.$/);
-    expect(noticeCopy('en', 'smart_pack', intl()).eligible).toBe('Price: $5.00 a month, or $51.00 a year with an annual plan.');
+    expect(noticeCopy('en', 'smart_pack', intl()).eligible).toBe('Price: $5 a month, or $51 a year with an annual plan.');
     expect(noticeCopy('he', 'smart_pack', intl()).explanation).toMatch(/ אפשר להוסיף אותו בחלון המסלולים\.$/);
     expect(accountStatusModel(pastDue(), 'he').detail).toBe('החיוב האחרון לא עבר');
     expect(read('src/components/PackageOfferCards.jsx')).toContain("isHebrew ? 'המסלול שלכם' : 'Your plan'");

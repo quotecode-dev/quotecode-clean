@@ -28,7 +28,7 @@ describe('the SMART PACK notice', () => {
     expect(c.title).toBe('האפשרות הזו כלולה בחכם פלוס');
     // Owner console 2026-11-03 (typed approval incl. L-05: "... בדיקת הלקוח ברשימת חכם פלוס"): + Improve quote
     expect(c.explanation).toMatch(/צ׳אט קולי, הצעה חכמה עם AI והכתבה בקול, הצעת מחיר מקובץ, שיפור ההצעה, וקבצים מצורפים להצעה\. אפשר להוסיף אותו בחלון המסלולים\.$/);
-    expect(c.eligible).toBe('המחיר: ₪10.00 לחודש, או ₪102.00 לשנה במנוי שנתי.');
+    expect(c.eligible).toBe('המחיר: ₪10 לחודש, או ₪102 לשנה במנוי שנתי.');
     // the promise only while the plans window can sell it (purchasing off = no promise, no price)
     const off = capabilityNoticeCopy('he', 'smart_pack', summary({ phase: { output: 'enforced', catalog: 'prepared', billing: 'off' } }));
     expect(off.explanation).not.toMatch(/חלון המסלולים/);
@@ -36,7 +36,7 @@ describe('the SMART PACK notice', () => {
     expect(c.unchanged).toBe('לא בוצע שום שינוי ולא בוצע חיוב.');
     // 2026-11-01: abroad it is bought too, at its USD price (IRON-MARKET-001: never the shekel abroad)
     expect(capabilityNoticeCopy('en', 'smart_pack', summary({ market: 'INTERNATIONAL' }))).toMatchObject({
-      title: 'This is part of SMART PACK', eligible: 'Price: $5.00 a month, or $51.00 a year with an annual plan.' });
+      title: 'This is part of SMART PACK', eligible: 'Price: $5 a month, or $51 a year with an annual plan.' });
     expect(capabilityNoticeCopy('en', 'smart_pack', summary({ market: 'INTERNATIONAL' })).explanation).toMatch(/You can add it in the plans window\.$/);
   });
   it('renders as the one capability dialog with the plans button', () => {
@@ -98,10 +98,10 @@ describe('SMART PACK for an active subscriber', () => {
     render(<SmartPackAddOnOffer isHebrew invoke={invoke} onLeave={onLeave} />);
     await waitFor(() => expect(screen.getByTestId('plans-smart-pack-add-on')).toBeInTheDocument());
     // Owner console 2026-10-25 (typed: "מאשר שינוי ב-L-22: ... ותיבת ההוספה למנוי קיים בנוסח החדש עם חיוב יחסי")
-    expect(screen.getByTestId('plans-smart-pack-add-on').querySelector('h3').textContent).toBe('להוסיף את חכם פלוס למנוי? (+₪10.00 לחודש)');
+    expect(screen.getByTestId('plans-smart-pack-add-on').querySelector('h3').textContent).toBe('להוסיף את חכם פלוס למנוי? (+₪10 לחודש)');
     expect(screen.getByTestId('plans-smart-pack-add-on-now').textContent).toBe('חיוב יחסי עכשיו עד סוף החודש הנוכחי של המנוי: ₪7.00 (עד 20/11/2026)');
     expect([...screen.getByTestId('plans-smart-pack-add-on-now').querySelectorAll('bdi')].map((b) => b.getAttribute('dir'))).toEqual(['ltr', 'ltr']);
-    expect(screen.getByTestId('plans-smart-pack-add-on-then').textContent).toBe('מהחידוש הבא: ₪10.00 לחודש, יחד עם המנוי.');
+    expect(screen.getByTestId('plans-smart-pack-add-on-then').textContent).toBe('מהחידוש הבא: ₪10 לחודש, יחד עם המנוי.');
     expect(screen.getByTestId('plans-smart-pack-add-on-pay').textContent).toBe('כן, להוסיף את חכם פלוס - ₪7.00');
     expect(screen.getByTestId('plans-smart-pack-add-on-fee').textContent).toContain('ביטול: לפי סעיף 6 בתנאי השימוש.');
     fireEvent.click(screen.getByTestId('plans-smart-pack-add-on-pay'));
@@ -114,9 +114,9 @@ describe('SMART PACK for an active subscriber', () => {
     render(<SmartPackAddOnOffer isHebrew={false} invoke={invoke} onLeave={() => {}} />);
     await waitFor(() => expect(screen.getByTestId('plans-smart-pack-add-on')).toBeInTheDocument());
     expect(screen.getByTestId('plans-smart-pack-add-on')).toHaveAttribute('dir', 'ltr');
-    expect(screen.getByTestId('plans-smart-pack-add-on').querySelector('h3').textContent).toBe('Add SMART PACK to your plan? (+₪102.00 a year)');
+    expect(screen.getByTestId('plans-smart-pack-add-on').querySelector('h3').textContent).toBe('Add SMART PACK to your plan? (+₪102 a year)');
     expect(screen.getByTestId('plans-smart-pack-add-on-now').textContent).toBe('Pro-rated charge now until the end of your current billing year: ₪51.00 (until 20/04/2027)');
-    expect(screen.getByTestId('plans-smart-pack-add-on-then').textContent).toBe('From the next renewal: ₪102.00 a year, with your plan.');
+    expect(screen.getByTestId('plans-smart-pack-add-on-then').textContent).toBe('From the next renewal: ₪102 a year, with your plan.');
     expect(screen.getByTestId('plans-smart-pack-add-on-pay').textContent).toBe('Yes, add SMART PACK - ₪51.00');
     expect(screen.getByTestId('plans-smart-pack-add-on-fee').textContent).toContain('Cancellation: as set out in section 6 of the Terms.');
   });

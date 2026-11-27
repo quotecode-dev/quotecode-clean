@@ -10,15 +10,15 @@ describe('plans window estimate + cancellation path', () => {
   // Owner console 2026-10-26 (typed L-01 / L-22, item ג): the card's main price is the account currency (estimate) + the USD amount charged
   it('International GBP account: the card price in GBP (estimate) with the USD charge on the row + the labelled estimate line', () => {
     const m = pricingModalModel({ isHebrew: false, market: 'INTERNATIONAL', accountCurrency: 'GBP', estimateRate: rate() });
-    expect(m.plans[1].prices.map((p) => p.amount)).toEqual(['≈£13.63', '≈£139.29']);
+    expect(m.plans[1].prices.map((p) => p.amount)).toEqual(['≈£14', '≈£139']);
     expect(m.plans[1].prices.map((p) => p.per)).toEqual(['GBP / month · estimate', 'GBP / year · estimate']);
-    expect(m.plans[1].prices[0].note).toBe('Charged in USD: $18.00 per month');
-    expect(m.plans[1].prices[1].note).toMatch(/^Charged in USD: \$184\.00 per year\. Save /);
+    expect(m.plans[1].prices[0].note).toBe('Charged in USD: $18 per month');
+    expect(m.plans[1].prices[1].note).toMatch(/^Charged in USD: \$184 per year\. Save /);
     expect(m.priceNote).toBe('Prices on the card are an estimate in GBP. Charged in USD.');
     const he = pricingModalModel({ isHebrew: true, market: 'INTERNATIONAL', accountCurrency: 'GBP', estimateRate: rate() });
-    expect(he.plans[1].prices[0]).toMatchObject({ amount: '≈£13.63', per: 'GBP / חודש · הערכה', note: 'החיוב בדולר ארה״ב: $18.00 לחודש' });
+    expect(he.plans[1].prices[0]).toMatchObject({ amount: '≈£14', per: 'GBP / חודש · הערכה', note: 'החיוב בדולר ארה״ב: $18 לחודש' });
     expect(he.priceNote).toBe('המחירים בכרטיס הם הערכה ב-GBP. החיוב בדולר ארה״ב.');
-    expect(m.estimateNote).toMatch(/^Estimate in GBP only: about £13\.63 per month or £139\.29 per year at the ExchangeRate-API rate of \d{4}-\d{2}-\d{2}\. Charged in USD\.$/);
+    expect(m.estimateNote).toMatch(/^Estimate in GBP only: about £14 per month or £139 per year at the ExchangeRate-API rate of \d{4}-\d{2}-\d{2}\. Charged in USD\.$/);
   });
   // Owner console 2026-11-01 (typed: "מאשר פתיחת הרכישה בחו"ל לפי ההמלצות א-ה, כולל שינוי ב-L-01, L-05, ... L-22"): SMART PACK is bought abroad too (the card box,
   // the add-on offer) - the item ד information line is gone in every market and language; abroad the renewing total is in USD
@@ -28,11 +28,11 @@ describe('plans window estimate + cancellation path', () => {
         expect(pricingModalModel({ isHebrew, market: 'INTERNATIONAL', accountCurrency, estimateRate }).smartPackAbroad).toBeNull();
       }
     }
-    expect(pricingModalModel({ isHebrew: false, market: 'INTERNATIONAL', accountCurrency: 'USD' }).plans[1].addOn.perPeriod.month.total).toBe('Including SMART PACK: $23.00 / month');
-    expect(pricingModalModel({ isHebrew: true, market: 'INTERNATIONAL', accountCurrency: 'USD' }).plans[1].addOn.perPeriod.year.total).toBe('כולל חכם פלוס: $235.00 לשנה');
+    expect(pricingModalModel({ isHebrew: false, market: 'INTERNATIONAL', accountCurrency: 'USD' }).plans[1].addOn.perPeriod.month.total).toBe('Including SMART PACK: $23 / month');
+    expect(pricingModalModel({ isHebrew: true, market: 'INTERNATIONAL', accountCurrency: 'USD' }).plans[1].addOn.perPeriod.year.total).toBe('כולל חכם פלוס: $235 לשנה');
     expect(pricingModalModel({ isHebrew: true, market: 'IL' }).smartPackAbroad).toBeNull();
     // the account card stays USD without a valid rate
-    expect(pricingModalModel({ isHebrew: false, market: 'INTERNATIONAL', accountCurrency: 'EUR', estimateRate: null }).plans[1].prices.map((p) => p.amount)).toEqual(['$18.00', '$184.00']);
+    expect(pricingModalModel({ isHebrew: false, market: 'INTERNATIONAL', accountCurrency: 'EUR', estimateRate: null }).plans[1].prices.map((p) => p.amount)).toEqual(['$18', '$184']);
   });
   it('a missing / stale / other-currency rate -> the true notice, never a converted figure', () => {
     expect(pricingModalModel({ isHebrew: false, market: 'INTERNATIONAL', accountCurrency: 'EUR', estimateRate: null }).estimateNote).toBe('A EUR estimate is not available right now, so prices are shown in US dollars.');
